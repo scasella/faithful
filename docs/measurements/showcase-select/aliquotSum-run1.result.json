@@ -1,0 +1,112 @@
+{
+  "fn": "aliquotSum",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 1,
+  "disagreementsFound": 0,
+  "rulings": [],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "not-proved",
+    "attempts": 10,
+    "minutes": 11.943105534716668
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 30.714592163875515,
+        "lo": 30.525488694291784,
+        "hi": 30.927223681582195
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: Math.sqrt produces non-integer numbers",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 31.72953537153048,
+        "lo": 31.556741036996893,
+        "hi": 31.957778617399434
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: `a / b` is not provably an integer; use Math.floor(a / b) or Math.ceil(a / b)",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 3,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 31.864895524975076,
+        "lo": 31.496759657818867,
+        "hi": 31.988322487877078
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: Math.sqrt produces non-integer numbers",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 4,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 27.004828027800833,
+        "lo": 26.729656115542987,
+        "hi": 27.17140434702792
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: `a / b` is not provably an integer; use Math.floor(a / b) or Math.ceil(a / b)",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 5,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 32.39490959865958,
+        "lo": 32.12398969502134,
+        "hi": 32.53406021727034
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: no termination measure found for this loop. Recognized: for...of; `i < E` / `i <= E` with i++ or i += k (or the mirror image counting down) in the incrementor or in one top-level statement of the body without `continue`; `n > c` with n = Math.floor(n / k); `xs.length > 0` with xs = xs.slice(k). E must not change inside the loop",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 6,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 1.855009247035009,
+        "lo": 1.8297121075604321,
+        "hi": 1.8702092430138
+      },
+      "rejection": "Not proved (4 attempts, 3.4 minutes): Lean could not prove that the candidate meets the agreed spec",
+      "rejectionStage": "proof"
+    }
+  ],
+  "bestTier": "none",
+  "bestSpeedup": null,
+  "fasterNotProved": 6,
+  "stoppedBy": "threshold",
+  "wallMs": 1461245.422208,
+  "codex": {
+    "calls": 22,
+    "failed": 0,
+    "inputTokens": 552022,
+    "outputTokens": 43178,
+    "ms": 921075.2942489998
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

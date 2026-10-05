@@ -1,0 +1,19 @@
+17 candidates, concurrency 3, config {"lib":"current","mode":"split","candidateGuide":true,"effort":["high"],"attempts":8,"minutes":12,"env":{"FAITHFUL_CANDIDATE_GUIDE":"1","FAITHFUL_CANDIDATE_LENGTH_FACTS":"1","FAITHFUL_CANDIDATE_PROOF":"split"}}
+array/maxSubarraySum#1: not proved 8 att 9.7 min eq=not-proved rg=not-proved
+array/maxSubarraySum#3: not proved 8 att 9.7 min eq=not-proved rg=not-proved
+array/maxSubarraySum#2: not proved 8 att 10.1 min eq=not-proved rg=not-proved
+array/maxSubarraySum#4: not proved 8 att 8.4 min eq=not-proved rg=not-proved
+array/maxSubarraySum#5: not proved 8 att 9.9 min eq=not-proved rg=not-proved
+array/maxSubarraySum#6: not proved 8 att 9.5 min eq=not-proved rg=not-proved
+numeric/clamp#1: PROVED 3 att 2.0 min eq=proved rg=proved
+array/spread#2: not proved 8 att 9.3 min eq=not-proved rg=not-proved
+array/spread#4: not proved 8 att 9.8 min eq=proved rg=not-proved
+numeric/factorial#2: not proved 8 att 11.2 min eq=not-proved rg=not-proved
+numeric/factorial#3: not proved 8 att 10.8 min eq=not-proved rg=not-proved
+numeric/factorial#4: PROVED 8 att 11.0 min eq=proved rg=proved
+numeric/intPow#1: not proved 8 att 10.6 min eq=not-proved rg=not-proved
+recursive/reverseDigits#1: not proved 8 att 9.9 min eq=not-proved rg=not-proved
+string/countChar#2: not proved 8 att 9.8 min eq=not-proved rg=not-proved
+string/countChar#3: not proved 8 att 8.0 min eq=proved rg=not-proved
+string/reverseString#5: not proved 8 att 10.7 min eq=not-proved rg=not-proved
+done

@@ -1,0 +1,28 @@
+26 functions to run, concurrency 3, optimize false
+array/flattenPairs: proved proof=proved calls=2 1.0min
+array/maxSubarraySum: none proof=not-proved calls=11 10.0min
+array/medianFloor: none proof=not-proved calls=13 9.0min
+array/sortPointsByY: proved proof=proved calls=2 0.9min
+array/countOccurrences: none proof=not-proved calls=11 11.3min
+array/sumOddSquares: blocked proof=- calls=3 1.0min
+array/spread: proved proof=proved calls=6 4.2min
+numeric/clamp: proved proof=proved calls=2 1.0min
+array/prefixSums: proved proof=proved calls=11 11.9min
+array/twoSum: none proof=not-proved calls=11 12.1min
+numeric/collatzSteps: proved proof=proved calls=11 11.4min
+numeric/fibRecursive: proved proof=proved calls=3 3.9min
+numeric/factorial: none proof=not-proved calls=10 12.5min
+numeric/floorDivMod: none proof=not-proved calls=8 12.2min
+numeric/intPow: none proof=not-proved calls=11 11.6min
+recursive/fibonacci: proved proof=proved calls=4 6.6min
+recursive/toBinary: proved proof=proved calls=7 5.7min
+recursive/flattenPairs: proved proof=proved calls=9 6.9min
+string/caesarShift: blocked proof=- calls=3 1.5min
+recursive/reverseDigits: none proof=not-proved calls=12 13.0min
+string/capitalize: proved proof=proved calls=9 7.2min
+string/ellipsize: blocked proof=- calls=3 1.0min
+string/countVowels: none proof=not-proved calls=11 11.6min
+string/reverseString: proved proof=proved calls=11 10.3min
+string/trimControl: none proof=not-proved calls=11 10.1min
+string/repeatString: blocked proof=- calls=3 39.0min
+done

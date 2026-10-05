@@ -6,3 +6,9 @@ lean/.lake
 .faithful-tmp
 coverage
 apps/*/dist
+
+# bulky per-session logs from measurement runs (results.jsonl, notes, splits and rules ARE tracked)
+docs/measurements/**/sessions/
+docs/measurements/**/collect-sessions/
+docs/measurements/_aborted/
+docs/measurements/**/base/

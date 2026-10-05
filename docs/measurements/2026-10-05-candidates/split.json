@@ -1,0 +1,33 @@
+{
+ "rule": "functions with >=1 candidate, sorted by id; TUNE = 0-based index i with i mod 3 == 1; HELD-OUT = the rest",
+ "tune": [
+  "array/maxSubarraySum",
+  "array/spread",
+  "numeric/clamp",
+  "numeric/factorial",
+  "numeric/intPow",
+  "recursive/reverseDigits",
+  "string/countChar",
+  "string/reverseString"
+ ],
+ "heldout": [
+  "array/countOccurrences",
+  "array/maxWindowSum",
+  "array/sortPointsByY",
+  "array/sum",
+  "array/twoSum",
+  "numeric/collatzSteps",
+  "numeric/digitSum",
+  "numeric/fibRecursive",
+  "numeric/floorDivMod",
+  "numeric/sign",
+  "recursive/fibonacci",
+  "recursive/toBinary",
+  "refuse/prefixSumUntilNegative",
+  "string/countVowels",
+  "string/longestRun",
+  "string/trimControl"
+ ],
+ "tuneCandidates": 17,
+ "heldoutCandidates": 33
+}

@@ -1,0 +1,13 @@
+{
+  "lib": "current",
+  "mode": "split",
+  "candidateGuide": true,
+  "effort": [
+    "high"
+  ],
+  "attempts": 8,
+  "minutes": 12,
+  "env": {
+    "FAITHFUL_NOTHING": "1"
+  }
+}

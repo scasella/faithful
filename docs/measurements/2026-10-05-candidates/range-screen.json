@@ -1,0 +1,485 @@
+[
+  {
+    "id": "array/countOccurrences#1",
+    "inputsTried": 5768,
+    "originalInRange": 3114,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/countOccurrences#2",
+    "inputsTried": 5768,
+    "originalInRange": 3114,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/countOccurrences#3",
+    "inputsTried": 5768,
+    "originalInRange": 3114,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/countOccurrences#4",
+    "inputsTried": 5768,
+    "originalInRange": 3114,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/maxWindowSum#1",
+    "inputsTried": 5721,
+    "originalInRange": 2790,
+    "refuted": true,
+    "refutingInputs": [
+      [
+        [
+          -9007199254740992,
+          6,
+          -3,
+          -4
+        ],
+        1
+      ],
+      [
+        [
+          3989203,
+          19,
+          19,
+          -11,
+          -18,
+          -9007199254740992
+        ],
+        5
+      ],
+      [
+        [
+          -715,
+          -34,
+          -323,
+          91,
+          -65,
+          9007199254740991,
+          -95063
+        ],
+        5
+      ]
+    ],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": "false"
+  },
+  {
+    "id": "array/maxSubarraySum#1",
+    "inputsTried": 5900,
+    "originalInRange": 5580,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/maxSubarraySum#2",
+    "inputsTried": 5900,
+    "originalInRange": 5580,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/maxSubarraySum#3",
+    "inputsTried": 5900,
+    "originalInRange": 5580,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/maxSubarraySum#4",
+    "inputsTried": 5900,
+    "originalInRange": 5580,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/maxSubarraySum#5",
+    "inputsTried": 5900,
+    "originalInRange": 5580,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/maxSubarraySum#6",
+    "inputsTried": 5900,
+    "originalInRange": 5580,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/sortPointsByY#3",
+    "inputsTried": 5985,
+    "originalInRange": 5985,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/spread#2",
+    "inputsTried": 5900,
+    "originalInRange": 5476,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/spread#4",
+    "inputsTried": 5900,
+    "originalInRange": 5476,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/sum#1",
+    "inputsTried": 5900,
+    "originalInRange": 5590,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/sum#2",
+    "inputsTried": 5900,
+    "originalInRange": 5590,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/clamp#1",
+    "inputsTried": 5736,
+    "originalInRange": 2876,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "array/twoSum#3",
+    "inputsTried": 5721,
+    "originalInRange": 5354,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/factorial#2",
+    "inputsTried": 5513,
+    "originalInRange": 19,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/factorial#3",
+    "inputsTried": 5513,
+    "originalInRange": 19,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/factorial#4",
+    "inputsTried": 5513,
+    "originalInRange": 19,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/collatzSteps#4",
+    "inputsTried": 5704,
+    "originalInRange": 1068,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/digitSum#1",
+    "inputsTried": 5513,
+    "originalInRange": 5513,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/floorDivMod#2",
+    "inputsTried": 5704,
+    "originalInRange": 5601,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/floorDivMod#3",
+    "inputsTried": 5704,
+    "originalInRange": 5601,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/fibRecursive#1",
+    "inputsTried": 5513,
+    "originalInRange": 2701,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/fibRecursive#2",
+    "inputsTried": 5513,
+    "originalInRange": 2701,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/sign#1",
+    "inputsTried": 5513,
+    "originalInRange": 5513,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "numeric/intPow#1",
+    "inputsTried": 5704,
+    "originalInRange": 374,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "recursive/reverseDigits#1",
+    "inputsTried": 5704,
+    "originalInRange": 2485,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "recursive/fibonacci#1",
+    "inputsTried": 5513,
+    "originalInRange": 37,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "recursive/fibonacci#2",
+    "inputsTried": 5513,
+    "originalInRange": 37,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "recursive/toBinary#1",
+    "inputsTried": 5513,
+    "originalInRange": 2848,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "recursive/toBinary#2",
+    "inputsTried": 5513,
+    "originalInRange": 2848,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "recursive/toBinary#3",
+    "inputsTried": 5513,
+    "originalInRange": 2848,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "refuse/prefixSumUntilNegative#1",
+    "inputsTried": 5900,
+    "originalInRange": 5823,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "refuse/prefixSumUntilNegative#2",
+    "inputsTried": 5900,
+    "originalInRange": 5823,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "refuse/prefixSumUntilNegative#3",
+    "inputsTried": 5900,
+    "originalInRange": 5823,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/countChar#2",
+    "inputsTried": 5609,
+    "originalInRange": 990,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/countChar#3",
+    "inputsTried": 5609,
+    "originalInRange": 990,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/countVowels#2",
+    "inputsTried": 5548,
+    "originalInRange": 4640,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/countVowels#3",
+    "inputsTried": 5548,
+    "originalInRange": 4640,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/countVowels#4",
+    "inputsTried": 5548,
+    "originalInRange": 4640,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/reverseString#5",
+    "inputsTried": 5548,
+    "originalInRange": 5548,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/longestRun#1",
+    "inputsTried": 5548,
+    "originalInRange": 5548,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/longestRun#2",
+    "inputsTried": 5548,
+    "originalInRange": 5548,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/longestRun#3",
+    "inputsTried": 5548,
+    "originalInRange": 5548,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/longestRun#4",
+    "inputsTried": 5548,
+    "originalInRange": 5548,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/trimControl#3",
+    "inputsTried": 5548,
+    "originalInRange": 5548,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  },
+  {
+    "id": "string/trimControl#4",
+    "inputsTried": 5548,
+    "originalInRange": 5548,
+    "refuted": false,
+    "refutingInputs": [],
+    "candidateLoaded": true,
+    "leanCandPreOnFirst": null
+  }
+]

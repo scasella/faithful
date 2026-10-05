@@ -1,0 +1,100 @@
+{
+  "fn": "spread",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 1,
+  "disagreementsFound": 0,
+  "rulings": [],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "proved",
+    "attempts": 5,
+    "minutes": 3.6512296111166664
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 1.0317775569607026,
+        "lo": 1.0140068379767184,
+        "hi": 1.058087488578083
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: no termination measure found for this loop. Recognized: for...of; `i < E` / `i <= E` with i++ or i += k (or the mirror image counting down) in the incrementor or in one top-level statement of the body without `continue`; `n > c` with n = Math.floor(n / k); `xs.length > 0` with xs = xs.slice(k). E must not change inside the loop",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 1.0712616359149298,
+        "lo": 1.0580854419202708,
+        "hi": 1.0933087232529006
+      },
+      "rejection": "Not proved (8 attempts, 7.1 minutes; the equality part was proved, the range part was not): Lean could not prove that the candidate meets the agreed spec (the equality part was proved, the range part was not)",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 3,
+      "outcome": "not-faster",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 0.9712151816409319,
+        "lo": 0.9568393263686024,
+        "hi": 0.9875827043285059
+      },
+      "rejection": "not faster than the original: speedup 0.97× (95% CI 0.96–0.99), the intervals overlap",
+      "rejectionStage": "benchmark"
+    },
+    {
+      "id": 4,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 1.0155333917493803,
+        "lo": 1.0030293650233664,
+        "hi": 1.029752480033639
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: no termination measure found for this loop. Recognized: for...of; `i < E` / `i <= E` with i++ or i += k (or the mirror image counting down) in the incrementor or in one top-level statement of the body without `continue`; `n > c` with n = Math.floor(n / k); `xs.length > 0` with xs = xs.slice(k). E must not change inside the loop",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 5,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 1.0914851965391097,
+        "lo": 1.0685477732311772,
+        "hi": 1.1104590110527925
+      },
+      "rejection": "Not proved (8 attempts, 7.3 minutes; neither the equality nor the range part was proved): Lean could not prove that the candidate meets the agreed spec (neither the equality nor the range part was proved)",
+      "rejectionStage": "proof"
+    }
+  ],
+  "bestTier": "proved",
+  "bestSpeedup": null,
+  "fasterNotProved": 4,
+  "stoppedBy": "threshold",
+  "wallMs": 1212460.725958,
+  "codex": {
+    "calls": 28,
+    "failed": 0,
+    "inputTokens": 791956,
+    "outputTokens": 54312,
+    "ms": 1098448.3908340002
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

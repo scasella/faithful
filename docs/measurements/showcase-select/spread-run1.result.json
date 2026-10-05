@@ -1,0 +1,64 @@
+{
+  "fn": "spread",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 2,
+  "disagreementsFound": 0,
+  "rulings": [],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "proved",
+    "attempts": 3,
+    "minutes": 1.9322393007
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 1.126266500564899,
+        "lo": 1.0903676199959067,
+        "hi": 1.144294633611745
+      },
+      "rejection": "Not proved (4 attempts, 4.2 minutes): Lean could not prove that the candidate meets the agreed spec",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 1.1816323846419055,
+        "lo": 1.1600778936149707,
+        "hi": 1.231118535087724
+      },
+      "rejection": "Not proved (4 attempts, 3.2 minutes): Lean could not prove that the candidate meets the agreed spec",
+      "rejectionStage": "proof"
+    }
+  ],
+  "bestTier": "proved",
+  "bestSpeedup": null,
+  "fasterNotProved": 2,
+  "stoppedBy": "budget",
+  "wallMs": 661961.496958,
+  "codex": {
+    "calls": 16,
+    "failed": 0,
+    "inputTokens": 395880,
+    "outputTokens": 25407,
+    "ms": 540640.0389590001
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

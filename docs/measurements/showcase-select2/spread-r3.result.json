@@ -1,0 +1,88 @@
+{
+  "fn": "spread",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 1,
+  "disagreementsFound": 0,
+  "rulings": [],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "proved",
+    "attempts": 8,
+    "minutes": 5.623246712499999
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 1.074022949141754,
+        "lo": 1.023760691427671,
+        "hi": 1.1675683122967049
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: no termination measure found for this loop. Recognized: for...of; `i < E` / `i <= E` with i++ or i += k (or the mirror image counting down) in the incrementor or in one top-level statement of the body without `continue`; `n > c` with n = Math.floor(n / k); `xs.length > 0` with xs = xs.slice(k). E must not change inside the loop",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 1.0802437214795628,
+        "lo": 1.0363404169420973,
+        "hi": 1.0991548356082206
+      },
+      "rejection": "Not proved (8 attempts, 8.3 minutes; the equality part was proved, the range part was not): Lean could not prove that the candidate meets the agreed spec (the equality part was proved, the range part was not)",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 3,
+      "outcome": "not-faster",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 1.0272895025148925,
+        "lo": 0.9498082202766238,
+        "hi": 1.1319550369954734
+      },
+      "rejection": "not faster than the original: speedup 1.03× (95% CI 0.95–1.13), the intervals overlap",
+      "rejectionStage": "benchmark"
+    },
+    {
+      "id": 4,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 1.3585547488372616,
+        "lo": 1.3321379733809366,
+        "hi": 1.3802684800065923
+      },
+      "rejection": "Not proved (8 attempts, 7.9 minutes; neither the equality nor the range part was proved): Lean could not prove that the candidate meets the agreed spec (neither the equality nor the range part was proved)",
+      "rejectionStage": "proof"
+    }
+  ],
+  "bestTier": "proved",
+  "bestSpeedup": null,
+  "fasterNotProved": 3,
+  "stoppedBy": "threshold",
+  "wallMs": 1433157.1205000002,
+  "codex": {
+    "calls": 29,
+    "failed": 0,
+    "inputTokens": 849248,
+    "outputTokens": 59729,
+    "ms": 1243110.3843750004
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

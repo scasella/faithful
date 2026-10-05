@@ -1,0 +1,52 @@
+{
+  "fn": "fibRecursive",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 1,
+  "disagreementsFound": 0,
+  "rulings": [],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "proved",
+    "attempts": 4,
+    "minutes": 4.018785752083334
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 62422.177444268134,
+        "lo": 61859.13064129407,
+        "hi": 62914.81470484565
+      },
+      "rejection": "Not proved (8 attempts, 10.5 minutes): Lean could not prove that the candidate meets the agreed spec",
+      "rejectionStage": "proof"
+    }
+  ],
+  "bestTier": "proved",
+  "bestSpeedup": null,
+  "fasterNotProved": 1,
+  "stoppedBy": "threshold",
+  "wallMs": 1060310.509125,
+  "codex": {
+    "calls": 14,
+    "failed": 0,
+    "inputTokens": 389107,
+    "outputTokens": 40465,
+    "ms": 830555.178499
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

@@ -1,0 +1,15 @@
+13 functions to run, concurrency 3, optimize false
+array/dedupe: proved proof=proved calls=3 1.0min
+array/sum: proved proof=proved calls=2 0.4min
+array/reverseArray: none proof=not-proved calls=7 2.2min
+array/maxWindowSum: none proof=not-proved calls=7 2.6min
+numeric/digitSum: none proof=not-proved calls=7 2.8min
+numeric/sign: proved proof=proved calls=2 0.4min
+numeric/aliquotSum: none proof=not-proved calls=7 6.0min
+recursive/powerBySquaring: none proof=not-proved calls=7 3.1min
+refuse/prefixSumUntilNegative: proved proof=proved calls=5 1.4min
+string/longestRun: blocked proof=- calls=4 1.0min
+string/countChar: none proof=not-proved calls=7 2.5min
+numeric/fibonacci: proved proof=proved calls=5 9.2min
+string/toCsvRow: none proof=not-proved calls=7 2.3min
+done

@@ -1,0 +1,37 @@
+35 functions, concurrency 3
+array/dedupe: 3 candidates, 0 kept (no-new-candidate) 1.1 min
+array/flattenPairs: 6 candidates, 0 kept (no-new-candidate) 1.4 min
+array/countOccurrences: 4 candidates, 4 kept (no-new-candidate) 2.4 min
+array/maxWindowSum: 1 candidates, 1 kept (no-new-candidate) 1.4 min
+array/prefixSums: 2 candidates, 0 kept (no-new-candidate) 0.9 min
+array/maxSubarraySum: 6 candidates, 6 kept (no-new-candidate) 2.6 min
+array/medianFloor: 4 candidates, 0 kept (no-new-candidate) 1.8 min
+array/reverseArray: 4 candidates, 0 kept (no-new-candidate) 1.2 min
+array/sortPointsByY: 6 candidates, 1 kept (no-new-candidate) 1.8 min
+array/spread: 5 candidates, 2 kept (no-new-candidate) 1.8 min
+array/sum: 2 candidates, 2 kept (no-new-candidate) 1.4 min
+numeric/clamp: 2 candidates, 1 kept (no-new-candidate) 1.4 min
+array/twoSum: 6 candidates, 1 kept (no-new-candidate) 3.1 min
+numeric/aliquotSum: 3 candidates, 0 kept (no-new-candidate) 2.8 min
+numeric/factorial: 4 candidates, 3 kept (no-new-candidate) 1.3 min
+numeric/collatzSteps: 5 candidates, 1 kept (no-new-candidate) 3.1 min
+numeric/fibonacci: 0 candidates, 0 kept (no-new-candidate) 0.4 min
+numeric/digitSum: 3 candidates, 1 kept (no-new-candidate) 3.5 min
+numeric/floorDivMod: 3 candidates, 2 kept (no-new-candidate) 1.3 min
+numeric/fibRecursive: 2 candidates, 2 kept (no-new-candidate) 2.6 min
+numeric/sign: 1 candidates, 1 kept (no-new-candidate) 0.7 min
+numeric/intPow: 1 candidates, 1 kept (no-new-candidate) 1.9 min
+recursive/powerBySquaring: 0 candidates, 0 kept (error: bench: powerBySquaring faults on benchmark input 15 ({"tag":"fault","detail":"result 1152921504606847000 is outside +-2^53 at $"}); nothing to time) 0.0 min
+recursive/flattenPairs: 3 candidates, 0 kept (no-new-candidate) 1.5 min
+recursive/reverseDigits: 2 candidates, 1 kept (no-new-candidate) 1.1 min
+recursive/fibonacci: 2 candidates, 2 kept (no-new-candidate) 3.1 min
+recursive/toBinary: 3 candidates, 3 kept (no-new-candidate) 1.6 min
+refuse/prefixSumUntilNegative: 3 candidates, 3 kept (no-new-candidate) 1.5 min
+string/capitalize: 6 candidates, 0 kept (no-new-candidate) 1.6 min
+string/countChar: 3 candidates, 2 kept (no-new-candidate) 1.5 min
+string/countVowels: 4 candidates, 3 kept (no-new-candidate) 1.4 min
+string/reverseString: 5 candidates, 1 kept (no-new-candidate) 1.5 min
+string/longestRun: 4 candidates, 4 kept (no-new-candidate) 2.5 min
+string/toCsvRow: 6 candidates, 0 kept (no-new-candidate) 2.6 min
+string/trimControl: 5 candidates, 2 kept (no-new-candidate) 3.5 min
+done

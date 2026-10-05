@@ -1,0 +1,14 @@
+{
+  "lib": "v1",
+  "mode": "single",
+  "candidateGuide": false,
+  "effort": [
+    "high"
+  ],
+  "attempts": 8,
+  "minutes": 12,
+  "env": {
+    "FAITHFUL_CANDIDATE_GUIDE": "0",
+    "FAITHFUL_CANDIDATE_PROOF": "single"
+  }
+}

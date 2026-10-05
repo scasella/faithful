@@ -1,0 +1,64 @@
+{
+  "fn": "fibRecursive",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 1,
+  "disagreementsFound": 0,
+  "rulings": [],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "not-proved",
+    "attempts": 10,
+    "minutes": 10.09570716805
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 64848.82241480773,
+        "lo": 64157.458930345965,
+        "hi": 65201.443738072456
+      },
+      "rejection": "Not proved (8 attempts, 9.0 minutes; neither the equality nor the range part was proved): Lean could not prove that the candidate meets the agreed spec (neither the equality nor the range part was proved)",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 62206.69492480676,
+        "lo": 61778.47567419043,
+        "hi": 62856.18088790782
+      },
+      "rejection": "Not proved (8 attempts, 8.0 minutes; the equality part was proved, the range part was not): Lean could not prove that the candidate meets the agreed spec (the equality part was proved, the range part was not)",
+      "rejectionStage": "proof"
+    }
+  ],
+  "bestTier": "none",
+  "bestSpeedup": null,
+  "fasterNotProved": 2,
+  "stoppedBy": "threshold",
+  "wallMs": 1798426.595833,
+  "codex": {
+    "calls": 29,
+    "failed": 0,
+    "inputTokens": 842556,
+    "outputTokens": 77543,
+    "ms": 1576379.8417099991
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

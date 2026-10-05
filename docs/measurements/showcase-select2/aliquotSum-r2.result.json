@@ -1,0 +1,121 @@
+{
+  "fn": "aliquotSum",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 3,
+  "disagreementsFound": 300,
+  "rulings": [
+    {
+      "ruling": "spec-wrong"
+    },
+    {
+      "ruling": "spec-wrong"
+    },
+    {
+      "ruling": "function-wrong",
+      "then": "carve-out",
+      "note": "inputs where n is 0"
+    },
+    {
+      "ruling": "function-wrong",
+      "then": "carve-out",
+      "note": "inputs where n is positive"
+    }
+  ],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "proved",
+    "attempts": 3,
+    "minutes": 1.9232571194500003
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 26.77144520123328,
+        "lo": 26.575030568432165,
+        "hi": 26.849381604793436
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: `a / b` is not provably an integer; use Math.floor(a / b) or Math.ceil(a / b)",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 31.627239450665478,
+        "lo": 31.54924565712372,
+        "hi": 31.720764082761534
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: Math.sqrt produces non-integer numbers",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 3,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 26.821959085028585,
+        "lo": 26.667342054163772,
+        "hi": 26.958456876837804
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: no termination measure found for this loop. Recognized: for...of; `i < E` / `i <= E` with i++ or i += k (or the mirror image counting down) in the incrementor or in one top-level statement of the body without `continue`; `n > c` with n = Math.floor(n / k); `xs.length > 0` with xs = xs.slice(k). E must not change inside the loop",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 4,
+      "outcome": "incumbent",
+      "tier": "proved",
+      "speedup": {
+        "ratio": 1.0426900678762983,
+        "lo": 1.0374895568919387,
+        "hi": 1.0485819200070332
+      },
+      "rejection": null,
+      "rejectionStage": null
+    },
+    {
+      "id": 5,
+      "outcome": "incumbent",
+      "tier": "proved",
+      "speedup": {
+        "ratio": 1.9329094366954847,
+        "lo": 1.9251316838052666,
+        "hi": 1.9383757679766216
+      },
+      "rejection": null,
+      "rejectionStage": null
+    }
+  ],
+  "bestTier": "proved",
+  "bestSpeedup": {
+    "ratio": 1.9329094366954847,
+    "lo": 1.9251316838052666,
+    "hi": 1.9383757679766216
+  },
+  "fasterNotProved": 3,
+  "stoppedBy": "threshold",
+  "wallMs": 2542494.68,
+  "codex": {
+    "calls": 16,
+    "failed": 0,
+    "inputTokens": 373133,
+    "outputTokens": 11573,
+    "ms": 291399.2799189995
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

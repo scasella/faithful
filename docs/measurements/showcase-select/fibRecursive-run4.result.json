@@ -1,0 +1,64 @@
+{
+  "fn": "fibRecursive",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 1,
+  "disagreementsFound": 0,
+  "rulings": [],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "proved",
+    "attempts": 5,
+    "minutes": 6.080734534716666
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "verified-to-k",
+      "speedup": {
+        "ratio": 64221.5179768591,
+        "lo": 63533.06450684923,
+        "hi": 64506.529491528454
+      },
+      "rejection": "Not proved (8 attempts, 8.8 minutes): Lean could not prove that the candidate meets the agreed spec",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 14620.200812177542,
+        "lo": 14396.771615700933,
+        "hi": 14821.866648755113
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: assignment to an array element or record field: arrays and records are immutable in subset v1",
+      "rejectionStage": "proof"
+    }
+  ],
+  "bestTier": "proved",
+  "bestSpeedup": null,
+  "fasterNotProved": 2,
+  "stoppedBy": "threshold",
+  "wallMs": 1161133.828167,
+  "codex": {
+    "calls": 16,
+    "failed": 0,
+    "inputTokens": 430593,
+    "outputTokens": 41635,
+    "ms": 839749.8028739999
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

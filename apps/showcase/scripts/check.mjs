@@ -62,7 +62,7 @@ page.on('console', (m) => {
 });
 try {
   const t0 = Date.now();
-  await page.goto(`${url}?`, { waitUntil: 'load' });
+  await page.goto(`${url}?r=dev-sample`, { waitUntil: 'load' });
   if (!noCoi) {
     await page.waitForFunction(() => window.crossOriginIsolated === true, null, { timeout: 20000 }).catch(() => {});
   }
@@ -204,7 +204,7 @@ try {
     add({ kind: 'candidate.decided', candidateId: 2, outcome: 'not-faster', tier: null, rejection: null, bench: null, speedup: null });
     await route.fulfill({ response: res, json: rec });
   });
-  await p2.goto(`${url}?paused`, { waitUntil: 'load' });
+  await p2.goto(`${url}?paused&r=dev-sample`, { waitUntil: 'load' });
   await p2.waitForSelector('[data-testid="run-rec-1"]', { timeout: 20000 });
   await p2.click('[data-testid="run-rec-1"]');
   await p2.waitForFunction(() => {
@@ -222,6 +222,35 @@ try {
   const recSmt = (await p2.textContent('[data-testid="live-cand-rec-2"] [data-stage="smt"]')) ?? '';
   check(/replayed \(recorded on 2026-10-05 with Z3 5\.2\.0/.test(recSmt), `recorded SMT shown as replayed when Z3 cannot run (${recSmt.slice(0, 120)})`);
   await ctx2.close();
+
+
+  // REAL recording with candidates (aliquotSum): the default recording of the shipped site. Its three recorded candidates run live.
+  const ctx3 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const p3 = await ctx3.newPage();
+  p3.on('pageerror', (e) => {
+    if (/reading 'scope'/.test(e.message)) return;
+    errors.push(`pageerror (real recording page): ${e.message}`);
+  });
+  await p3.goto(`${url}?paused`, { waitUntil: 'load' });
+  await p3.waitForFunction(() => self.crossOriginIsolated === true, null, { timeout: 15000 }).catch(() => undefined);
+  await p3.waitForSelector('[data-testid="run-rec-3"]', { timeout: 30000 });
+  const body3 = (await p3.textContent('body')) ?? '';
+  check(!(await p3.isVisible('[data-testid="dev-sample-banner"]')), 'the default recording is a real recording, not the dev sample');
+  check(/aliquotSum/.test(body3), 'default recording is aliquotSum');
+  for (const id of [1, 3]) {
+    await p3.click(`[data-testid="run-rec-${id}"]`);
+    await p3.waitForFunction((n) => {
+      const el = document.querySelector(`[data-testid="live-cand-rec-${n}"] [data-testid="live-run"]`);
+      return el && el.getAttribute('data-state') !== 'running' && !document.querySelector(`[data-testid="run-rec-${n}"]`)?.disabled;
+    }, id, { timeout: 180000 });
+  }
+  const st1 = await p3.getAttribute('[data-testid="live-cand-rec-1"] [data-testid="live-run"]', 'data-state');
+  const st3 = await p3.getAttribute('[data-testid="live-cand-rec-3"] [data-testid="live-run"]', 'data-state');
+  check(st3 === 'passed', `recorded candidate 3 (the proved one) passes the live stages (${st3})`);
+  check(st1 === 'passed' || st1 === 'stopped' || st1 === 'rejected', `recorded candidate 1 ran live (${st1})`);
+  const t3 = (await p3.textContent('[data-testid="live-cand-rec-3"]')) ?? '';
+  check(/ran in your browser just now/.test(t3) && /from the recording/.test(t3), 'live results labelled as live and the candidate as from the recording');
+  await ctx3.close();
 
   check(errors.length === 0, `no page errors${errors.length ? `: ${errors.slice(0, 5).join(' | ')}` : ''}`);
 } catch (e) {

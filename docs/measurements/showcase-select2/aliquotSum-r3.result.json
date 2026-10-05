@@ -1,0 +1,97 @@
+{
+  "fn": "aliquotSum",
+  "file": "src/x.ts",
+  "inSubset": true,
+  "refusal": null,
+  "specProposals": 4,
+  "disagreementsFound": 151,
+  "rulings": [
+    {
+      "ruling": "spec-wrong"
+    },
+    {
+      "ruling": "spec-wrong"
+    },
+    {
+      "ruling": "function-wrong",
+      "then": "carve-out",
+      "note": "inputs where n is 0"
+    },
+    {
+      "ruling": "function-wrong",
+      "then": "carve-out",
+      "note": "inputs where n is positive"
+    }
+  ],
+  "blockedAt": null,
+  "agreed": true,
+  "originalProof": {
+    "result": "proved",
+    "attempts": 1,
+    "minutes": 0.5202637888833337
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 26.642348391983266,
+        "lo": 26.504128306150744,
+        "hi": 26.790481841802723
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: `a / b` is not provably an integer; use Math.floor(a / b) or Math.ceil(a / b)",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 2,
+      "outcome": "faster-not-proved",
+      "tier": "tested",
+      "speedup": {
+        "ratio": 26.70652556795916,
+        "lo": 26.44426904041588,
+        "hi": 26.865422695954187
+      },
+      "rejection": "the candidate is outside the verifiable subset, so it cannot be proved: no termination measure found for this loop. Recognized: for...of; `i < E` / `i <= E` with i++ or i += k (or the mirror image counting down) in the incrementor or in one top-level statement of the body without `continue`; `n > c` with n = Math.floor(n / k); `xs.length > 0` with xs = xs.slice(k). E must not change inside the loop",
+      "rejectionStage": "proof"
+    },
+    {
+      "id": 3,
+      "outcome": "incumbent",
+      "tier": "proved",
+      "speedup": {
+        "ratio": 1.925559389270965,
+        "lo": 1.9209511028329116,
+        "hi": 1.9347152933601586
+      },
+      "rejection": null,
+      "rejectionStage": null
+    }
+  ],
+  "bestTier": "proved",
+  "bestSpeedup": {
+    "ratio": 1.925559389270965,
+    "lo": 1.9209511028329116,
+    "hi": 1.9347152933601586
+  },
+  "fasterNotProved": 2,
+  "stoppedBy": "no-new-candidate",
+  "wallMs": 2029298.266291,
+  "codex": {
+    "calls": 14,
+    "failed": 0,
+    "inputTokens": 297055,
+    "outputTokens": 6456,
+    "ms": 181987.37108200038
+  },
+  "policy": {
+    "throwChoice": "precondition",
+    "maxRevisions": 2,
+    "acceptVerified": false
+  },
+  "stamp": {
+    "date": "2026-10-05",
+    "modelId": "gpt-6-luna"
+  },
+  "error": null
+}

@@ -1,0 +1,15 @@
+{
+  "lib": "current",
+  "mode": "split",
+  "candidateGuide": true,
+  "effort": [
+    "high"
+  ],
+  "attempts": 8,
+  "minutes": 12,
+  "env": {
+    "FAITHFUL_CANDIDATE_GUIDE": "1",
+    "FAITHFUL_CANDIDATE_LENGTH_FACTS": "1",
+    "FAITHFUL_CANDIDATE_PROOF": "split"
+  }
+}
