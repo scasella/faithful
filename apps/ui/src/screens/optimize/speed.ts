@@ -59,10 +59,13 @@ export function acceptConsequence(c: Pick<CandidateRecord, 'id' | 'stages'>, inc
  * Can a "faster, not proved" candidate be accepted? Only at the Verified-to-k tier (the server refuses the rest): null
  * when it can, else why not, in plain words.
  */
-export function acceptBlocker(c: Pick<CandidateRecord, 'id' | 'outcome' | 'tier'>): string | null {
+export function acceptBlocker(c: Pick<CandidateRecord, 'id' | 'outcome' | 'tier'> & { stages?: CandidateRecord['stages'] }): string | null {
   if (c.outcome !== 'faster-not-proved') return `Candidate ${c.id} is not marked faster, not proved.`;
   if (c.tier !== 'verified-to-k') {
-    return `Candidate ${c.id} reached only the ${TIER_LABEL[c.tier ?? 'tested']} tier: the bounded SMT check did not complete for it, so it cannot be accepted without a proof.`;
+    // say what the recorded SMT stage actually says: skipped (with its reason) is not the same as "did not complete"
+    const smt = c.stages?.find((x) => x.stage === 'smt');
+    const why = smt && smt.status === 'skipped' && smt.summary ? `the bounded SMT check was skipped (${smt.summary.replace(/\.$/, '')})` : 'the bounded SMT check did not verify it';
+    return `Candidate ${c.id} reached only the ${TIER_LABEL[c.tier ?? 'tested']} tier: ${why}, so it cannot be accepted without a proof.`;
   }
   return null;
 }

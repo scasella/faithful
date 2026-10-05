@@ -424,7 +424,14 @@ function Candidate({ c }: { c: CandidateRecord }) {
           skipped: the original takes more than 100 ms on {slow === 1 ? 'it' : 'them'}.
         </p>
       )}
-      {c.outcome === 'faster-not-proved' && <p class="muted">Faster, not proved: Lean did not accept a proof against the agreed spec. Not delivered unless you accept it.</p>}
+      {c.outcome === 'faster-not-proved' && (
+        <p class="muted">
+          {c.stages.find((x) => x.stage === 'proof')?.status === 'skipped'
+            ? 'Faster, not proved: no proof was attempted, because this candidate has no Lean model.'
+            : 'Faster, not proved: Lean did not accept a proof against the agreed spec.'}{' '}
+          Not delivered unless you accept it.
+        </p>
+      )}
       {c.outcome === 'accepted-at-verified' && (
         <p class="op-accepted-note">
           <ProvText text={`Accepted by you at ${verifiedLabel(k)}. Not proved; delivery marks it.`} tokens={kTokens(c)} />

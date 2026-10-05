@@ -6,8 +6,12 @@
 //
 //   recording.json   a recording under apps/showcase/public/recordings (default: .../dev-sample.json)
 //   --allow-dev-sample  allow a recording whose notes begin with "DEV SAMPLE"; outputs get the suffix -dev-sample
-//   --speed          replay speed. The showcase's replay bar only offers 1, 2, 4, 8, 16, 64 (the `s` key cycles them);
-//                    default: the smallest of those that makes the replay <= 30 s.
+//   --speed          uniform replay speed (play): one of 1, 2, 4, 8, 16, 64 (the speeds the replay bar's `s` key cycles).
+//                    Without it (default) the replay is PACED: the script steps the replay one event at a time (the
+//                    bar's Step key `.`) on a schedule that compresses long waits and lingers on decisions
+//                    (candidate.decided, proof.done, incumbent.changed, deliver.done), scaled to about 30 s.
+//   --zoom           CSS zoom applied to the document for the capture (default 0.75), so more of each stage fits in
+//                    the 1280x720 frame. The UI and the recording are not changed.
 //   --fps            capture rate in frames per second (default 10). Frames are placed on a fixed clock: a slow
 //                    screenshot repeats the previous frame, so playback time matches wall time.
 //   --out-dir        default docs/media. Outputs: faithful-demo[-dev-sample].gif and .mp4
@@ -47,7 +51,7 @@ function die(msg, code = 1) {
 
 // ---- arguments
 const argv = process.argv.slice(2);
-const opt = { recording: null, allowDev: false, speed: null, fps: 10, outDir: 'docs/media', build: false, useDist: false, keepFrames: false };
+const opt = { recording: null, allowDev: false, speed: null, zoom: 0.75, fps: 10, outDir: 'docs/media', build: false, useDist: false, keepFrames: false };
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   const val = () => {
@@ -58,6 +62,7 @@ for (let i = 0; i < argv.length; i++) {
   if (a === '--allow-dev-sample') opt.allowDev = true;
   else if (a === '--speed') opt.speed = Number(val());
   else if (a === '--fps') opt.fps = Number(val());
+  else if (a === '--zoom') opt.zoom = Number(val());
   else if (a === '--out-dir') opt.outDir = val();
   else if (a === '--build') opt.build = true;
   else if (a === '--use-existing-dist') opt.useDist = true;
@@ -71,6 +76,7 @@ for (let i = 0; i < argv.length; i++) {
 }
 if (opt.speed !== null && !SPEEDS.includes(opt.speed)) die(`--speed must be one of ${SPEEDS.join(', ')} (the speeds the replay bar offers)`);
 if (!(opt.fps > 0 && opt.fps <= 30)) die('--fps must be in (0, 30]');
+if (!(opt.zoom >= 0.5 && opt.zoom <= 1)) die('--zoom must be in [0.5, 1]');
 
 // ---- the recording: where it is and what it is
 const recPath = resolve(opt.recording ?? join(recDir, 'dev-sample.json'));
@@ -104,8 +110,29 @@ const name = basename(realRec, '.json');
 const suffix = isDev ? '-dev-sample' : '';
 const events = [...rec.stampedEvents].sort((a, b) => a.seq - b.seq);
 const durationMs = events.at(-1).t - events[0].t;
-const speed = opt.speed ?? SPEEDS.find((s) => durationMs / s <= TARGET_S * 1000) ?? SPEEDS.at(-1);
-console.log(`recording ${relative(repo, realRec)}: fn ${rec.fn}, ${events.length} events, ${(durationMs / 1000).toFixed(1)} s recorded; replay at ${speed}x ≈ ${(durationMs / speed / 1000).toFixed(1)} s${isDev ? ' (DEV SAMPLE)' : ''}`);
+const paced = opt.speed === null;
+const speed = opt.speed ?? START_SPEED;
+// Paced schedule: capture time (ms after start) at which event k (1-based) is stepped in. Each event gets the recorded
+// gap before it divided by 64, clamped to [120 ms, 1,000 ms]; then a fixed hold after decisions. The un-held part is
+// scaled so the whole replay lasts about TARGET_S.
+const HOLD = { 'candidate.decided': 3200, 'proof.done': 900, 'incumbent.changed': 1200, 'spec.agreed': 900, 'translate.done': 900, 'deliver.done': 0 };
+const START_HOLD = 1800; // the "replayed" heading and event 0 stay on screen first
+const stepAt = (() => {
+  const gaps = events.map((e, i) => (i === 0 ? 0 : Math.min(1000, Math.max(120, (e.t - events[i - 1].t) / 64))));
+  const holds = events.map((e) => HOLD[e.event.kind] ?? 0);
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const budget = TARGET_S * 1000 - TAIL_MS - START_HOLD - sum(holds);
+  const k = budget > 0 ? Math.min(3, budget / Math.max(1, sum(gaps))) : 0.3;
+  const at = [];
+  let t = START_HOLD;
+  events.forEach((e, i) => {
+    t += gaps[i] * k;
+    at.push(Math.round(t));
+    t += holds[i];
+  });
+  return at;
+})();
+console.log(`recording ${relative(repo, realRec)}: fn ${rec.fn}, ${events.length} events, ${(durationMs / 1000).toFixed(1)} s recorded; ${paced ? `paced replay (stepped event by event, holds on decisions) ≈ ${((stepAt.at(-1) + TAIL_MS) / 1000).toFixed(1)} s` : `replay at ${speed}x ≈ ${(durationMs / speed / 1000).toFixed(1)} s`}${isDev ? ' (DEV SAMPLE)' : ''}`);
 
 // ---- tools
 const which = (cmd) => spawnSync('which', [cmd], { encoding: 'utf8' }).stdout.trim();
@@ -202,17 +229,38 @@ try {
     await page.waitForTimeout(50);
   }
   if (!(await barText()).includes(`${speed}× speed`)) throw new Error(`could not set replay speed ${speed}x: ${await barText()}`);
-  // Put the replayed session at the top of the viewport (the dev banner and opener sit above it).
+  // Zoom the document for the capture (more of each stage in frame), then put the replayed session at the top.
+  await page.evaluate((z) => { document.documentElement.style.zoom = String(z); }, opt.zoom);
   await page.evaluate(() => document.getElementById('replay-h')?.scrollIntoView({ block: 'start' }));
   await page.mouse.move(0, 0);
   await page.waitForTimeout(300);
 
   const doneRe = new RegExp(`event ${total} of ${total}\\b`);
-  await page.keyboard.press('p');
+  // Keep the active content in frame: the newest candidate card, else the newest proof attempt, else the evidence
+  // line (Deliver), else the replay heading. Instant scroll, re-applied before every frame.
+  const follow = () =>
+    page.evaluate(() => {
+      const vis = (el) => el && el.getClientRects().length > 0;
+      const last = (sel) => [...document.querySelectorAll(sel)].filter(vis).at(-1);
+      const first = (sel) => [...document.querySelectorAll(sel)].filter(vis)[0];
+      const el = last('.op-cands > li') ?? last('.pv-attempt') ?? first('.evidence') ?? document.getElementById('replay-h');
+      if (!el) return;
+      el.scrollIntoView({ block: 'start' });
+      if (el.id !== 'replay-h') window.scrollBy(0, el.classList.contains('evidence') ? -110 : -70);
+    });
+  if (!paced) await page.keyboard.press('p');
   const t0 = Date.now();
+  let stepped = 0;
   let endAt = null;
   let lastSlot = -1;
   while (true) {
+    if (paced) {
+      while (stepped < total && Date.now() - t0 >= stepAt[stepped]) {
+        await page.keyboard.press('.');
+        stepped++;
+      }
+    }
+    if (Date.now() - t0 > START_HOLD) await follow().catch(() => {});
     const buf = await page.screenshot({ type: 'png' });
     const now = Date.now() - t0;
     const slot = Math.min(Math.round((now * opt.fps) / 1000), Math.round(CAP_S * opt.fps) - 1);
@@ -276,7 +324,7 @@ try {
     return { duration: Number(j.format?.duration), frames: Number(s.nb_read_frames), size: `${s.width}x${s.height}`, codec: s.codec_name, pix_fmt: s.pix_fmt };
   };
   console.log('\nsummary');
-  console.log(`  source     ${relative(repo, realRec)} (${name}${isDev ? ', DEV SAMPLE' : ''}), speed ${speed}x, captured ${nFrames} frames at ${opt.fps} fps`);
+  console.log(`  source     ${relative(repo, realRec)} (${name}${isDev ? ', DEV SAMPLE' : ''}), ${paced ? 'paced (stepped event by event)' : `speed ${speed}x`}, zoom ${opt.zoom}, captured ${nFrames} frames at ${opt.fps} fps`);
   for (const p of [mp4Path, gifPath]) {
     const i = probe(p);
     console.log(`  ${relative(repo, p).padEnd(40)} ${String(statSync(p).size).padStart(10)} bytes  ${i.duration.toFixed(2)} s  ${i.frames} frames  ${i.size} ${i.codec}${i.pix_fmt ? ` ${i.pix_fmt}` : ''}`);

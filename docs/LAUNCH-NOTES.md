@@ -37,3 +37,11 @@ Kept as I go so a crash loses little. Not user documentation.
 
 - Re-run `node scripts/launch-tables.mjs --write` when the campaign finishes.
 - Final media from a real recording (none exists yet), after `pnpm --filter @faithful/showcase build`.
+
+## Media framing follow-up (17:23-17:28)
+
+- make-media.mjs: default is now a PACED replay (steps events with `.` on a schedule: recorded gap/64 clamped to
+  0.12-1 s, scaled to ~30 s; holds 3.2 s after candidate.decided, 1.2 s incumbent.changed, 0.9 s proof.done /
+  spec.agreed / translate.done; 1.8 s start hold on the "replayed" heading). `--speed N` keeps uniform play.
+  `--zoom` (default 0.75) sets CSS zoom on the document; a follow-scroll keeps the newest candidate card / proof attempt /
+  Deliver evidence line in frame. Output on aliquotSum: MP4 947,434 B 30.20 s 1280x720; GIF 1,255,142 B 30.20 s 960x540.
