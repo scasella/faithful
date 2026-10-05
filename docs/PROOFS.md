@@ -330,12 +330,19 @@ concurrency 3. `--lib v1` reproduces the library before this work (`Faithful.Tac
 | baseline (old code, `--lib v1`, single theorem) `tune-base` | 1/17 | 0 | 1 | 0 | 0 | - | - | 132 | 145 | 132 | 3.93M / 400k |
 | (a) split, old library, no guide `tune-a-split` | 1/17 | 0 | 1 | 0 | 0 | 2 | 1 | 133 | 164 | 133 | 3.87M / 445k |
 | (a)+(b)+(c)+(e) split, guide, Chk, length facts `tune-abce` | 2/17 | 0 | 2 | 0 | 0 | 4 | 2 | 131 | 160 | 131 | 4.17M / 448k |
-FINALROW
+| shipped defaults: split, guide, Chk, no length facts, stagnation stop `tune-final-default` | 1/17 | 0 | 1 | 0 | 0 | 5 | 1 | 131 | 159 | 131 | 4.21M / 428k |
 
 Proved: baseline and (a) `numeric/clamp#1`; `tune-abce` also `numeric/factorial#4` (whose ORIGINAL was never proved; both parts were proved
 within 8 attempts in total, 11 minutes).
 
-FINALTEXT
+`tune-abce` and `tune-final-default` differ only in the (e) length facts (and the stagnation stop, which never fired), so
+they are close to a replicate of guide + Chk + split. In `tune-final-default` factorial#4 was not proved again (equality and range both failed), so across the two runs
+with the guide and `Faithful.Chk` the counts are 2 and 1 of 17, against 1 and 1 without them: no measurable difference in
+proved candidates. What did move is the EQUALITY part: 2 of 17 without the guide, 4 and 5 with it (countChar#2/#3 and
+spread#4 among them, all three with a proved original). The RANGE part was proved for 1-2 of 17 in every configuration
+and is the obstacle wherever equality succeeds: in `tune-final-default`, 5 equality parts were proved and only 1 of
+those candidates (clamp, no arithmetic in the candidate) also got its range part. The stagnation stop never fired
+before the cap in these runs (131 of 136 possible attempts used).
 
 ### What blocks the TUNE candidates (diagnostics read after each TUNE run)
 
@@ -392,7 +399,7 @@ constant after review. It would also be the honest fix for the original-proof st
 Gate written before any held-out run: the final configuration would count as an improvement only if it proved **at least
 3 more of the 33 HELD-OUT candidates than the baseline on the same 33** (with both runs once). The rules of this phase
 also say: if candidate proofs are still near zero on TUNE after the levers, stop tuning and spend no more budget. On TUNE
-the best configuration proved 2 of 17 and the shipped default GATECOUNT, against 1 of 17 for the baseline: that is near
+the best configuration proved 2 of 17 and the shipped default 1 of 17, against 1 of 17 for the baseline: that is near
 zero and within the run-to-run noise measured above (±2 on 13). **The HELD-OUT evaluation was therefore not run**, and no
 held-out diagnostic was read; `split.json` keeps the 33 held-out candidates untouched for a later evaluation.
 
