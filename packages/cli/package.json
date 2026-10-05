@@ -1,0 +1,11 @@
+{
+  "name": "@faithful/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } }, "bin": { "faithful": "./dist/bin.js" },
+  "dependencies": { "@faithful/core": "workspace:*", "@faithful/translate": "workspace:*", "@faithful/engine": "workspace:*", "@faithful/smt": "workspace:*", "@faithful/prover": "workspace:*" }
+}

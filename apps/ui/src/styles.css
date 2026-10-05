@@ -1,0 +1,11 @@
+:root { color-scheme: light dark; --bg: #fbfaf7; --fg: #1d1c1a; --muted: #6b675f; --line: #e3dfd6; --ok: #2f7d4f; --warn: #a06a00; --fail: #b3261e; }
+@media (prefers-color-scheme: dark) { :root { --bg: #161513; --fg: #ecE8df; --muted: #9a958a; --line: #2e2c28; --ok: #6fc28f; --warn: #e0a93b; --fail: #f2796f; } }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; }
+main { max-width: 52rem; margin: 0 auto; padding: 2.5rem 1.25rem; }
+h1 { margin: 0; font-size: 1.6rem; } h2 { font-size: 1.05rem; }
+.muted { color: var(--muted); } .err { color: var(--fail); }
+.steps { display: flex; gap: 1.25rem; list-style: none; padding: 0; margin: 1.5rem 0; color: var(--muted); border-bottom: 1px solid var(--line); }
+.steps li { padding: .4rem 0; } .steps li.on { color: var(--fg); border-bottom: 2px solid var(--fg); }
+.checks { list-style: none; padding: 0; } .checks li { padding: .35rem 0; border-bottom: 1px solid var(--line); }
+.checks li b { display: inline-block; min-width: 9rem; } .checks .ok b { color: var(--ok); } .checks .warn b { color: var(--warn); } .checks .fail b { color: var(--fail); }
+.checks code { display: block; color: var(--muted); font-size: .85rem; }

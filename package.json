@@ -1,0 +1,25 @@
+{
+  "name": "faithful-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@10.11.1",
+  "scripts": {
+    "build": "tsc -b && pnpm -r --filter './apps/*' run build",
+    "typecheck": "tsc -b --noEmit false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "faithful": "node packages/cli/dist/bin.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "fast-check": "^4.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.0",
+    "z3-solver": "^5.2.0"
+  }
+}
