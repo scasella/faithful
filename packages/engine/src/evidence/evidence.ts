@@ -12,7 +12,9 @@
  *    A proof without a differential count is an error, not a line.
  *  - Never "for all inputs"; no score, grade or percentage (the literal "95% CI" is the only percent sign).
  *    `lintEvidenceText` checks this and the builder runs it on everything it returns.
- *  - "faster" only when the two 95% intervals of median time do not overlap (benchmark verdict `faster`).
+ *  - "faster" only when the two 95% intervals of median time do not overlap (benchmark verdict `faster`) AND the speed-up
+ *    interval, as printed, lies above 1. Estimates and lower bounds round down, upper bounds up; a factor within 0.5 of 1
+ *    gets two or more decimals, so "1.10× faster (95% CI 1.04–1.16)" never prints as "1.1× faster (95% CI 1.0–1.2)".
  */
 import { TIER_LABEL, formatCount, provedSentence, type Stamp, type Tier } from '@faithful/core';
 import type { Interval, Verdict } from '../benchmark/stats.js';
@@ -71,10 +73,34 @@ function count(n: number, what: string): number {
   return n;
 }
 
-/** "4.2" style: one decimal. */
-function x1(v: number): string {
+const EPS = 1e-9;
+const MAX_DECIMALS = 6;
+
+function positive(v: number): number {
   if (!Number.isFinite(v) || v <= 0) throw new RangeError(`evidence: speed-up ratio must be a positive finite number (got ${v})`);
-  return v.toFixed(1);
+  return v;
+}
+/** Rounded DOWN to d decimals: a point estimate or lower bound never prints larger than measured. */
+function down(v: number, d: number): string {
+  const f = 10 ** d;
+  return (Math.floor(positive(v) * f + EPS) / f).toFixed(d);
+}
+/** Rounded UP to d decimals: an upper bound never prints smaller than measured. */
+function up(v: number, d: number): string {
+  const f = 10 ** d;
+  return (Math.ceil(positive(v) * f - EPS) / f).toFixed(d);
+}
+/**
+ * Decimals for a factor (est, interval lo–hi, all as printed: speed-up for "faster", slow-down for "slower"): one when
+ * the factor is more than 0.5 away from 1, two when within 0.5, more until a claimed lower bound prints above 1.
+ * null when the claim cannot be printed without a lower bound of 1 or below (the caller then makes no claim).
+ */
+function decimalsFor(est: number, lo: number, claim: boolean): number | null {
+  let d = Math.abs(est - 1) <= 0.5 ? 2 : 1;
+  if (!claim) return d;
+  if (!(lo > 1)) return null;
+  while (d <= MAX_DECIMALS && Number(down(lo, d)) <= 1) d++;
+  return d <= MAX_DECIMALS ? d : null;
 }
 
 /** Lean version number from a `Stamp` (`lean --version` text such as "Lean (version 4.34.0, arm64-apple-darwin, ...)"). */
@@ -93,13 +119,25 @@ export function mathlibShortOf(stamp: Stamp): string | null {
 function speedPiece(s: NonNullable<EvidenceInput['speed']>): string {
   const { ratio, verdict } = s;
   if (!(ratio.lo <= ratio.hi)) throw new RangeError('evidence: speed-up interval has lo > hi');
+  positive(ratio.estimate);
+  positive(ratio.lo);
+  positive(ratio.hi);
   if (verdict === 'faster') {
-    return `${x1(ratio.estimate)}× faster (95% CI ${x1(ratio.lo)}–${x1(ratio.hi)}) on the declared distribution.`;
+    const d = decimalsFor(ratio.estimate, ratio.lo, true);
+    if (d !== null) {
+      return `${down(ratio.estimate, d)}× faster (95% CI ${down(ratio.lo, d)}–${up(ratio.hi, d)}) on the declared distribution.`;
+    }
   }
   if (verdict === 'slower') {
-    return `${x1(1 / ratio.estimate)}× slower (95% CI ${x1(1 / ratio.hi)}–${x1(1 / ratio.lo)}) on the declared distribution.`;
+    const est = 1 / ratio.estimate;
+    const lo = 1 / ratio.hi;
+    const hi = 1 / ratio.lo;
+    const d = decimalsFor(est, lo, true);
+    if (d !== null) return `${down(est, d)}× slower (95% CI ${down(lo, d)}–${up(hi, d)}) on the declared distribution.`;
   }
-  return `No speed difference distinguished on the declared distribution (speed-up 95% CI ${x1(ratio.lo)}–${x1(ratio.hi)}).`;
+  // Not distinguished, or a verdict whose interval cannot be printed without contradicting it: no claim.
+  const d = decimalsFor(ratio.estimate, ratio.lo, false)!;
+  return `No speed difference distinguished on the declared distribution (speed-up 95% CI ${down(ratio.lo, d)}–${up(ratio.hi, d)}).`;
 }
 
 export function buildEvidenceBlock(input: EvidenceInput): EvidenceBlock {

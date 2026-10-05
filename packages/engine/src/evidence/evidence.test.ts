@@ -69,8 +69,36 @@ describe('buildEvidenceLine', () => {
       '2.0× slower (95% CI 1.6–2.5) on the declared distribution.',
     );
     const same = buildEvidenceLine({ stamp, speed: { ratio: { estimate: 1.02, lo: 0.97, hi: 1.08 }, verdict: 'not-distinguished' } });
-    expect(same).toBe('No speed difference distinguished on the declared distribution (speed-up 95% CI 1.0–1.1).');
+    expect(same).toBe('No speed difference distinguished on the declared distribution (speed-up 95% CI 0.97–1.08).');
     expect(same.includes('faster')).toBe(false);
+  });
+
+  it('a speed-up near 1 prints enough decimals that the interval never contradicts "faster"', () => {
+    const line = (estimate: number, lo: number, hi: number, verdict: 'faster' | 'slower' = 'faster') =>
+      buildEvidenceLine({ stamp, speed: { ratio: { estimate, lo, hi }, verdict } });
+    // one decimal (and toFixed rounding) used to print this as "1.1× faster (95% CI 1.0–1.2)"
+    expect(line(1.1, 1.04, 1.16)).toBe('1.10× faster (95% CI 1.04–1.16) on the declared distribution.');
+    expect(line(1.006, 1.003, 1.009)).toBe('1.006× faster (95% CI 1.003–1.009) on the declared distribution.');
+    // estimates and lower bounds round down, upper bounds up (toFixed rounded 4.29 up to 4.3)
+    expect(line(4.29, 3.95, 4.61)).toBe('4.2× faster (95% CI 3.9–4.7) on the declared distribution.');
+    // a faster verdict whose interval reaches 1 makes no claim
+    expect(line(1.05, 1.0, 1.1)).toBe('No speed difference distinguished on the declared distribution (speed-up 95% CI 1.00–1.10).');
+    expect(line(1.05, 0.99, 1.1).includes('faster')).toBe(false);
+    // slower: the slow-down factor 1/ratio gets the same rule
+    expect(line(0.92, 0.9, 0.95, 'slower')).toBe('1.08× slower (95% CI 1.05–1.12) on the declared distribution.');
+    for (let i = 0; i < 2000; i++) {
+      const lo = 0.5 + Math.random() * 3;
+      const hi = lo + Math.random() * 2;
+      const est = lo + (hi - lo) * Math.random();
+      const t = line(est, lo, hi, lo > 1 ? 'faster' : 'slower');
+      const m = /([0-9.]+)× faster \(95% CI ([0-9.]+)–([0-9.]+)\)/.exec(t);
+      if (m) {
+        expect(Number(m[1])).toBeLessThanOrEqual(est + 1e-9);
+        expect(Number(m[2])).toBeGreaterThan(1);
+        expect(Number(m[2])).toBeLessThanOrEqual(lo + 1e-9);
+        expect(Number(m[3])).toBeGreaterThanOrEqual(hi - 1e-9);
+      }
+    }
   });
 
   it('rejects impossible numbers', () => {

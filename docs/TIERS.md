@@ -107,15 +107,7 @@ and counts as a counterexample only when the replayed outcomes really differ; ot
 **Does not mean.** Nothing about larger arrays or strings, wider integers, or inputs needing more iterations; nothing
 about the spec (it compares candidate with original only); not a proof.
 
-**Status in this build.** The CLI never assigns `SessionRuntime.smt` (the field is declared in
-`packages/cli/src/flow/runtime.ts` and only a comment in `packages/cli/src/api.ts` refers to wiring it). Consequences,
-as the code stands:
-
-* the SMT stage of every candidate is recorded as `skipped` ("the SMT tier is not available in this build");
-* no candidate reaches `verified-to-k`, so `acceptFasterNotProved` always refuses ("has not reached the Verified-to-k
-  tier");
-* `faithful verify` cannot re-check a recorded Verified-to-k claim and reports that check as failed with the words "the
-  recorded Verified-to-k claim was NOT re-checked".
+**Status in this build.** The SMT checker is wired: `packages/cli/src/smtChecker.ts` adapts `verifiedToK` to the optimizer, and it is assigned in the local server (`api.ts`, which `faithful optimize` also uses), in `faithful showcase-record`, in `scripts/measure.mjs` and in `faithful verify`. A candidate that passes the SMT stage is recorded at `verified-to-k` with the k that completed; a candidate outside the verifiable subset has the SMT stage recorded as `skipped` with the reason. If no Z3 is available (neither the WASM build nor a system binary), the stage is `skipped` and `faithful verify` says that a recorded Verified-to-k claim was NOT re-checked.
 
 The label, the provenance claim kind `candidate-vs-original-smt`, and the delivery logic for it exist and are
 described below so that recordings and future wiring are read correctly.

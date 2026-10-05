@@ -74,7 +74,7 @@ describe('"faster": one rule, Speedup.significant (vs the original)', () => {
     const evs = CATCH.slice(0, at + 5);
     const { text } = render([...evs, decided(2, bench(58, 61.5, 59.9))], 'optimize');
     expect(text).toContain('Not shown to be faster than the original on the declared distribution.');
-    expect(text).toContain('speedup vs the original 1.0× (95% CI 0.9–1.1)');
+    expect(text).toContain('speedup vs the original 1.03× (95% CI 0.97–1.08)');
     expect(text).not.toContain('Faster than the original');
     const medians = text.match(/Median [\d.]+ ns\/pass \(95% CI [\d.]+–[\d.]+\)/g) ?? [];
     expect(medians.length).toBeGreaterThanOrEqual(1);

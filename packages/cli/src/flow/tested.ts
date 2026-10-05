@@ -17,6 +17,7 @@
  * Values cross as JSON with sentinels for NaN/Infinity/-0/undefined (engine `differential/jsvalues.ts`); the sandbox
  * runs both functions in its `'js'` value domain. Equality: NaN equals NaN, -0 and 0 differ, undefined and null differ.
  */
+import { speedupText } from './format.js';
 import { createTwoFilesPatch } from 'diff';
 import { hashText, stampFrom, TIER_LABEL, type Tier } from '@faithful/core';
 import type { Val } from '@faithful/translate';
@@ -400,7 +401,7 @@ export class TestedOptimizer {
         'benchmark',
         'pass',
         performance.now() - tb0,
-        vsOriginal.significant ? `faster than the original: ${vsOriginal.ratio.toFixed(1)}× (95% CI ${vsOriginal.lo.toFixed(1)}–${vsOriginal.hi.toFixed(1)})` : 'not distinguishable from the original (intervals overlap)',
+        vsOriginal.significant ? `faster than the original: ${speedupText({ ratio: vsOriginal.ratio, lo: vsOriginal.lo, hi: vsOriginal.hi })}` : 'not distinguishable from the original (intervals overlap)',
         { stage: 'benchmark', trials: rep2.trials, distribution: this.dist.name, sizes: this.dist.sizes },
       ),
     );
@@ -415,7 +416,7 @@ export class TestedOptimizer {
     await rt.emit({ kind: 'candidate.decided', candidateId: id, outcome, tier, rejection, bench: benchSummary, speedup: vsOriginal });
     if (outcome === 'incumbent') {
       this.incumbentSource = source;
-      this.incumbentTiming = `${rep2.candidate.pass.estimate.toFixed(3)} ms per pass (95% CI ${rep2.candidate.pass.lo.toFixed(3)}–${rep2.candidate.pass.hi.toFixed(3)} ms); ${vsOriginal.ratio.toFixed(1)}× faster than the original.`;
+      this.incumbentTiming = `${rep2.candidate.pass.estimate.toFixed(3)} ms per pass (95% CI ${rep2.candidate.pass.lo.toFixed(3)}–${rep2.candidate.pass.hi.toFixed(3)} ms); ${speedupText({ ratio: vsOriginal.ratio, lo: vsOriginal.lo, hi: vsOriginal.hi })} faster than the original.`;
       await rt.emit({ kind: 'incumbent.changed', candidateId: id });
     }
     return { ...cand, outcome, tier, rejection };

@@ -1,7 +1,7 @@
 /**
  * Pure logic for the Optimize screen: the benchmark verdict, the accept-at-Verified-to-k consequence, the final readout.
  * Rules:
- *  - One rule for "faster": `Speedup.significant`, decided by the server's benchmark comparison of the candidate with the
+ *  - One rule for "faster": `Speedup.significant` (and an interval that prints above 1, `canSayFaster`), decided by the server's benchmark comparison of the candidate with the
  *    ORIGINAL on the declared distribution (CandidateRecord.speedup is always versus the original). The page never
  *    re-derives it from the printed intervals. Whether a candidate beat the current best is the server's decision too
  *    (outcome `incumbent` vs `not-faster`).
@@ -10,6 +10,7 @@
 import type { CandidateRecord, SessionState } from '@faithful/session';
 import { TIER_LABEL } from '@faithful/core/tiers';
 import { catchView } from '../../lib/catch';
+import { canSayFaster } from '../../lib/format';
 import { nForCandidate, smtK } from '../../lib/facts';
 
 export type BenchVerdict = 'faster' | 'not-shown' | 'no-ratio' | 'not-benchmarked';
@@ -21,9 +22,9 @@ export const VERDICT_WORDS: Record<BenchVerdict, string> = {
   'not-benchmarked': 'Not benchmarked.',
 };
 
-/** The benchmark verdict vs the original: `speedup.significant` and nothing else. */
+/** The benchmark verdict vs the original: `speedup.significant`, and only when its interval prints above 1 (`canSayFaster`). */
 export function verdictText(c: Pick<CandidateRecord, 'bench' | 'speedup'>): { verdict: BenchVerdict; text: string } {
-  const v: BenchVerdict = !c.bench && !c.speedup ? 'not-benchmarked' : !c.speedup ? 'no-ratio' : c.speedup.significant ? 'faster' : 'not-shown';
+  const v: BenchVerdict = !c.bench && !c.speedup ? 'not-benchmarked' : !c.speedup ? 'no-ratio' : canSayFaster(c.speedup) ? 'faster' : 'not-shown';
   return { verdict: v, text: VERDICT_WORDS[v] };
 }
 

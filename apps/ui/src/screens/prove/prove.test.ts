@@ -7,7 +7,9 @@ import { CATCH, indexOf, render } from './testutil';
 import {
   DIRECT_THEOREM,
   THEOREM_WORDS,
+  DEFAULT_BUDGET,
   attemptVerdictText,
+  budgetText,
   classifyAxioms,
   failureLineOf,
   largerBudget,
@@ -120,6 +122,17 @@ describe('Prove screen, success', () => {
 });
 
 describe('budget', () => {
+  it('defaults to the CLI/API budget (10 attempts, 12 minutes) and shows it plainly before the proof starts', () => {
+    expect(DEFAULT_BUDGET).toEqual({ maxAttempts: 10, minutes: 12 });
+    expect(budgetText(DEFAULT_BUDGET)).toBe('at most 10 attempts and 12 minutes');
+    expect(budgetText({ maxAttempts: 1, minutes: 1 })).toBe('at most 1 attempt and 1 minute');
+    const { text, html } = render(CATCH.slice(0, indexOf('proof.started')), 'prove');
+    expect(text).toContain('This proof will run at most 10 attempts and 12 minutes');
+    expect(text).toContain('the same as the CLI and the API');
+    expect(html).toMatch(/value="10"/);
+    expect(html).toMatch(/value="12"/);
+  });
+
   it('validates attempts and minutes', () => {
     expect(parseBudget('3', '5')).toEqual({ ok: true, budget: { maxAttempts: 3, minutes: 5 } });
     expect(parseBudget('0', '5').ok).toBe(false);

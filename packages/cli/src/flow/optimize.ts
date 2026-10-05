@@ -4,6 +4,7 @@
  * current incumbent. Faster-but-not-proved is shown as exactly that; it becomes the incumbent only if the user explicitly accepts it
  * at the Verified-to-k tier, and delivery marks that. Stages are timed and recorded as session events.
  */
+import { speedupText } from './format.js';
 import { hashText, type Tier } from '@faithful/core';
 import { type Outcome, type Translation, type Val } from '@faithful/translate';
 import {
@@ -338,7 +339,7 @@ export class Optimizer {
       vsIncumbent = toSpeedup(r3.overall);
     }
     const benchSummary = toSummary(rep2.candidate);
-    await done(stage('benchmark', 'pass', performance.now() - tb0, vsOriginal.significant ? `faster than the original: ${vsOriginal.ratio.toFixed(1)}× (95% CI ${vsOriginal.lo.toFixed(1)}–${vsOriginal.hi.toFixed(1)})` : 'not distinguishable from the original (intervals overlap)', { stage: 'benchmark', trials: rep2.trials, distribution: this.dist.name, sizes: this.dist.sizes }));
+    await done(stage('benchmark', 'pass', performance.now() - tb0, vsOriginal.significant ? `faster than the original: ${speedupText({ ratio: vsOriginal.ratio, lo: vsOriginal.lo, hi: vsOriginal.hi })}` : 'not distinguishable from the original (intervals overlap)', { stage: 'benchmark', trials: rep2.trials, distribution: this.dist.name, sizes: this.dist.sizes }));
 
     const faster = vsIncumbent.significant;
     let outcome: CandidateRecord['outcome'];
@@ -367,7 +368,7 @@ export class Optimizer {
     await rt.emit({ kind: 'candidate.decided', candidateId: id, outcome, tier, rejection, bench: benchSummary, speedup: vsOriginal });
     if (outcome === 'incumbent') {
       this.incumbentSource = source;
-      this.incumbentTiming = `${rep2.candidate.pass.estimate.toFixed(3)} ms per pass (95% CI ${rep2.candidate.pass.lo.toFixed(3)}–${rep2.candidate.pass.hi.toFixed(3)} ms); ${vsOriginal.ratio.toFixed(1)}× faster than the original.`;
+      this.incumbentTiming = `${rep2.candidate.pass.estimate.toFixed(3)} ms per pass (95% CI ${rep2.candidate.pass.lo.toFixed(3)}–${rep2.candidate.pass.hi.toFixed(3)} ms); ${speedupText({ ratio: vsOriginal.ratio, lo: vsOriginal.lo, hi: vsOriginal.hi })} faster than the original.`;
       await rt.emit({ kind: 'incumbent.changed', candidateId: id });
     }
     return { ...cand, outcome, tier, rejection };

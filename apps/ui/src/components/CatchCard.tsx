@@ -12,7 +12,7 @@ import type { ComponentChildren } from 'preact';
 import { useId, useState } from 'preact/hooks';
 import type { CallRecord, CandidateRecord } from '@faithful/session';
 import { catchView } from '../lib/catch';
-import { ciText, ratioText } from '../lib/format';
+import { ratioText, speedupCiText } from '../lib/format';
 import { Code } from './Code';
 import { InlineText } from './InlineText';
 import { ModelSaw } from './ModelSaw';
@@ -72,7 +72,7 @@ export function CatchCard({ candidate, params, modelChecked, call, openWhy = fal
               </p>
               <p>
                 <del class="ci">
-                  <Num what="Bootstrap interval of the discarded speedup">{ciText(v.speedup.lo, v.speedup.hi)}</Num>
+                  <Num what="Bootstrap interval of the discarded speedup">{speedupCiText(v.speedup)}</Num>
                 </del>
               </p>
             </>

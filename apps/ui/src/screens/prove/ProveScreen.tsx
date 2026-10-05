@@ -25,6 +25,7 @@ import {
   THEOREM_WORDS,
   TRUSTING_COMPILER_EXPLAINED,
   attemptVerdictText,
+  budgetText,
   classifyAxioms,
   failureLineOf,
   isProvedResult,
@@ -96,6 +97,9 @@ function StartProof() {
     <section class="stack" aria-labelledby="budget-title">
       <h3 id="budget-title">Budget</h3>
       <p class="muted">The model writes proof attempts; Lean checks each one. It stops at the first accepted proof or when either limit is reached.</p>
+      <p class="pv-budget-plain">
+        This proof will run {parsed.ok ? budgetText(parsed.budget) : 'with the limits below once they are valid'}. The default is {budgetText(DEFAULT_BUDGET)}, the same as the CLI and the API.
+      </p>
       <div class="fx-fields">
         <label class="fx-field">
           <span>Attempts at most</span>

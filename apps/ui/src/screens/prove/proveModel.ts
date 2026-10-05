@@ -15,7 +15,16 @@ export const THEOREM_WORDS = 'For every input satisfying the preconditions, the 
 /** The direct theorem offered when the spec proof does not close (later in the loop, per candidate). */
 export const DIRECT_THEOREM = '∀ x, pre x → candidate x = original x';
 
-export const DEFAULT_BUDGET: ProveBudget = { maxAttempts: 3, minutes: 5 };
+/**
+ * The default proof budget: the same as the CLI (`faithful optimize`: --proof-attempts 10, --proof-minutes 12) and the
+ * API (`POST /api/session/:id/prove` without a budget), so a proof started from the UI gets the same chance.
+ */
+export const DEFAULT_BUDGET: ProveBudget = { maxAttempts: 10, minutes: 12 };
+
+/** The budget in plain words: "at most 10 attempts and 12 minutes". */
+export function budgetText(b: ProveBudget): string {
+  return `at most ${formatCount(b.maxAttempts)} attempt${b.maxAttempts === 1 ? '' : 's'} and ${b.minutes} minute${b.minutes === 1 ? '' : 's'}`;
+}
 
 /** Mirrors `failureLine` in packages/prover/src/prove.ts exactly. */
 export function notProvedLine(attempts: number, ms: number): string {

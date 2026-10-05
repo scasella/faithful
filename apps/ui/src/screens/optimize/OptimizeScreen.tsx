@@ -21,7 +21,7 @@ import { ModelSaw } from '../../components/ModelSaw';
 import { Num, ProvText } from '../../components/Provenance';
 import { TierBadge } from '../../components/TierBadge';
 import { callById, candidateModelCheck, candidateProofCalls, differentialDetail, incumbent, nForCandidate, paramNames, smtK, stageOf } from '../../lib/facts';
-import { ciText, nsText, ratioText } from '../../lib/format';
+import { ciText, nsText, ratioText, speedupCiText } from '../../lib/format';
 import { ThresholdChoice } from './ThresholdChoice';
 import { thresholdWords } from './threshold';
 import { STAGE_LABEL } from '../../lib/catch';
@@ -184,7 +184,7 @@ function BaselineLine({ baseline }: { baseline: BenchSummary | null }) {
   );
 }
 
-/** The benchmark readout, versus the ORIGINAL. Always with the 95% CI; "faster" only when `speedup.significant`. */
+/** The benchmark readout, versus the ORIGINAL. Always with the 95% CI; "faster" only when `canSayFaster` (significant, interval prints above 1). */
 export function BenchReadout({ c }: { c: CandidateRecord }) {
   const b = c.bench;
   const v = verdictText(c);
@@ -204,7 +204,7 @@ export function BenchReadout({ c }: { c: CandidateRecord }) {
             {' '}
             · speedup vs the original <Num what="Original median divided by candidate median, on the declared distribution">{ratioText(c.speedup)}</Num>{' '}
             <span class="muted">
-              (<Num what="Bootstrap interval of the speedup ratio vs the original">{ciText(c.speedup.lo, c.speedup.hi)}</Num>)
+              (<Num what="Bootstrap interval of the speedup ratio vs the original">{speedupCiText(c.speedup)}</Num>)
             </span>
           </>
         )}
@@ -335,7 +335,7 @@ function Final() {
             <>
               <Num what="Original median divided by candidate median">{ratioText(inc.speedup)}</Num>{' '}
               <span class="muted">
-                (<Num what="Bootstrap interval of the speedup ratio">{ciText(inc.speedup.lo, inc.speedup.hi)}</Num>)
+                (<Num what="Bootstrap interval of the speedup ratio">{speedupCiText(inc.speedup)}</Num>)
               </span>
               <span class="muted"> · {verdictText(inc).text}</span>
             </>

@@ -45,7 +45,7 @@ export function candidateProofMode(env: NodeJS.ProcessEnv = process.env): Candid
   const v = env.FAITHFUL_CANDIDATE_PROOF;
   return v === 'single' || v === 'split' ? v : DEFAULT_CANDIDATE_PROOF_MODE;
 }
-export const DEFAULT_CANDIDATE_PROOF_MODE: CandidateProofMode = 'single';
+export const DEFAULT_CANDIDATE_PROOF_MODE: CandidateProofMode = 'split';
 
 /** The candidate-proof guide is on unless `FAITHFUL_CANDIDATE_GUIDE=0` (default DEFAULT_CANDIDATE_GUIDE). */
 export function candidateGuideDefault(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -53,7 +53,7 @@ export function candidateGuideDefault(env: NodeJS.ProcessEnv = process.env): boo
   if (env.FAITHFUL_CANDIDATE_GUIDE === '1') return true;
   return DEFAULT_CANDIDATE_GUIDE;
 }
-export const DEFAULT_CANDIDATE_GUIDE = false;
+export const DEFAULT_CANDIDATE_GUIDE = true;
 
 function leanBody(source: string): string {
   return source.replace(/^import .*$/gm, '').trim();

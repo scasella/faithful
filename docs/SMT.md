@@ -32,13 +32,7 @@ Contents
 
 ## 1. Status in this build
 
-The SMT tier exists as a library with its tests: `checkEquivalent` (one bounded query) and `verifiedToK` (the adaptive
-driver that produces a `SmtDetail` for the session). **The CLI does not call it yet.** `SessionRuntime.smt` is declared
-(`packages/cli/src/flow/runtime.ts`) and never assigned; `packages/cli/src/api.ts` only has a comment about wiring it.
-The CLI uses this package only in `faithful doctor` (`doctor.ts` opens a driver and reports its kind and version);
-`optimizeCmd.ts` imports `openZ3` but only references it (`void openZ3;`). As docs/TIERS.md
-states, the SMT stage of every candidate is therefore recorded as `skipped` in this build, and no candidate reaches the
-`verified-to-k` tier through the CLI. Everything below is about the library and the measurements made with it.
+The SMT tier is a library (`checkEquivalent`: one bounded query; `verifiedToK`: the adaptive driver that produces a `SmtDetail` for the session) and is wired into the tool: `packages/cli/src/smtChecker.ts` adapts it to the optimizer's SMT stage, and it is assigned in the local server (`api.ts`, also used by `faithful optimize`), in `faithful showcase-record`, in `scripts/measure.mjs` and in `faithful verify`. When no Z3 is available the stage is recorded as `skipped`.
 
 ## 2. What "Verified to k" means, and what it does not mean
 

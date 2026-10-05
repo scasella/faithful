@@ -102,7 +102,7 @@ describe('Evidence line', () => {
   it('reports a non-significant speedup as such', () => {
     const c: CandidateRecord = { ...proved, speedup: { ratio: 1.08, lo: 0.97, hi: 1.2, significant: false } };
     const t = evidenceText(evidenceFor(state, c));
-    expect(t).toContain('Not shown to be faster than the original: 1.0× (95% CI 0.9–1.2)');
+    expect(t).toContain('Not shown to be faster than the original: 1.08× (95% CI 0.97–1.20)');
     expect(t).not.toContain('faster (');
   });
 });

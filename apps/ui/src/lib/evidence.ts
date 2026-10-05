@@ -9,7 +9,7 @@
 import type { CandidateRecord, SessionState } from '@faithful/session';
 import { TIER_LABEL, formatCount } from '@faithful/core/tiers';
 import { candidateModelCheck, differentialDetail, mutationOf, smtK, stageOf } from './facts';
-import { ciText, floor1, nsText, ratioText } from './format';
+import { canSayFaster, nsText, ratioText, speedupCiText } from './format';
 import { leanVersions } from './provenance';
 import { WITHHELD_NOTE, isProvedTier, mismatchNote, stageSummaryText, tierText } from './tierText';
 
@@ -69,16 +69,16 @@ export function evidenceFor(s: SessionState, c: CandidateRecord): EvidenceLine {
   }
 
   if (c.speedup && c.bench) {
-    if (c.speedup.significant) {
+    if (canSayFaster(c.speedup)) {
       clauses.push({
         id: 'speedup',
-        text: `${ratioText(c.speedup)} faster than the original (${ciText(c.speedup.lo, c.speedup.hi)}) on the declared distribution.`,
+        text: `${ratioText(c.speedup)} faster than the original (${speedupCiText(c.speedup)}) on the declared distribution.`,
         what: `Benchmark vs the original: ${formatCount(c.bench.trials)} trials, median ${nsText(c.bench.median)}, distribution ${c.bench.distribution}`,
       });
     } else {
       clauses.push({
         id: 'no-speedup',
-        text: `Not shown to be faster than the original: ${floor1(c.speedup.ratio)}× (${ciText(c.speedup.lo, c.speedup.hi)}) on the declared distribution.`,
+        text: `Not shown to be faster than the original: ${ratioText({ ...c.speedup, significant: false })} (${speedupCiText({ ...c.speedup, significant: false })}) on the declared distribution.`,
         what: `Benchmark vs the original: ${formatCount(c.bench.trials)} trials, distribution ${c.bench.distribution}`,
       });
     }

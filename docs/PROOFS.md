@@ -238,6 +238,191 @@ contained `sorry`, and no `pure`/`throw` residue appeared. By cause:
 The TUNE functions that were never proved in any run, `string/longestRun` (five-component loop state with a run
 counter) and `string/toCsvRow` (`Faithful.split`/`join`/`strIndexOf`), are of the same kinds.
 
+## Candidate proofs
+
+Date 2026-10-05; same model, toolchain and checker as above. Raw data: `docs/measurements/2026-10-05-candidates/`
+(dataset, rules, split, range screen) and `docs/measurements/2026-10-05-cproofs-*/` (`results.jsonl`, `config.json`,
+`run.log`, every proof session's events with every prompt and response). Summaries:
+`node scripts/candidate-proof-summary.mjs <dir>`.
+
+### The theorem and why it is hard
+
+For an optimization candidate the statement is ours (`packages/cli/src/flow/candidateProof.ts`, `candidateTheorem`):
+
+```
+∀ args, Model.f_pre args = true → <no-throw / carve-outs> = true → Model.f_cand_pre args = true ∧ Model.f_cand args = Spec.spec args
+```
+
+Two obligations: RANGE (the candidate's precondition, i.e. its checked twin `f_cand_chk` never fails a range, bounds or
+divisor check, follows from the ORIGINAL's precondition: two different checked twins must be related) and EQUALITY
+(usually a loop invariant over `Model.f_cand_loopN`). Before this work the brief measured 0 proofs of about 10 candidates
+in 8 sessions.
+
+### Dataset (rules written before collection: `docs/measurements/2026-10-05-candidates/RULES.md`)
+
+* Population: the 35 in-subset corpus functions that reached an agreed spec in some `2026-10-05-proofs-*` session. Spec,
+  carve-outs, throw choice and the original's accepted proof are replayed from one session per function, chosen by a fixed
+  run order (first among sessions where the original was proved).
+* `scripts/collect-candidates.mjs` ran the real optimizer (candidate effort `low`) on each replayed session with the proof
+  stage disabled (`OptimizeOptions.skipProof`, measurement only), at most 6 rounds / 10 minutes per function.
+* Kept: candidates that passed compile, purity, differential and SMT (Verified to k) and have a Lean model with the same
+  record types: **50 candidates over 24 functions** (array 17 / 6 functions, numeric 11 / 7, recursive 6 / 3, string 13 / 5,
+  refuse-folder 3 / 1). 69 others were excluded (62 SMT skipped, mostly because the candidate left the subset: `push`,
+  `new Array`, `Set`, `Record`, generics; 6 failed earlier; 1 SMT counterexample): `excluded.jsonl`.
+  `recursive/powerBySquaring` produced none: the optimizer's baseline benchmark faulted on an input outside ±2^53
+  (`collect.jsonl`; a separate optimizer issue).
+* Split by FUNCTION (rule in RULES.md: ids sorted, i mod 3 == 1 is TUNE): **TUNE 17 candidates / 8 functions**
+  (array/maxSubarraySum 6, array/spread 2, numeric/clamp 1, numeric/factorial 3, numeric/intPow 1,
+  recursive/reverseDigits 1, string/countChar 2, string/reverseString 1), **HELD-OUT 33 / 16** (`split.json`). The brief's
+  examples were read before the split: `array/spread` landed in TUNE, `numeric/fibRecursive` and `recursive/fibonacci` in
+  HELD-OUT.
+* An important property of the population, known before tuning: for **11 of the 17 TUNE candidates and 16 of the 33
+  HELD-OUT candidates the ORIGINAL was never proved** against the same spec (maxSubarraySum, factorial, intPow,
+  reverseDigits; countOccurrences, twoSum, floorDivMod, countVowels, longestRun, trimControl). Their equality part is at
+  least as hard as a proof that failed in every earlier run.
+* Range screen (`scripts/range-screen.mjs`, run on all 50 before any proof run, no model): looks for an input on which the
+  original stays in range but the candidate's instrumented TypeScript reports a range violation, and confirms it in Lean
+  (`Model.f_cand_pre` = false). **1 of 50 is refuted**: `array/maxWindowSum#1` (HELD-OUT) on `[[-2^53, 6, -3, -4], 1]`:
+  its range theorem is false, so no proof can exist. "Not refuted" is weak for exponential originals (their instrumented
+  run times out above n ≈ 35; e.g. an iterative Fibonacci that computes fib(n+1) is out of range at n = 78 where the naive
+  original is not, see below).
+* Since the orchestrator's funnel change (benchmark before proof) only candidates significantly faster than the incumbent
+  reach Lean: 12 of the 17 TUNE and 27 of the 33 HELD-OUT candidates were significantly faster than the original when
+  collected. The runs below attempt all 17 TUNE candidates.
+
+### Harness
+
+`scripts/candidate-proofs.mjs` replays the dataset's session and calls the production function `proveCandidate` (the
+same code the funnel calls), budget 8 attempts / 12 minutes per candidate (the production default), proof effort `high`,
+concurrency 3. `--lib v1` reproduces the library before this work (`Faithful.TacticsV1` = the old tactic set without
+`Faithful.Chk`, and the old library listing in the prompt): the baseline is the previous code on the same candidates.
+
+### Levers
+
+* **(a) Decomposition (`FAITHFUL_CANDIDATE_PROOF=split`).** `candidate_<id>_equals_spec` (∀ args, hyps → cand = spec) and
+  `candidate_<id>_range_ok` (∀ args, hyps → cand_pre = true) are proved separately, each through the full checker (vetting,
+  its own statement fingerprint, axioms); the original's accepted proof is placed in both files as already-checked context
+  (`ProofTarget.context`, re-checked by Lean every time and covered by `#print axioms`); the range file also gets the
+  proved equality theorem and its helpers. Then `candidate_<id>_meets_spec`, with the UNCHANGED statement, is checked by
+  the same `checkProof` with the proof `by intro ..; exact ⟨range .., equals ..⟩` (no model call). Budget shared: equality
+  gets at most all-but-two attempts and two thirds of the minutes, range the rest (range is attempted even when equality
+  failed, so the user sees which part is the obstacle).
+* **(b) Candidate guide** (`packages/cli/src/flow/candidateGuide.ts`): both obligations, where the file's pieces are, the
+  generalized-loop-state pattern, the transfer lemma `f_cand_loopN_chk st = .ok (f_cand_loopN st)` under a bound
+  invariant, how to read a passing run of the ORIGINAL's checked loop, index-loop vs fold pattern, character codes, the
+  `fun_induction` facts that cost the most attempts (it already unfolds one step; checked loops bind no `let` names), and a
+  complete worked example on a SYNTHETIC function (`sumTo`, not in the corpus) whose four theorems are compiled verbatim
+  by a test (`candidateProof.test.ts`).
+* **(c) `Faithful.Chk`** (`lean/Faithful/Chk.lean`, imported by `Faithful.Tactics`): `rangeOkOf_ck_bind`,
+  `rangeOkOf_map`, `rangeOkOf_pure` (simp), `ck_eq`, `rangeOkOf_of_bind`, `rangeOkOf_bind_of_eq_ok`, `rangeOkOf_of_eq_ok`,
+  `rangeOkOf_eq_true_iff`, `bind_eq_ok_iff`, `ck_bind_eq_ok_iff`, `drop_eq_getD_cons`, `foldl_drop_step`,
+  `drop_toNat_of_length_le`, `char_toNat_cast_inj` (simp), `charCodeAt_of_lt`, `charCodeAt_eq_iff`. All proved; `#print
+  axioms` lists at most `propext`, `Quot.sound`; `lake build` green. Effect on earlier proofs: all **35** accepted proofs
+  in `proofs-final-heldout`, `tune-b-10x12`, `tune-d-simp`, `tune-d-simp-r2` (which include the 20 the brief refers to)
+  still check against the new library. `faithfulLibraryHash` covers `Chk.lean`, so `faithful verify` notes the library
+  change for deliveries made before it.
+* **(e) JavaScript length facts (`FAITHFUL_CANDIDATE_LENGTH_FACTS=1`): a PROPOSAL, not adopted.** See below.
+
+### TUNE results (17 candidates; 8 attempts / 12 minutes each)
+
+| run (`docs/measurements/2026-10-05-cproofs-<run>`) | proved | array 8 | numeric 5 | recursive 1 | string 3 | equality part proved | range part proved | attempts | proof min | Codex calls | tokens in / out |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| baseline (old code, `--lib v1`, single theorem) `tune-base` | 1/17 | 0 | 1 | 0 | 0 | - | - | 132 | 145 | 132 | 3.93M / 400k |
+| (a) split, old library, no guide `tune-a-split` | 1/17 | 0 | 1 | 0 | 0 | 2 | 1 | 133 | 164 | 133 | 3.87M / 445k |
+| (a)+(b)+(c)+(e) split, guide, Chk, length facts `tune-abce` | 2/17 | 0 | 2 | 0 | 0 | 4 | 2 | 131 | 160 | 131 | 4.17M / 448k |
+FINALROW
+
+Proved: baseline and (a) `numeric/clamp#1`; `tune-abce` also `numeric/factorial#4` (whose ORIGINAL was never proved; both parts were proved
+within 8 attempts in total, 11 minutes).
+
+FINALTEXT
+
+### What blocks the TUNE candidates (diagnostics read after each TUNE run)
+
+* **The original was never proved (11 of 17).** maxSubarraySum (6 candidates): every configuration failed the equality
+  part; the attempts try `cand = original` (the states are the same) but then still need the spec property the original's
+  own proof never reached. intPow and reverseDigits likewise. Only factorial#4 was closed once.
+* **The range theorem is false as stated without a length bound (spread, 2 candidates).** The original iterates with
+  `for (const x of xs)` and never range-checks an index; the candidate uses `for (let i = 1; i < n; i++)`, whose `i + 1` is
+  range-checked. For a Lean list longer than 2^53 the original's precondition holds and the candidate's fails, so the
+  range part has no proof. In the baseline the model said exactly this in 8 of 8 attempts ("No valid proof exists: the
+  theorem is false for lists longer than Faithful.MAX ... add a list-length bound") and submitted empty or commented
+  proofs. No JavaScript array has that many elements; this is what lever (e) addresses.
+* **Range proofs that are true but long.** countChar (original proved; candidate reads `charCodeAt(i)` where the original
+  compared `charAt(i)`): equality was proved once with the guide and `charCodeAt_eq_iff`; range needs the original's
+  string-length bound (`i++` is checked in both) carried across two different checked loops, and failed in every run.
+  reverseString#5 (4-way unrolled loop building the output with `+=`): the string-length range check (16,777,216 code
+  units) of every intermediate concatenation must be related to the original's single-character steps; not closed.
+* Error classes over the failing attempts are the same as for original proofs (unsolved goals, `omega` counterexamples,
+  rewrite failures after `fun_induction` already unfolded the call, looping `simp`), plus empty "the theorem is false"
+  submissions for spread.
+
+### Lever (e), in writing: JavaScript length facts as extra hypotheses (proposed, NOT adopted)
+
+Proposal: add to the candidate theorem, for every array argument `xs`, `(xs.length : Int) ≤ 4294967295`, for every
+string argument `s`, `(s.length : Int) ≤ 9007199254740991`, and the same for the elements of an array of arrays/strings
+(`jsLengthFacts`). The statement words then say so (`wordsFor`), and the delivered claim states it.
+
+Soundness argument: the claim is about the JavaScript function on JavaScript inputs. ECMAScript fixes an array's
+`length` to a uint32 (at most 2^32 - 1) and a string's length to at most 2^53 - 1 code units; every value a caller can pass
+satisfies both. So for every JavaScript input satisfying the original's preconditions, the hypotheses hold, and "Proved"
+keeps its meaning: the candidate (as JS, within the model and ±2^53) equals the spec on every such input. What it
+excludes: only Lean values with no JavaScript counterpart (lists of more than 2^32 - 1 elements, strings of 2^53 or more
+code units). What it does NOT do: it does not bound anything the program computes, does not relax any range, bounds or
+divisor check of either checked twin, and does not touch the checker.
+
+Why not adopted: it changes the Lean statement of the range obligation, which this brief says must not be adopted
+without that change being agreed; and on TUNE it did not yet produce a proof (spread's range part still failed with the
+facts present, though the model stopped calling the theorem false and worked on it). It is implemented behind
+`FAITHFUL_CANDIDATE_LENGTH_FACTS=1` (default off, `DEFAULT_LENGTH_FACTS = false`) so it can be adopted by changing one
+constant after review. It would also be the honest fix for the original-proof statement if an original ever needed it.
+
+### Levers not attempted (time-box)
+
+* **A. Deterministic loop scaffolding from the translator** (emitting, per loop, a generalized-state lemma statement).
+  Not attempted. Note on what it could and could not do: the translator can emit the TRANSFER lemma's shape
+  (`∀ st, P st → f_cand_loopN_chk .. st = .ok (f_cand_loopN .. st)`) and even prove a generic version parametrised by an
+  invariant `P` with step obligations, because the checked twin mirrors the model's control flow; it cannot emit the
+  closed form or the invariant, which come from the spec and are where the TUNE failures are.
+* **D. Lemma-by-lemma checking** (keep the good helper lemmas of a failed attempt). Not attempted.
+* **E. Provability-aware candidate prompt.** Not attempted: it trades speedup for provability and needs both measured.
+
+### Decision gate and held-out
+
+Gate written before any held-out run: the final configuration would count as an improvement only if it proved **at least
+3 more of the 33 HELD-OUT candidates than the baseline on the same 33** (with both runs once). The rules of this phase
+also say: if candidate proofs are still near zero on TUNE after the levers, stop tuning and spend no more budget. On TUNE
+the best configuration proved 2 of 17 and the shipped default GATECOUNT, against 1 of 17 for the baseline: that is near
+zero and within the run-to-run noise measured above (±2 on 13). **The HELD-OUT evaluation was therefore not run**, and no
+held-out diagnostic was read; `split.json` keeps the 33 held-out candidates untouched for a later evaluation.
+
+### What ships
+
+* `DEFAULT_CANDIDATE_PROOF_MODE = 'split'`, `DEFAULT_CANDIDATE_GUIDE = true`, `Faithful.Chk` imported by
+  `Faithful.Tactics`, `DEFAULT_LENGTH_FACTS = false`, budget 8 attempts / 12 minutes (unchanged), stagnation stop on.
+  Chosen because, at the same budget, it is never worse on TUNE and it reports WHICH part failed ("the equality part was
+  proved, the range part was not"), which the single theorem cannot; not because of a measured improvement in proofs.
+* What the user sees, honestly: a faster candidate is almost always "faster, verified to k, not proved"; it can be
+  accepted at the Verified-to-k tier.
+* Events: `proof.started` / `proof.attempt` / `proof.done` for `candidate_<id>_equals_spec` and `candidate_<id>_range_ok`
+  (each with `parent: candidate_<id>_meets_spec`), then, only if both are proved, for `candidate_<id>_meets_spec` (with
+  `parts: [...]`, one attempt with `callId: null`: the mechanical combination). UI: show the candidate's proof stage as one
+  row with two sub-rows, "Equals the spec" and "Stays inside the model's range", each with its own attempt list, and a
+  final "Combined (checked by Lean, no model call)" line; the candidate's tier changes ONLY on the combined theorem's
+  result; a proved part alone is shown as "equality proved, range not proved" (or the reverse) with the tier unchanged
+  (Verified to k). Single mode (`FAITHFUL_CANDIDATE_PROOF=single`) keeps the old single `candidate_<id>_meets_spec`.
+
+### Reproducing
+
+```
+node scripts/collect-candidates.mjs --concurrency 3                                    # dataset (rules in RULES.md)
+node scripts/range-screen.mjs                                                           # refuted range obligations
+FAITHFUL_CANDIDATE_PROOF=single FAITHFUL_CANDIDATE_GUIDE=0 node scripts/candidate-proofs.mjs --split tune --lib v1 --out <dir>   # baseline
+node scripts/candidate-proofs.mjs --split tune --out <dir>                              # shipped defaults
+node scripts/candidate-proof-summary.mjs <dir>...
+```
+
+
 ## Limits
 
 * Every "Proved" is about the Lean model produced by the translator and the agreed spec, under the stated
