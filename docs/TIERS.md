@@ -141,8 +141,23 @@ which the original faulted or was slower than 100 ms (they are skipped and count
 the differential stage (12 broken copies of the original at most, seed 11, the first 300 differential inputs) measures
 whether these inputs would notice a broken copy; it is informational, wrapped in a `try`, and never rejects a candidate.
 
-**Not produced for refused functions.** The `Optimizer` constructor refuses a function the translator refused, with the
-message "only the Tested tier is available"; no flow in this build then produces a Tested claim for it.
+**Refused functions: the Tested-only path.** The `Optimizer` constructor still refuses a function the translator
+refused. Such a function continues on the Tested tier only through `SessionRuntime.startTestedOnly` (event
+`tested.started`) and `TestedOptimizer` (`packages/cli/src/flow/tested.ts`; `POST /api/tested/start`,
+`faithful optimize --tested`, or the Translate screen's "Optimize with the Tested tier only"). There is no model, spec,
+agreement, proof or SMT check; the original function is the reference. The funnel is compile, purity, the differential
+`jsVsJs` (`packages/engine/src/differential/jsdifferential.ts`) against the ORIGINAL on up to 1,000 inputs generated
+from the TypeScript signature by `generateSignatureInputs` (`signature.ts`; seed `7000 + candidate id`; numbers are
+integers AND non-integer doubles; NaN, Infinity, -Infinity and -0 only when the user opts in), the mutation check, and
+the benchmark; the `smt` and `proof` stages are recorded as `skipped` with "outside the verifiable subset: <refusal
+reason>". Both functions run in the sandbox's `'js'` value domain, where NaN, ±Infinity, -0 and `undefined` cross as
+the sentinel objects of `jsvalues.ts`. Equality (`jsOutcomeEqual`): NaN equals NaN; -0 and 0 are different
+(`Object.is`; a difference only in the sign of a zero is rejected and said in those words); `undefined` differs from
+`null`; a thrown message must match. A candidate is kept only when it is also significantly faster. `deliverTested`
+writes `patch.diff`, `<fn>.provenance.json` (one `candidate-vs-original-differential` claim at tier `tested`, the refusal
+in `caveats` and `testedOnly`, empty model/spec/agreement/Lean hashes) and `VERIFY.md`; no `.lean` file and no
+`spec.md`. `faithful verify` on it re-runs the differential from the recorded seed and says that no proof or SMT claim
+exists. Never Proved or Verified to k.
 
 ### Not proved
 

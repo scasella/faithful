@@ -50,6 +50,8 @@ export interface MutationOptions {
   perCallMs?: number;
   /** Use this sandbox instead of opening (and closing) a private one. */
   sandbox?: Sandbox;
+  /** Value domain of every load (original and mutants), see `LoadOptions.values`. `'js'` for the Tested-only path. */
+  values?: 'subset' | 'js';
 }
 
 export type MutantFate =
@@ -190,10 +192,10 @@ export async function mutationCheck(source: string, fnName: string, inputs: Val[
   const excluded = { fault: 0, rangeViolation: 0, rejected: 0 };
 
   try {
-    const lo = await sb.load(origId, source, fnName);
+    const lo = await sb.load(origId, source, fnName, { values: opts.values });
     if (!lo.ok) throw new Error(`mutationCheck: the original does not load: ${lo.error}`);
     if (opts.instrumentedTs !== undefined) {
-      const li = await sb.load(instId, opts.instrumentedTs, fnName, { instrumented: true });
+      const li = await sb.load(instId, opts.instrumentedTs, fnName, { instrumented: true, values: opts.values });
       if (!li.ok) throw new Error(`mutationCheck: the instrumented original does not load: ${li.error}`);
     }
 
@@ -287,7 +289,7 @@ export async function mutationCheck(source: string, fnName: string, inputs: Val[
     for (const m of gen.mutants) {
       const info = { id: m.id, kind: m.kind, line: m.line, column: m.column, original: m.original, mutated: m.mutated };
       const id = `${tag}:m${k++}`;
-      const l = await sb.load(id, m.source, fnName);
+      const l = await sb.load(id, m.source, fnName, { values: opts.values });
       if (!l.ok) {
         results.push({ ...info, fate: { status: 'stillborn', error: l.error } });
         continue;

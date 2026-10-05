@@ -21,6 +21,9 @@ export const SCREEN_KEYS: Record<StageName, KeyDoc[]> = {
     { keys: ['p'], what: 'A throw site: treat it as a precondition' },
     { keys: ['c'], what: 'A throw site: model it as a spec case' },
     { keys: ['n'], what: 'Propose a spec (the model writes it; you agree to it)' },
+    { keys: ['1', '2'], what: 'A refused function: choose when optimizing on the Tested tier stops (time budget, target speedup)' },
+    { keys: ['i'], what: 'A refused function: also generate NaN, Infinity, -Infinity and -0 as inputs' },
+    { keys: ['t'], what: 'A refused function: optimize with the Tested tier only (no spec, proof or SMT check exists)' },
   ],
   agree: [
     { keys: ['j', 'k'], what: 'Next / previous unruled challenge' },

@@ -16,6 +16,8 @@ export interface PurityGateInput {
   fnName: string;
   sample: Val[][];
   instrumented?: boolean;
+  /** Value domain of the load (see `LoadOptions.values`); `'js'` for functions outside the verifiable subset. */
+  values?: 'subset' | 'js';
   /**
    * Whether an argument mutation fails the gate. Default true. (In-place `sort` on an argument is a mutation; the
    * caller decides whether the subset's value semantics tolerate it. It is reported either way.)
@@ -36,7 +38,7 @@ export interface PurityGateResult {
 
 export async function purityGate(sb: Sandbox, input: PurityGateInput, opts: BatchOptions = {}): Promise<PurityGateResult> {
   const t0 = performance.now();
-  const loaded = await sb.load(input.id, input.source, input.fnName, { instrumented: input.instrumented ?? false });
+  const loaded = await sb.load(input.id, input.source, input.fnName, { instrumented: input.instrumented ?? false, values: input.values });
   if (!loaded.ok) {
     return {
       gate: 'purity',

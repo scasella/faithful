@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -69,4 +69,14 @@ async function doLoad(leanDir: string): Promise<LeanEnv> {
     toolchain,
     mathlibCommit,
   };
+}
+
+/** Hash of the `Faithful` Lean library sources (lean/Faithful/*.lean): proofs are checked against exactly this text. */
+export async function faithfulLibraryHash(leanDir: string): Promise<string> {
+  const { hashText } = await import('./hash.js');
+  const dir = join(leanDir, 'Faithful');
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.lean')).sort();
+  const parts: string[] = [];
+  for (const n of names) parts.push(`${n}\n${await readFile(join(dir, n), 'utf8')}`);
+  return hashText(parts.join('\n---\n'));
 }

@@ -25,6 +25,14 @@ describe('vetProofText', () => {
 });
 
 describe('buildProofFile', () => {
+  it('places already-checked context after the spec and before the helpers', () => {
+    const b = buildProofFile({ ...target, context: 'theorem prior : 1 = 1 := rfl' }, { helpers: 'theorem h : 2 = 2 := rfl', proof: 'by simp' });
+    const s = b.source;
+    expect(s.indexOf('def spec')).toBeLessThan(s.indexOf('theorem prior'));
+    expect(s.indexOf('theorem prior')).toBeLessThan(s.indexOf('theorem h :'));
+    // the fingerprint file carries the same context
+    expect(buildProofFile({ ...target, context: 'theorem prior : 1 = 1 := rfl' }, 'sorry').source).toContain('theorem prior');
+  });
   it('puts the statement ours and the proof after :=', () => {
     const b = buildProofFile(target, { helpers: 'theorem h : 1 = 1 := rfl', proof: 'by\n  intro x _\n  simp [Model.original, Spec.spec]\n  omega' });
     expect(b.source).toContain('theorem original_meets_spec : ∀ (x : Int), Model.pre x = true → Model.original x = Spec.spec x :=');

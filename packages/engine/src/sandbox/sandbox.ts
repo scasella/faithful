@@ -50,6 +50,14 @@ export interface LoadOptions {
    * message as detail. Outside instrumented mode such an error is an ordinary fault.
    */
   instrumented?: boolean;
+  /**
+   * Value domain of arguments and results. Default `'subset'`: results must be integers within +-2^53 (anything else is
+   * a fault), -0 becomes 0 and `undefined` becomes null. `'js'` (the Tested-only path for functions outside the
+   * verifiable subset): any finite number crosses as itself, and NaN, Infinity, -Infinity, -0 and `undefined` cross as
+   * the sentinel objects of `differential/jsvalues.ts` (`{ "$faithful": "NaN" }` ...), in both directions: sentinel
+   * arguments are decoded before the call, results are encoded after it. Everything stays plain JSON.
+   */
+  values?: 'subset' | 'js';
 }
 
 export type LoadResult =
@@ -91,6 +99,8 @@ interface LoadRecord {
   js: string;
   fnName: string;
   instrumented: boolean;
+  /** Kept in the record so a respawned worker replays the load in the same value domain. */
+  values: 'subset' | 'js';
 }
 
 interface Handle {
@@ -182,7 +192,7 @@ export class Sandbox {
     return this.enqueue(async () => {
       const prepared = prepareSource(source);
       if (!prepared.ok) return { ok: false, error: prepared.error, violations: [] };
-      const rec: LoadRecord = { js: prepared.js, fnName, instrumented: opts.instrumented ?? false };
+      const rec: LoadRecord = { js: prepared.js, fnName, instrumented: opts.instrumented ?? false, values: opts.values ?? 'subset' };
       const t0 = now();
       const r = await this.loadInWorker(id, rec);
       if (r.ok) this.loads.set(id, rec);
@@ -368,7 +378,7 @@ export class Sandbox {
     const seq = this.seq++;
     const r = await this.exchange<Extract<FromWorker, { type: 'loaded' }>>(
       h,
-      { type: 'load', seq, id, js: rec.js, fnName: rec.fnName, instrumented: rec.instrumented },
+      { type: 'load', seq, id, js: rec.js, fnName: rec.fnName, instrumented: rec.instrumented, values: rec.values },
       this.opts.loadTimeoutMs,
     );
     if (r.kind === 'reply') return r.m.ok ? { ok: true, ms: 0 } : { ok: false, error: r.m.error, violations: r.m.violations };

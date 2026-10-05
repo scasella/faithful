@@ -8,7 +8,7 @@
  */
 import { useState } from 'preact/hooks';
 import type { BenchSummary, CandidateRecord } from '@faithful/session';
-import { formatCount } from '@faithful/core/tiers';
+import { TIER_LABEL, formatCount } from '@faithful/core/tiers';
 import { useApp } from '../../app/AppContext';
 import { ActionButton } from '../../components/ActionButton';
 import { CatchCard } from '../../components/CatchCard';
@@ -24,6 +24,7 @@ import { callById, candidateModelCheck, candidateProofCalls, differentialDetail,
 import { ciText, nsText, ratioText } from '../../lib/format';
 import { ThresholdChoice } from './ThresholdChoice';
 import { thresholdWords } from './threshold';
+import { STAGE_LABEL } from '../../lib/catch';
 import { acceptBlocker, acceptConsequence, finalReadout, verdictText, verifiedLabel } from './speed';
 import './optimize.css';
 
@@ -56,6 +57,7 @@ export function OptimizeScreen() {
   }
   return (
     <div class="stack-l op-screen">
+      {s.tested && <TestedOnlyPanel />}
       <Header />
       <Final />
       {o.stoppedBy === null && <IncumbentPanel />}
@@ -75,6 +77,57 @@ export function OptimizeScreen() {
       {/* After the list, so it appends like the candidates and never pushes what the reader is looking at. */}
       <AcceptPanel />
     </div>
+  );
+}
+
+/** The Tested-only path: why there is no proof or SMT stage, and what the one tier means here. */
+function TestedOnlyPanel() {
+  const { store } = useApp();
+  const s = store.state.value;
+  const t = s.tested!;
+  return (
+    <section class="panel quiet stack op-tested" aria-labelledby="tested-title">
+      <p class="label" id="tested-title">
+        {TIER_LABEL.tested} tier only
+      </p>
+      <p>
+        <code>{s.fn}</code> is outside the verifiable subset (refusal <code>{t.refusal.code}</code>, line {t.refusal.span.line}, column {t.refusal.span.column}):{' '}
+        <InlineText text={t.refusal.reason} />
+      </p>
+      <p>
+        No spec, Lean proof or SMT check exists for it, so those stages are skipped for every candidate. Your original is the reference: each candidate is
+        compared with it on inputs generated from <code>{t.signature}</code> (integers and non-integer numbers
+        {t.specials ? '; NaN, Infinity, -Infinity and -0 included, as you chose' : '; NaN, Infinity and -0 not generated'}). NaN counts as equal to NaN; -0 and 0
+        count as different. The highest tier a candidate can reach is {TIER_LABEL.tested}.
+      </p>
+    </section>
+  );
+}
+
+/** "Tested on 1,000 generated inputs": the Tested label with its N (the differential inputs compared). */
+export function TestedTierLine({ c }: { c: CandidateRecord }) {
+  const dd = differentialDetail(c);
+  return (
+    <span class="tier tier-tested">
+      <span class="tier-label">{TIER_LABEL.tested}</span>
+      {dd && (
+        <span class="tier-sentence">
+          {' '}
+          on <Num what={`Differential stage of candidate ${c.id}: inputs generated from the signature and compared with the original (seed ${dd.seed})`}>{formatCount(dd.compared)} generated inputs</Num>
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Stages skipped for every candidate of a Tested-only session, with the server's reason. */
+function SkippedStages({ c }: { c: CandidateRecord }) {
+  const skipped = c.stages.filter((x) => x.status === 'skipped');
+  if (!skipped.length) return null;
+  return (
+    <p class="muted fx-small op-skipped">
+      {skipped.map((x) => STAGE_LABEL[x.stage]).join(' and ')}: skipped ({skipped[0]!.summary.startsWith('outside the verifiable subset') ? 'outside the verifiable subset' : skipped[0]!.summary}).
+    </p>
   );
 }
 
@@ -179,7 +232,7 @@ function IncumbentPanel() {
             <h3>
               Candidate {inc.id} <span class="muted">· round {inc.round}</span>
             </h3>
-            {inc.tier && <TierBadge tier={inc.tier} n={mc?.inputs ?? null} mismatches={mc?.disagreements} k={smtK(inc)} />}
+            {s.tested && inc.tier === 'tested' ? <TestedTierLine c={inc} /> : inc.tier && <TierBadge tier={inc.tier} n={mc?.inputs ?? null} mismatches={mc?.disagreements} k={smtK(inc)} />}
           </div>
           {inc.outcome === 'accepted-at-verified' && (
             <p class="op-accepted-note">
@@ -268,8 +321,10 @@ function Final() {
           {inc ? (
             <span class="fx-stack-s">
               <span>Candidate {inc.id}</span>
-              {inc.tier && <TierBadge tier={inc.tier} n={mc?.inputs ?? null} mismatches={mc?.disagreements} k={smtK(inc)} />}
+              {s.tested && inc.tier === 'tested' ? <TestedTierLine c={inc} /> : inc.tier && <TierBadge tier={inc.tier} n={mc?.inputs ?? null} mismatches={mc?.disagreements} k={smtK(inc)} />}
             </span>
+          ) : s.tested ? (
+            'None. The original stands; delivery records what was tried and claims nothing.'
           ) : (
             'None. The original stands; delivery contains the proof work only.'
           )}
@@ -305,8 +360,17 @@ function Final() {
       {!s.delivery ? (
         <div class="stack">
           <p class="muted">
-            Delivery writes files under <code>.faithful/{s.fn}/</code>: the patch, the spec, the Lean file, provenance and how to verify it. Your source file is not
-            modified.
+            {s.tested ? (
+              <>
+                Delivery writes files under <code>.faithful/{s.fn}/</code>: the patch, provenance and how to re-run the differential. There is no spec or Lean file:
+                none exists for this function. Your source file is not modified.
+              </>
+            ) : (
+              <>
+                Delivery writes files under <code>.faithful/{s.fn}/</code>: the patch, the spec, the Lean file, provenance and how to verify it. Your source file is
+                not modified.
+              </>
+            )}
           </p>
           <div>
             <ActionButton primary keyName="d" run={() => adapter.deliver()}>
@@ -350,9 +414,10 @@ function Candidate({ c }: { c: CandidateRecord }) {
         <h4>
           Candidate {c.id} <span class="muted">· round {c.round} · {OUTCOME_WORDS[c.outcome]}</span>
         </h4>
-        {c.tier && <TierBadge tier={c.tier} n={n} mismatches={mc?.disagreements} k={k} />}
+        {s.tested && c.tier === 'tested' ? <TestedTierLine c={c} /> : c.tier && <TierBadge tier={c.tier} n={n} mismatches={mc?.disagreements} k={k} />}
       </div>
       <Funnel stages={c.stages} label={`Checks for candidate ${c.id}`} decided={c.outcome !== 'running'} />
+      {s.tested && <SkippedStages c={c} />}
       {slow > 0 && (
         <p class="muted fx-small">
           <Num what={`Differential stage of candidate ${c.id}: generated inputs not compared`}>{formatCount(slow)}</Num> generated input{slow === 1 ? ' was' : 's were'}{' '}

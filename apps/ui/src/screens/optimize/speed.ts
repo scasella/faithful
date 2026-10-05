@@ -72,6 +72,7 @@ export const STOPPED_WORDS: Record<NonNullable<SessionState['optimize']['stopped
   threshold: 'the threshold was reached',
   budget: 'the time budget ran out',
   'no-new-candidate': 'the model proposed no new candidate',
+  'round-limit': 'the round limit was reached',
   user: 'you stopped it',
 };
 

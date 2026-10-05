@@ -10,7 +10,7 @@ import { captureToolchain } from '@faithful/core';
 import { openZ3, type Z3Driver } from '@faithful/smt';
 import type { StampedEvent } from '@faithful/session';
 import { smtChecker } from './smtChecker.js';
-import { Optimizer, SessionRuntime, deliver, type RulingInput } from './flow/index.js';
+import { Optimizer, SessionRuntime, TestedOptimizer, deliver, deliverTested, type RulingInput } from './flow/index.js';
 import type { ApiRoutes } from './server.js';
 
 const SKIP_DIRS = new Set(['node_modules', '.git', '.faithful', 'dist', 'build', 'coverage', '.next', 'out']);
@@ -140,7 +140,20 @@ export async function createApi(repoRoot: string): Promise<Api> {
       abort?.abort();
       return { ok: true };
     },
-    'POST /api/deliver': async () => job('deliver', () => deliver(rt)),
+    /** A refused function, continued on the Tested tier only (packages/cli/src/flow/tested.ts). */
+    'POST /api/tested/start': async ({ body }) => {
+      const x = b(body);
+      const threshold = need(x.threshold as never, 'threshold');
+      const tr = rt.state.translation;
+      if (!tr || tr.ok) throw Object.assign(new Error('the Tested-only path is for a function the translator refused'), { status: 409 });
+      return job('tested', async () => {
+        abort = new AbortController();
+        // a retry after a failed run keeps the recorded choice (tested.started is in the log once)
+        if (!rt.state.tested) await rt.startTestedOnly({ specials: x.specials === true });
+        await new TestedOptimizer(rt, { threshold, signal: abort.signal }).run();
+      });
+    },
+    'POST /api/deliver': async () => job('deliver', () => (rt.state.tested ? deliverTested(rt) : deliver(rt))),
     'GET /api/toolchain': async () => captureToolchain({ z3: z3?.info() ?? null }),
   };
 

@@ -2,9 +2,11 @@
  * Translate: what the deterministic translator made of the function.
  *   translated: preconditions in plain words (the same list the Agree screen shows), translator notes, the throw sites
  *               with the choice "precondition" vs "spec case", and the Lean model (collapsed).
- *   refused:    the translator's reason, the refusal code, the exact source span marked, and what still runs.
- * Keys: 'p' / 'c' throw choice, 'n' propose a spec.
+ *   refused:    the translator's reason, the refusal code, the exact source span marked, what still runs, and the offer
+ *               to optimize with the Tested tier only (threshold, opt-in special values, key 't').
+ * Keys: 'p' / 'c' throw choice, 'n' propose a spec; refused: '1' / '2' threshold kind, 'i' special values, 't' start.
  */
+import { useState } from 'preact/hooks';
 import type { SessionState } from '@faithful/session';
 import type { Refusal, Translation } from '@faithful/translate';
 import { TIER_LABEL } from '@faithful/core/tiers';
@@ -13,6 +15,9 @@ import { Code } from '../../components/Code';
 import { InlineText } from '../../components/InlineText';
 import { ActionButton } from '../../components/ActionButton';
 import { Preconditions, preconditionView } from '../../components/Preconditions';
+import { KeyHint } from '../../components/KeyHint';
+import { useKeys } from '../../lib/keys';
+import { ThresholdChoice } from '../optimize/ThresholdChoice';
 import { REFUSAL_TITLE, lineExcerpt, tyWords } from './refusal';
 import './translate.css';
 
@@ -187,6 +192,61 @@ function Refused({ s, r }: { s: SessionState; r: Refusal }) {
         </p>
         <p class="muted">A refusal is a finding, not a failure. The subset is not widened to admit a function.</p>
       </section>
+      <TestedStart s={s} />
     </div>
+  );
+}
+
+/** Words for the opt-in special values (NaN, Infinity, -Infinity, -0) of the Tested-only generator. */
+export const SPECIALS_WORDS =
+  'Also generate NaN, Infinity, -Infinity and -0 as inputs. Leave this off if your function is never called with them: a candidate that differs only there would still be rejected.';
+
+/** Why "Optimize with the Tested tier only" is unavailable, or null. */
+export function testedBlocker(s: SessionState): string | null {
+  const t = s.translation;
+  if (!t || t.ok) return 'This function has a Lean model; the Tested-only path is for refused functions.';
+  if (s.tested) return 'Optimizing on the Tested tier only has started. The Optimize screen shows it once the original is benchmarked.';
+  if (s.job.running) return `Another job is running (${s.job.running}).`;
+  return null;
+}
+
+/** The offer to continue a refused function on the Tested tier only. */
+function TestedStart({ s }: { s: SessionState }) {
+  const { adapter } = useApp();
+  const [specials, setSpecials] = useState(false);
+  const blocker = testedBlocker(s);
+  useKeys({ i: !s.tested && (() => setSpecials((v) => !v)) });
+  return (
+    <section class="stack tr-tested panel" aria-labelledby="tr-tested-title">
+      <ThresholdChoice
+        originalProved
+        heading={`Optimize with the ${TIER_LABEL.tested} tier only`}
+        startLabel={`Optimize with the ${TIER_LABEL.tested} tier only`}
+        startKey="t"
+        disabled={blocker !== null}
+        start={(threshold) => adapter.startTestedOnly(threshold, { specials })}
+      />
+      <span id="tr-tested-title" class="sr-only">
+        Optimize with the {TIER_LABEL.tested} tier only
+      </span>
+      <p>
+        There is no spec to agree to and nothing to prove. Each candidate the model proposes is checked against your original itself: it must compile with the
+        same signature, pass the purity check, return exactly what your original returns (or throw the same message) on inputs generated from the parameter
+        types, integers and non-integer numbers alike, and those inputs must catch broken copies of your original. A candidate is kept only if it is also
+        measurably faster. The highest tier any candidate can reach is {TIER_LABEL.tested}.
+      </p>
+      <label class="tr-specials">
+        <input type="checkbox" checked={specials} disabled={!!s.tested} aria-keyshortcuts="i" onChange={(e) => setSpecials((e.currentTarget as HTMLInputElement).checked)} />{' '}
+        {SPECIALS_WORDS} <KeyHint keys="i" />
+      </label>
+      {s.tested ? (
+        <p class="tr-chosen">
+          Started on the {TIER_LABEL.tested} tier only. Inputs are generated from <code>{s.tested.signature}</code>
+          {s.tested.specials ? ', including NaN, Infinity, -Infinity and -0' : ''}.
+        </p>
+      ) : (
+        blocker && <p class="tr-why">{blocker}</p>
+      )}
+    </section>
   );
 }

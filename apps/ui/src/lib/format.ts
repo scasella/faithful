@@ -39,6 +39,12 @@ export function nsText(ns: number): string {
 /** Exact, compact text of a value in the value domain. Strings are JSON-quoted; null is the option `none`. */
 export function valText(v: Val): string {
   if (v === null) return 'null';
+  // NaN, Infinity, -Infinity, -0 and undefined travel as { "$faithful": name } (Tested-only path; engine jsvalues.ts)
+  if (typeof v === 'object' && !Array.isArray(v)) {
+    const keys = Object.keys(v);
+    const n = keys.length === 1 && keys[0] === '$faithful' ? v.$faithful : null;
+    if (n === 'NaN' || n === 'Infinity' || n === '-Infinity' || n === '-0' || n === 'undefined') return n;
+  }
   if (typeof v === 'string') return JSON.stringify(v);
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
   if (Array.isArray(v)) return `[${v.map(valText).join(', ')}]`;

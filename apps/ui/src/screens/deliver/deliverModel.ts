@@ -115,12 +115,18 @@ export interface Command {
   what: string;
 }
 
-/** The commands to check and apply the delivery, exactly as VERIFY.md gives them. `git apply` only when a change was delivered. */
-export function deliveryCommands(delivery: { dir: string; files: string[] }, changeDelivered: boolean): Command[] {
+/**
+ * The commands to check and apply the delivery, exactly as VERIFY.md gives them. `git apply` only when a change was
+ * delivered. `testedOnly`: a refused function (packages/cli/src/flow/tested.ts `testedVerifyMarkdown`): verify re-runs
+ * the differential only, because no proof or SMT claim exists.
+ */
+export function deliveryCommands(delivery: { dir: string; files: string[] }, changeDelivered: boolean, testedOnly = false): Command[] {
   const out: Command[] = [
     {
       cmd: `faithful verify ${delivery.dir}`,
-      what: 'Re-check the delivery: recompute every hash in the provenance file, re-run Lean on the proof file, re-run the differential test and the bounded SMT check, and print the evidence line again.',
+      what: testedOnly
+        ? 'Re-check the delivery: recompute the hashes in the provenance file and re-run the differential test against your original on the same generated inputs. There is no proof or SMT claim to re-check.'
+        : 'Re-check the delivery: recompute every hash in the provenance file, re-run Lean on the proof file, re-run the differential test and the bounded SMT check, and print the evidence line again.',
     },
   ];
   const patch = delivery.files.find((f) => /\.(diff|patch)$/.test(f));

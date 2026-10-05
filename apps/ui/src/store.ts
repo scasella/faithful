@@ -17,6 +17,11 @@ export const STAGES: Array<{ id: StageName; label: string }> = [
 
 export const stageIndex = (s: StageName): number => STAGES.findIndex((x) => x.id === s);
 
+/** Stages a session never passes through: a refused function on the Tested-only path has no Agree and no Prove. */
+export function skippedStages(s: SessionState): StageName[] {
+  return s.tested ? ['agree', 'prove'] : [];
+}
+
 export interface Store {
   events: Signal<StampedEvent[]>;
   state: Signal<SessionState>;
@@ -52,7 +57,7 @@ export function createStore(): Store {
   const actionError = signal<string | null>(null);
   const shown = computed<StageName>(() => {
     const v = viewing.value;
-    return v !== null && stageIndex(v) <= stageIndex(state.value.stage) ? v : state.value.stage;
+    return v !== null && stageIndex(v) <= stageIndex(state.value.stage) && !skippedStages(state.value).includes(v) ? v : state.value.stage;
   });
 
   const store: Store = {
@@ -80,15 +85,19 @@ export function createStore(): Store {
       });
     },
     reachable(s) {
-      return stageIndex(s) <= stageIndex(state.value.stage);
+      return stageIndex(s) <= stageIndex(state.value.stage) && !skippedStages(state.value).includes(s);
     },
     go(s) {
       viewing.value = s === null || s === state.value.stage ? null : s;
     },
     move(dir) {
-      const i = stageIndex(shown.value) + dir;
-      const target = STAGES[i];
-      if (target && store.reachable(target.id)) store.go(target.id);
+      // skips stages this session never passes through (skippedStages)
+      for (let i = stageIndex(shown.value) + dir; i >= 0 && i < STAGES.length; i += dir) {
+        const target = STAGES[i]!;
+        if (skippedStages(state.value).includes(target.id)) continue;
+        if (store.reachable(target.id)) store.go(target.id);
+        return;
+      }
     },
   };
   return store;

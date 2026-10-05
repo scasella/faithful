@@ -21,3 +21,5 @@ details.tr-model > .stack { margin-top: var(--s3); }
 .tr-reason { font-size: 1.0625rem; max-width: 40rem; overflow-wrap: anywhere; }
 .tr-still h3 { font-size: 0.9375rem; }
 .tr-still p { max-width: 40rem; }
+.tr-tested p { max-width: 40rem; }
+.tr-specials { display: block; max-width: 40rem; font-size: 0.9375rem; }

@@ -15,6 +15,8 @@ import { TierBadge } from '../../components/TierBadge';
 import { incumbent, originalModelCheck } from '../../lib/facts';
 import { deliveryCommands, describeFile, hunks, joinPath, lineDiff, notModifiedSentence } from './deliverModel';
 import { originalProof } from '../prove/proveModel';
+import { TIER_LABEL } from '@faithful/core/tiers';
+import { TestedTierLine } from '../optimize/OptimizeScreen';
 import './deliver.css';
 
 export function DeliverScreen() {
@@ -60,7 +62,7 @@ export function DeliverScreen() {
           Run these in your repository, as <code>{joinPath(d.dir, 'VERIFY.md')}</code> gives them. Re-checking does not trust this page or the model.
           {!changeDelivered && (incumbent(s) ? ' The function was pasted, so there is no file to patch.' : ' No change was delivered, so there is nothing to apply.')}
         </p>
-        {deliveryCommands(d, changeDelivered).map((c, i) => (
+        {deliveryCommands(d, changeDelivered, !!s.tested).map((c, i) => (
           <div key={c.cmd} class="fx-stack-s">
             <p>{c.what}</p>
             <CopyBlock text={c.cmd} keyName={String(i + 1)} label={`Command: ${c.what}`} />
@@ -75,6 +77,25 @@ function Delivered({ s }: { s: SessionState }) {
   const inc = incumbent(s);
   const mc = originalModelCheck(s);
   const p = originalProof(s);
+  if (s.tested) {
+    // A refused function: the one claim possible is Tested. Never a proof or SMT line.
+    return (
+      <section class="stack" aria-labelledby="dl-title">
+        <h3 id="dl-title">{inc ? `Delivered: candidate ${inc.id}` : 'No candidate delivered'}</h3>
+        <p>
+          {TIER_LABEL.tested} tier only: <code>{s.fn}</code> is outside the verifiable subset (refusal <code>{s.tested.refusal.code}</code>), so no spec, proof or SMT
+          claim exists for it.
+          {inc ? ' The evidence below is everything that is claimed.' : ' No candidate was kept, so there is no change to apply and nothing is claimed.'}
+        </p>
+        {inc && (
+          <>
+            <TestedTierLine c={inc} />
+            <Evidence state={s} candidate={inc} />
+          </>
+        )}
+      </section>
+    );
+  }
   if (!inc) {
     return (
       <section class="stack" aria-labelledby="dl-title">

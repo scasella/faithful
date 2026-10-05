@@ -2,7 +2,7 @@
 import { createInterface } from 'node:readline/promises';
 import { resolve } from 'node:path';
 import { createApi } from './api.js';
-import { Optimizer, deliver } from './flow/index.js';
+import { Optimizer, TestedOptimizer, deliver, deliverTested } from './flow/index.js';
 import { openZ3 } from '@faithful/smt';
 
 export interface OptimizeCmdOptions {
@@ -13,6 +13,10 @@ export interface OptimizeCmdOptions {
   yes: boolean;
   proofAttempts: number;
   proofMinutes: number;
+  /** On a refusal, continue with the Tested tier only without asking. */
+  tested?: boolean;
+  /** Tested-only path: also generate NaN, Infinity, -Infinity and -0 as inputs. */
+  specials?: boolean;
   log: (s: string) => void;
 }
 
@@ -40,7 +44,22 @@ export async function runOptimize(o: OptimizeCmdOptions): Promise<number> {
       log(`Refused by the translator (${tr && !tr.ok ? tr.refusal.code : '?'}): ${tr && !tr.ok ? tr.refusal.reason : ''}`);
       log(tr && !tr.ok ? `  at line ${tr.refusal.span.line}, column ${tr.refusal.span.column}` : '');
       log('Only the Tested tier is available for this function (differential testing plus the mutation check); no proof or SMT claim can be made.');
-      return 3;
+      if (!tr || tr.ok) return 3;
+      const go = o.tested ? 'y' : await ask('Continue with the Tested tier only? [y/N] ');
+      if (go !== 'y') {
+        if (!rl && !o.tested) log('Run interactively, or pass --tested, to continue on the Tested tier.');
+        return 3;
+      }
+      await rt.startTestedOnly({ specials: o.specials });
+      log(`Inputs are generated from the signature ${rt.state.tested!.signature}: integers and non-integer doubles${o.specials ? ', and NaN, Infinity, -Infinity and -0' : ''}.`);
+      log(`Optimizing for ${o.minutes} minutes (Tested tier only: no spec, no proof, no SMT check)…`);
+      const why = await new TestedOptimizer(rt, { threshold: { kind: 'time-budget', minutes: o.minutes } }).run();
+      log(`Stopped: ${why}.`);
+      const d = await deliverTested(rt);
+      log(`\nWrote ${d.files.join(', ')} to ${d.dir}`);
+      log(`${d.evidence} Tested tier only: no proof or SMT claim exists for this function.`);
+      if (rt.state.optimize.incumbentId !== null) log('Your source file was not modified. To apply: git apply ' + `${d.dir}/patch.diff`);
+      return 0;
     }
     for (const p of tr.value.preconditions) log(`  precondition: ${p.words}`);
     if (rt.needsThrowChoice()) {

@@ -63,6 +63,11 @@ export interface Actions {
   agree(): Promise<void>;
   proveOriginal(budget: ProveBudget): Promise<void>;
   startOptimize(threshold: Threshold): Promise<void>;
+  /**
+   * A function the translator refused: continue on the Tested tier only (no spec, proof or SMT check exists for it).
+   * `specials`: also generate NaN, Infinity, -Infinity and -0 as inputs (opt-in).
+   */
+  startTestedOnly(threshold: Threshold, opts?: { specials?: boolean }): Promise<void>;
   acceptFasterNotProved(candidateId: number): Promise<void>;
   stopOptimize(): Promise<void>;
   deliver(): Promise<void>;

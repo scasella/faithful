@@ -4,6 +4,7 @@ import { replay } from '@faithful/session';
 import { FIXTURES } from './index';
 import { CANDIDATE_ITERATIVE, CANDIDATE_OFF_BY_ONE, CANDIDATE_TWO_STEP, FIB_SOURCE } from './catch';
 import { AVERAGE_SOURCE } from './refused';
+import { CANDIDATE_INDEXED, CANDIDATE_TRUNC } from './tested';
 
 function load(src: string): (n: number) => number {
   const body = src.replace(/^\/\*\*.*\*\/\n/m, '').replace('export function', 'return function').replace(/: number/g, '');
@@ -57,6 +58,22 @@ describe('fixtures', () => {
     const sp = s.translation.refusal.span;
     expect(AVERAGE_SOURCE.slice(sp.start, sp.end)).toBe('sum / xs.length');
     expect(AVERAGE_SOURCE.split('\n')[sp.line - 1]!.slice(sp.column - 1)).toMatch(/^sum \/ xs\.length/);
+  });
+
+  it('the tested fixture: Tested tier only, its counterexample is real and the kept candidate agrees on doubles', () => {
+    const s = replay(FIXTURES.tested!.events);
+    expect(s.stage).toBe('deliver');
+    expect(s.tested?.refusal.code).toBe('float');
+    expect(s.optimize.candidates.every((c) => c.tier === null || c.tier === 'tested')).toBe(true);
+    const run = (src: string) => new Function(src.replace('export function', 'return function').replace(/: number(\[\])?/g, ''))() as (xs: number[]) => number;
+    const orig = run(AVERAGE_SOURCE);
+    const r = s.optimize.candidates[0]!.rejection!;
+    const xs = r.counterexample!.input[0] as number[];
+    expect(xs.some((x) => !Number.isInteger(x))).toBe(true);
+    expect(r.counterexample!.original).toEqual({ tag: 'ok', value: orig(xs) });
+    expect(r.counterexample!.candidate).toEqual({ tag: 'ok', value: run(CANDIDATE_TRUNC)(xs) });
+    const kept = run(CANDIDATE_INDEXED);
+    for (const ys of [[1, 2], [0.1, 0.2, 0.3], [1.5, -2.25, 1e16, 3], [5]]) expect(Object.is(kept(ys), orig(ys))).toBe(true);
   });
 
   it('range-ok words are true: fib(78) fits in 2^53 and fib(79) does not', () => {

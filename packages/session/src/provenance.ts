@@ -50,6 +50,8 @@ export interface Provenance {
   stamp: Stamp;
   /** The highest tier the delivered function reached against the agreed spec (proof, else bounded SMT, else tested). Caveats list anything that qualifies it. */
   deliveredTier: Tier;
+  /** Hash of the Faithful Lean library the proofs were checked against (verify says so when it differs from the current library). */
+  faithfulLibraryHash?: string;
   hashes: {
     originalSource: string;
     optimizedSource: string;
@@ -79,4 +81,16 @@ export interface Provenance {
   codex: { calls: number; failed: number; model: string; effort: string; version: string | null };
   /** Plain-words caveats a reviewer must see (e.g. carve-outs exist; accepted below Proved). */
   caveats: string[];
+  /**
+   * Present only for a function the translator refused and the user continued on the Tested tier: there is no model,
+   * spec, agreement, Lean file or SMT claim (`hashes.model`, `.spec`, `.agreement`, `.leanFile` are empty). `faithful
+   * verify` re-runs the differential from `generator` and says plainly that no proof or SMT claim exists.
+   */
+  testedOnly?: {
+    refusal: { code: string; reason: string; span: { line: number; column: number; start: number; end: number } };
+    signature: string;
+    generator: { kind: 'signature'; seed: number; n: number; specials: boolean };
+    /** The equality the differential used, in words. */
+    equality: string;
+  };
 }

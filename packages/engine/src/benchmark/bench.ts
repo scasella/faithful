@@ -53,6 +53,12 @@ export interface BenchOptions {
   /** Use this sandbox instead of opening (and closing) a private one. */
   sandbox?: Sandbox;
   /**
+   * Value domain of the probe load (see `LoadOptions.values`): `'js'` lets a function outside the verifiable subset return
+   * non-integer numbers without its benchmark inputs being called faults. The timed harness is unaffected (it returns
+   * an integer sink); benchmark inputs must be plain finite JSON values.
+   */
+  values?: 'subset' | 'js';
+  /**
    * TEST HOOK, simulates a noisy machine: every measured trial duration (ms) is passed through this function before
    * any statistic is computed. Reports produced with it set `perturbed: true`.
    */
@@ -158,6 +164,7 @@ interface Opts {
   resamples: number;
   trialTimeoutMs: number;
   perturb?: (ms: number, rng: Rng) => number;
+  values?: 'subset' | 'js';
 }
 
 function resolve(o: BenchOptions): Opts {
@@ -171,6 +178,7 @@ function resolve(o: BenchOptions): Opts {
     trialTimeoutMs: o.trialTimeoutMs ?? 30_000,
   };
   if (o.perturb) r.perturb = o.perturb;
+  if (o.values) r.values = o.values;
   if (r.trials < 5) throw new RangeError('bench: at least 5 trials');
   return r;
 }
@@ -193,7 +201,7 @@ class Runner {
   static async create(sb: Sandbox, ref: FnRef, inputs: Val[][], o: Opts, tag: string): Promise<Runner> {
     const arity = inputs[0]?.length ?? 0;
     const probeId = `${tag}:probe`;
-    const l0 = await sb.load(probeId, ref.source, ref.fnName);
+    const l0 = await sb.load(probeId, ref.source, ref.fnName, { values: o.values });
     if (!l0.ok) throw new Error(`bench: ${ref.fnName} does not load: ${l0.error}`);
     const probe = await sb.callBatch(probeId, inputs, { perCallMs: o.trialTimeoutMs });
     await sb.unload(probeId);

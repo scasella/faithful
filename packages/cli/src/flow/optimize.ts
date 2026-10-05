@@ -5,7 +5,7 @@
  * at the Verified-to-k tier, and delivery marks that. Stages are timed and recorded as session events.
  */
 import { hashText, type Tier } from '@faithful/core';
-import { translate, type Outcome, type Translation, type Val } from '@faithful/translate';
+import { type Outcome, type Translation, type Val } from '@faithful/translate';
 import {
   bench,
   compare,
@@ -16,11 +16,12 @@ import {
   tsVsTs,
   type Distribution,
 } from '@faithful/engine';
-import { evalBatch, proveTheorem, failureLine } from '@faithful/prover';
+import { evalBatch } from '@faithful/prover';
 import type { BenchSummary, CandidateRecord, Rejection, Speedup, StageId, StageResult, Threshold } from '@faithful/session';
-import { CANDIDATE_SCHEMA, buildCandidatePrompt, normalizeSource, renameFunction } from './candidate.js';
+import { CANDIDATE_SCHEMA, buildCandidatePrompt, normalizeSource } from './candidate.js';
 import { calibrateDistribution, describeDistribution } from './distribution.js';
 import { noThrowPrecondition } from './theorem.js';
+import { proveCandidate, type CandidateProofResult } from './candidateProof.js';
 import type { SessionRuntime } from './runtime.js';
 
 // ───────────── SMT seam ─────────────
@@ -51,6 +52,8 @@ export interface OptimizeOptions {
   differentialInputs?: number;
   smtBudgetMs?: number;
   proofBudget?: { maxAttempts: number; minutes: number };
+  /** Measurement only: skip the Lean proof stage (candidate collection, docs/PROOFS.md "Candidate proofs"). */
+  skipProof?: boolean;
   bench?: { trials?: number; minTrialMs?: number };
   signal?: AbortSignal;
 }
@@ -119,10 +122,6 @@ export function stripRecordDecls(body: string): string {
       { out: [], skipping: false },
     )
     .out.join('\n');
-}
-
-function leanBody(source: string): string {
-  return source.replace(/^import .*$/gm, '').trim();
 }
 
 export class Optimizer {
@@ -210,10 +209,10 @@ export class Optimizer {
       if (this.thresholdMet()) return this.stop('threshold');
       void decided;
     }
-    return this.stop('no-new-candidate');
+    return this.stop('round-limit');
   }
 
-  private async stop(reason: 'threshold' | 'budget' | 'no-new-candidate' | 'user') {
+  private async stop(reason: 'threshold' | 'budget' | 'no-new-candidate' | 'round-limit' | 'user') {
     await this.rt.emit({ kind: 'optimize.stopped', reason });
     return reason;
   }
@@ -326,10 +325,9 @@ export class Optimizer {
       }
     }
 
-    // 5. Lean proof against the agreed spec
-    const proofRes = await this.proveCandidate(source, id, callId, done);
-
-    // 6. benchmark (any candidate that passed the differential: so a faster-but-wrong one still shows what it claimed)
+    // 5. benchmark BEFORE the proof (deviation from the brief's stage order, recorded in docs/PROOFS.md and the final report):
+    //    a proof is only attempted for a candidate that passed compile, purity, differential and SMT AND is significantly faster
+    //    than the incumbent, because a proof of a candidate that cannot become the incumbent buys nothing.
     const tb0 = performance.now();
     const rep2 = await compare({ source, fnName: t.fnName }, { source: t.plainTs ?? t.source.text, fnName: t.fnName }, this.dist, { sandbox: sb, trials: this.opts.bench?.trials, minTrialMs: this.opts.bench?.minTrialMs });
     const vsOriginal = toSpeedup(rep2.overall);
@@ -343,19 +341,28 @@ export class Optimizer {
     await done(stage('benchmark', 'pass', performance.now() - tb0, vsOriginal.significant ? `faster than the original: ${vsOriginal.ratio.toFixed(1)}× (95% CI ${vsOriginal.lo.toFixed(1)}–${vsOriginal.hi.toFixed(1)})` : 'not distinguishable from the original (intervals overlap)', { stage: 'benchmark', trials: rep2.trials, distribution: this.dist.name, sizes: this.dist.sizes }));
 
     const faster = vsIncumbent.significant;
-    const tier: Tier = proofRes.proved ? proofRes.tier! : smtVerified ? 'verified-to-k' : 'tested';
     let outcome: CandidateRecord['outcome'];
     let rejection: Rejection | null = null;
-    if (proofRes.proved) {
-      outcome = faster ? 'incumbent' : 'not-faster';
-    } else if (faster) {
-      outcome = 'faster-not-proved';
-      rejection = proofRes.rejection;
+    let tier: Tier = smtVerified ? 'verified-to-k' : 'tested';
+    if (!faster) {
+      await done(stage('proof', 'skipped', 0, 'not attempted: the candidate is not significantly faster than the incumbent, so it could not become the incumbent'));
+      outcome = 'not-faster';
+      rejection = {
+        stage: 'benchmark',
+        kind: 'not-faster',
+        reason: `not faster than the ${inc ? 'incumbent' : 'original'}: speedup ${vsIncumbent.ratio.toFixed(2)}× (95% CI ${vsIncumbent.lo.toFixed(2)}–${vsIncumbent.hi.toFixed(2)}), the intervals overlap`,
+      };
     } else {
-      outcome = 'rejected';
-      rejection = proofRes.rejection ?? { stage: 'benchmark', kind: 'not-faster', reason: 'not faster than the incumbent' };
+      // 6. Lean proof against the agreed spec
+      const proofRes = await this.proveCandidate(source, id, callId, done);
+      if (proofRes.proved) {
+        tier = proofRes.tier!;
+        outcome = 'incumbent';
+      } else {
+        outcome = 'faster-not-proved';
+        rejection = proofRes.rejection;
+      }
     }
-    if (outcome === 'not-faster') rejection = { stage: 'benchmark', kind: 'not-faster', reason: 'proved against the spec, but not faster than the incumbent (intervals overlap)' };
     if (rejection) this.previous = { source, rejection };
     await rt.emit({ kind: 'candidate.decided', candidateId: id, outcome, tier, rejection, bench: benchSummary, speedup: vsOriginal });
     if (outcome === 'incumbent') {
@@ -384,102 +391,12 @@ export class Optimizer {
     id: number,
     _callId: number,
     done: (r: StageResult) => Promise<StageResult>,
-  ): Promise<{ proved: boolean; tier?: 'proved' | 'proved-trusting-compiler'; rejection: Rejection | null }> {
-    const rt = this.rt;
-    const t = this.origTranslation;
-    const ag = rt.state.agreement!;
-    const t0 = performance.now();
-    const cname = candidateName(t.fnName);
-    const ct = translate(renameFunction(source, t.fnName, cname), cname);
-    if (!ct.ok) {
-      await done(stage('proof', 'skipped', performance.now() - t0, `no Lean model: the candidate is outside the verifiable subset (${ct.refusal.reason})`));
-      return { proved: false, rejection: { stage: 'proof', kind: 'proof-failed', reason: `the candidate is outside the verifiable subset, so it cannot be proved: ${ct.refusal.reason}` } };
-    }
-    const sameRecords = JSON.stringify(ct.lean.records ?? []) === JSON.stringify(t.lean.records ?? []) || !(t.lean.records?.length || ct.lean.records?.length);
-    if (!sameRecords) {
-      await done(stage('proof', 'skipped', performance.now() - t0, 'no proof attempted: the candidate\'s record types are named differently from the original\'s (a known limitation)'));
+  ): Promise<CandidateProofResult> {
+    if (this.opts.skipProof) {
+      await done(stage('proof', 'skipped', 0, 'no proof attempted: candidate proofs are disabled for this run'));
       return { proved: false, rejection: null };
     }
-    const names = t.lean.paramNames ?? t.params.map((p) => p.name);
-    const binders = t.lean.paramTypes.map((ty, i) => `(${names[i]} : ${ty})`).join(' ');
-    const call = names.join(' ');
-    const eff = rt.effectivePreconditions();
-    const hyps = [`${t.lean.names.pre} ${call}`.trim(), ...eff.theoremExtra.map((p) => p.lean)].map((h) => `${h} = true`);
-    const statement = `∀ ${binders}, ${hyps.join(' → ')} → ${ct.lean.names.pre} ${call} = true ∧ ${ct.lean.names.original} ${call} = Spec.spec ${call}`.replace(/\s+/g, ' ');
-    const thm = `candidate_${id}_meets_spec`;
-    const modelSource = `${t.lean.source.trimEnd()}\n\n-- candidate model\n${stripRecordDecls(leanBody(ct.lean.source))}\n`;
-    const target = { modelSource, specSource: ag.specLean, theoremName: thm, statement, tacticImports: rt.proofImports(), library: await rt.librarySource() };
-    const budget = this.opts.proofBudget ?? { maxAttempts: 8, minutes: 12 };
-    await rt.emit({
-      kind: 'proof.started',
-      proof: { theoremId: thm, statement, statementWords: 'For every input that satisfies the original\'s preconditions, the optimized function stays inside the model\'s range and returns exactly what the agreed spec says.', pinnedTo: ag.hash, attempts: [], result: 'running', accepted: null, ms: 0, budget: { maxAttempts: budget.maxAttempts, minutes: budget.minutes } },
-    });
-    const callIds = new Map<number, number>();
-    const pending: Promise<void>[] = [];
-    const rec = await proveTheorem(rt.codex, target, {
-      maxAttempts: budget.maxAttempts,
-      budgetMs: budget.minutes * 60_000,
-      checkBudgetMs: 180_000,
-      leanDir: undefined,
-      reference: this.originalProofRef ? { description: 'the proof that the ORIGINAL meets the same spec', ...this.originalProofRef } : undefined,
-      signal: this.opts.signal,
-      onEvent: (e) => {
-        if (e.type === 'codex-done') pending.push(rt.recordCall(e.call).then((cid) => void callIds.set(e.n, cid)));
-        if (e.type === 'checked') {
-          const v = e.check.verdict;
-          pending.push(
-            Promise.all(pending.slice()).then(() =>
-              rt.emit({
-                kind: 'proof.attempt',
-                theoremId: thm,
-                attempt: {
-                  n: e.n,
-                  callId: callIds.get(e.n) ?? null,
-                  helpers: e.check.attemptText?.helpers ?? '',
-                  proof: e.check.attemptText?.proof ?? '',
-                  verdict: v.status === 'proved' ? v.tier : v.status === 'rejected' ? 'rejected' : 'failed',
-                  failureReason: v.status === 'failed' ? v.reason : v.status === 'rejected' ? v.reasons.join('; ') : undefined,
-                  diagnostics: e.check.diagnostics.filter((d) => d.severity === 'error').map((d) => ({ line: d.line, column: d.column, message: d.message, goal: d.goal })),
-                  ms: e.ms,
-                },
-              }),
-            ),
-          );
-        }
-      },
-    });
-    await Promise.all(pending);
-    await rt.emit({
-      kind: 'proof.done',
-      theoremId: thm,
-      result: rec.result,
-      accepted: rec.accepted ? { helpers: rec.accepted.attempt.helpers, proof: rec.accepted.attempt.proof, source: rec.accepted.source, axioms: rec.accepted.axioms } : null,
-      ms: rec.ms,
-      failureLine: rec.result === 'not-proved' ? failureLine(rec) : undefined,
-      stoppedBy: rec.stoppedBy,
-    });
-    const detail = {
-      stage: 'proof',
-      theoremId: thm,
-      against: 'spec',
-      axioms: rec.accepted?.axioms ?? [],
-      attempts: rec.attempts.length,
-      referenceOffered: !!this.originalProofRef,
-      statement,
-      candidateModel: modelSource,
-      accepted: rec.accepted ? { helpers: rec.accepted.attempt.helpers, proof: rec.accepted.attempt.proof } : null,
-    };
-    if (rec.result !== 'not-proved') {
-      await done(stage('proof', 'pass', rec.ms, `${rec.result === 'proved' ? 'Proved' : 'Proved (trusting the compiler)'} against the agreed spec in ${rec.attempts.length} attempt${rec.attempts.length === 1 ? '' : 's'}`, detail));
-      await rt.checkModel('candidate', ct, id, 600); // the N behind this candidate's Proved sentence
-      return { proved: true, tier: rec.result, rejection: null };
-    }
-    const last = rec.lastDiagnostics.find((d) => d.severity === 'error');
-    await done(stage('proof', 'fail', rec.ms, failureLine(rec), detail));
-    return {
-      proved: false,
-      rejection: { stage: 'proof', kind: 'proof-failed', reason: `${failureLine(rec)}: Lean could not prove that the candidate meets the agreed spec`, goal: last?.goal ?? last?.message, theorem: statement },
-    };
+    return proveCandidate(this.rt, { source, id, budget: this.opts.proofBudget, reference: this.originalProofRef, signal: this.opts.signal, done });
   }
 }
 

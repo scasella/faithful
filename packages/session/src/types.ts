@@ -135,6 +135,13 @@ export interface ProofView {
   stoppedBy?: string;
   /** The budget the user chose for this run (attempts and minutes at most). Absent in older recordings. */
   budget?: { maxAttempts: number; minutes: number };
+  /**
+   * Candidate proofs proved in two parts (docs/PROOFS.md, "Candidate proofs"): a part (`candidate_<id>_equals_spec`,
+   * `candidate_<id>_range_ok`) names the theorem it is a part of; the combined theorem (`candidate_<id>_meets_spec`)
+   * lists its parts. Only the combined theorem's result is a claim; a proved part alone changes no tier.
+   */
+  parent?: string;
+  parts?: string[];
 }
 
 // ───────────── optimization ─────────────
@@ -211,7 +218,7 @@ export interface OptimizeState {
   baseline: BenchSummary | null;
   candidates: CandidateRecord[];
   incumbentId: number | null;
-  stoppedBy: 'threshold' | 'budget' | 'no-new-candidate' | 'user' | null;
+  stoppedBy: 'threshold' | 'budget' | 'no-new-candidate' | 'round-limit' | 'user' | null;
   startedAt: string | null;
 }
 
@@ -224,6 +231,23 @@ export interface ModelCheck {
   disagreements: number;
   seed: number;
   ms: number;
+}
+
+// ───────────── the Tested-only path (functions the translator refused) ─────────────
+
+/**
+ * Recorded when the user continues with a function the translator refused: no Lean model, no spec, no agreement, no
+ * proof and no SMT check exist for it. Candidates are checked against the ORIGINAL only (differential on inputs
+ * generated from the TypeScript signature, the mutation check, the benchmark); the highest tier is Tested.
+ */
+export interface TestedOnly {
+  /** The translator's refusal, kept verbatim (code, plain-words reason, exact span). */
+  refusal: Refusal;
+  /** The parameter types inputs are generated from, in words: `average(xs: array of number)`. */
+  signature: string;
+  /** The user opted in to NaN, Infinity, -Infinity and -0 as generated inputs. */
+  specials: boolean;
+  at: string;
 }
 
 // ───────────── the state ─────────────
@@ -256,6 +280,8 @@ export interface SessionState {
   /** The job (model call, proof, optimization...) currently running, and the last failure. Failures are never silent. */
   job: { running: string | null; lastError: { job: string; message: string } | null };
   stamp: Stamp | null;
+  /** Set once the user chose the Tested-only path for a refused function (absent otherwise, and in older recordings). */
+  tested?: TestedOnly | null;
 }
 
 // ───────────── events ─────────────
@@ -283,7 +309,9 @@ export type SessionEvent =
   | { kind: 'job.started'; job: string }
   | { kind: 'job.finished'; job: string }
   | { kind: 'job.failed'; job: string; message: string }
-  | { kind: 'deliver.done'; dir: string; files: string[]; at: string };
+  | { kind: 'deliver.done'; dir: string; files: string[]; at: string }
+  /** The user continues a refused function on the Tested tier only (then `optimize.started` etc. as usual). */
+  | { kind: 'tested.started'; refusal: Refusal; signature: string; specials: boolean; at: string };
 
 /** An event as stored/streamed: monotonically numbered, timestamped (ms since session start). */
 export interface StampedEvent {

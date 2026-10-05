@@ -8,3 +8,5 @@ export * from './distribution.js';
 export * from './deliver.js';
 export * from './verify.js';
 export * from './autopilot.js';
+export * from './candidateProof.js';
+export * from './tested.js';

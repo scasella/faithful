@@ -13,6 +13,8 @@ const USAGE = `faithful: make a TypeScript function faster while Lean 4 checks t
 Usage:
   faithful                          open the browser UI for the repo in the current directory
   faithful optimize <file> --fn <name>   run the workflow headlessly
+                                    (--tested: if the translator refuses the function, continue on the Tested tier only;
+                                     --specials: there, also generate NaN, Infinity, -Infinity and -0 as inputs)
   faithful verify .faithful/<fn>    re-check a delivered result without trusting it
   faithful doctor                   check Node, Codex, Lean, Mathlib cache, Z3, disk
   faithful setup [--yes] [--install-elan]   install and cache the Lean toolchain (states cost first)
@@ -58,10 +60,10 @@ export async function main(argv: string[]): Promise<number> {
       const file = rest.find((a) => !a.startsWith('--'));
       const fn = opt(rest, 'fn');
       if (!file || !fn) {
-        log('usage: faithful optimize <file> --fn <name> [--minutes 10] [--yes]');
+        log('usage: faithful optimize <file> --fn <name> [--minutes 10] [--yes] [--tested] [--specials]');
         return 2;
       }
-      return runOptimize({ file, fn, repo: opt(rest, 'repo') ?? process.cwd(), minutes: Number(opt(rest, 'minutes')) || 10, yes: flag(rest, 'yes'), proofAttempts: Number(opt(rest, 'proof-attempts')) || 10, proofMinutes: Number(opt(rest, 'proof-minutes')) || 12, log });
+      return runOptimize({ file, fn, repo: opt(rest, 'repo') ?? process.cwd(), minutes: Number(opt(rest, 'minutes')) || 10, yes: flag(rest, 'yes'), proofAttempts: Number(opt(rest, 'proof-attempts')) || 10, proofMinutes: Number(opt(rest, 'proof-minutes')) || 12, tested: flag(rest, 'tested'), specials: flag(rest, 'specials'), log });
     }
     case 'verify': {
       const dir = rest.find((a) => !a.startsWith('--'));

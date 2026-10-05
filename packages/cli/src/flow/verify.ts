@@ -5,12 +5,13 @@
  */
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { captureToolchain, hashText, stampFrom, tierFromAxioms } from '@faithful/core';
+import { captureToolchain, faithfulLibraryHash, resolveLeanDir, hashText, stampFrom, tierFromAxioms } from '@faithful/core';
 import { translate } from '@faithful/translate';
 import { Sandbox, buildEvidenceBlock, generateInputs, tsVsLean, tsVsTs } from '@faithful/engine';
 import { checkLean, evalBatch } from '@faithful/prover';
 import type { Provenance } from '@faithful/session';
 import type { SmtChecker } from './optimize.js';
+import { verifyTestedOnly } from './tested.js';
 
 export interface VerifyCheck {
   name: string;
@@ -41,6 +42,16 @@ export async function verifyDirectory(dir: string, opts: { smt?: SmtChecker | nu
   const patch = await readFile(join(dir, 'patch.diff'), 'utf8').catch(() => '');
   const patchRecorded = patch.startsWith('# no optimized') ? '' : patch;
   add('patch hash', hashText(patchRecorded) === prov.hashes.patch, 'patch.diff matches its recorded hash');
+  if (prov.testedOnly) {
+    // a function the translator refused: there is no model to re-translate, no Lean file and no SMT claim (tested.ts)
+    const sbT = await Sandbox.open();
+    try {
+      const r = await verifyTestedOnly(prov, add, log, sbT);
+      return { ok: checks.every((c) => c.ok), checks, evidence: r.evidence };
+    } finally {
+      await sbT.close();
+    }
+  }
   const t = translate(prov.originalFileSource ?? prov.originalSource, fn);
   if (!t.ok) {
     add('translation', false, `the original no longer translates: ${t.refusal.reason}`);
@@ -56,6 +67,11 @@ export async function verifyDirectory(dir: string, opts: { smt?: SmtChecker | nu
     const leanText = await readFile(join(dir, `${fn}.lean`), 'utf8');
     add('lean file hash', hashText(leanText) === prov.hashes.leanFile, `${fn}.lean matches its recorded hash`);
     const theorems = [...leanText.matchAll(/^#print axioms (\S+)/gm)].map((m) => m[1]!);
+    const curLib = await faithfulLibraryHash(opts.leanDir ?? resolveLeanDir() ?? '').catch(() => undefined);
+    const libDiffers = !!prov.faithfulLibraryHash && !!curLib && prov.faithfulLibraryHash !== curLib;
+    const libUnknown = !prov.faithfulLibraryHash;
+    if (libDiffers) add('Faithful library version', true, `NOTE: this delivery was checked against a different version of the Faithful Lean library (recorded ${prov.faithfulLibraryHash!.slice(7, 19)}, current ${curLib!.slice(7, 19)}). The proofs are re-checked below against the CURRENT library; if that fails, the cause may be the library change and not the proof.`);
+    else if (libUnknown) add('Faithful library version', true, 'NOTE: this delivery does not record which version of the Faithful Lean library it was checked against; the proofs are re-checked against the current library.');
     const r = await checkLean({ source: leanText, budgetMs: 600_000, leanDir: opts.leanDir });
     add('lean compiles', r.ok, r.ok ? `Lean ${r.leanVersion.match(/version ([\d.]+)/)?.[1] ?? ''} accepted the file in ${(r.ms / 1000).toFixed(1)} s` : (r.diagnostics.find((d) => d.severity === 'error')?.message ?? 'failed').slice(0, 200));
     for (const th of theorems) {

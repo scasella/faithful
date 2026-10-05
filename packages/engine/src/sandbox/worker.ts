@@ -40,6 +40,8 @@ const ErrorProto = Error.prototype;
 const RangeErrorCtor = RangeError;
 const ErrorCtor = Error;
 const isInteger = Number.isInteger;
+const isFiniteNum = Number.isFinite;
+const objectIs = Object.is;
 const MAX = 9007199254740992;
 const FLUSH_COUNT = 128;
 const FLUSH_MS = 5;
@@ -50,6 +52,51 @@ installMask({ watchGlobalKeys: true });
 interface Loaded {
   fn: (...args: unknown[]) => unknown;
   instrumented: boolean;
+  /** Value domain 'js' (see LoadOptions.values): any finite number; NaN/Infinity/-0/undefined as sentinel objects. */
+  js: boolean;
+}
+
+// ───────────────────────── 'js' value domain (sentinels; kept in step with differential/jsvalues.ts) ─────────────────────────
+
+const SENTINEL_KEY = '$faithful';
+
+/** NaN, +-Infinity, -0 and undefined as `{ "$faithful": ... }`; null for anything else (no sentinel needed). */
+function sentinelOf(v: unknown): Val | null {
+  if (v === undefined) return { [SENTINEL_KEY]: 'undefined' };
+  if (typeof v !== 'number') return null;
+  if (v !== v) return { [SENTINEL_KEY]: 'NaN' };
+  if (v === Infinity) return { [SENTINEL_KEY]: 'Infinity' };
+  if (v === -Infinity) return { [SENTINEL_KEY]: '-Infinity' };
+  if (objectIs(v, -0)) return { [SENTINEL_KEY]: '-0' };
+  return null;
+}
+
+/** Decode sentinel objects in an argument back to the JavaScript values they stand for. */
+function decodeArg(v: unknown, depth: number): unknown {
+  if (depth > 10_000 || v === null || typeof v !== 'object') return v;
+  if (isArray(v)) {
+    const out: unknown[] = [];
+    for (let i = 0; i < v.length; i++) out[i] = decodeArg(v[i], depth + 1);
+    return out;
+  }
+  const keys = objectKeys(v);
+  if (keys.length === 1 && keys[0] === SENTINEL_KEY) {
+    switch ((v as Record<string, unknown>)[SENTINEL_KEY]) {
+      case 'NaN':
+        return NaN;
+      case 'Infinity':
+        return Infinity;
+      case '-Infinity':
+        return -Infinity;
+      case '-0':
+        return -0;
+      case 'undefined':
+        return undefined;
+    }
+  }
+  const out: Record<string, unknown> = {};
+  for (const k of keys) out[k] = decodeArg((v as Record<string, unknown>)[k], depth + 1);
+  return out;
 }
 const fns = new Map<string, Loaded>();
 
@@ -63,8 +110,13 @@ class NotVal {
 }
 
 /** Convert a candidate result to a JSON `Val` of the subset, or explain why it is not one. */
-function toVal(v: unknown, path: string, depth: number): Val | NotVal {
+function toVal(v: unknown, path: string, depth: number, js = false): Val | NotVal {
   if (depth > 10_000) return new NotVal(`result nests too deeply at ${path}`);
+  if (js) {
+    const sv = sentinelOf(v);
+    if (sv !== null) return sv;
+    if (typeof v === 'number' && isFiniteNum(v)) return v;
+  }
   if (v === undefined || v === null) return null;
   switch (typeof v) {
     case 'boolean':
@@ -79,7 +131,7 @@ function toVal(v: unknown, path: string, depth: number): Val | NotVal {
       if (isArray(v)) {
         const out: Val[] = [];
         for (let i = 0; i < v.length; i++) {
-          const x = toVal(v[i], `${path}[${i}]`, depth + 1);
+          const x = toVal(v[i], `${path}[${i}]`, depth + 1, js);
           if (x instanceof NotVal) return x;
           out[i] = x;
         }
@@ -97,7 +149,7 @@ function toVal(v: unknown, path: string, depth: number): Val | NotVal {
       }
       const out: { [k: string]: Val } = {};
       for (const k of objectKeys(v)) {
-        const x = toVal((v as Record<string, unknown>)[k], `${path}.${k}`, depth + 1);
+        const x = toVal((v as Record<string, unknown>)[k], `${path}.${k}`, depth + 1, js);
         if (x instanceof NotVal) return x;
         out[k] = x;
       }
@@ -164,20 +216,22 @@ function classify(e: unknown, instrumented: boolean): Outcome {
 }
 
 function runOne(f: Loaded, args: Val[]): CallResult {
-  const passed = clone(args) as unknown[];
+  // 'js' domain: sentinel arguments are decoded first; the input-mutation check compares against the decoded values
+  const given = f.js ? (decodeArg(args, 0) as unknown[]) : (args as unknown[]);
+  const passed = clone(given) as unknown[];
   let outcome: Outcome;
   const t0 = perfNow();
   try {
     const raw = f.fn(...passed);
-    const v = toVal(raw, '$', 0);
+    const v = toVal(raw, '$', 0, f.js);
     outcome = v instanceof NotVal ? { tag: 'fault', detail: v.reason } : { tag: 'ok', value: v };
   } catch (e) {
     outcome = classify(e, f.instrumented);
   }
   const ms = perfNow() - t0;
   const violations: PurityViolation[] = takeViolations();
-  for (let i = 0; i < args.length; i++) {
-    const d = diffVal(args[i], passed[i], '$');
+  for (let i = 0; i < given.length; i++) {
+    const d = diffVal(given[i], passed[i], '$');
     if (d !== null) violations[violations.length] = { kind: 'input-mutation', what: `argument ${i} at ${d}` };
   }
   if (outcome.tag !== 'fault' || !outcome.detail.startsWith('impure:')) {
@@ -199,7 +253,7 @@ function handle(m: ToWorker): void {
           post({ type: 'loaded', seq: m.seq, ok: false, error: `impure at load: ${violations[0]!.what}`, violations });
           return;
         }
-        fns.set(m.id, { fn, instrumented: m.instrumented });
+        fns.set(m.id, { fn, instrumented: m.instrumented, js: m.values === 'js' });
         post({ type: 'loaded', seq: m.seq, ok: true });
       } catch (e) {
         const violations = takeViolations();

@@ -3,7 +3,7 @@
  * The user's source file is NEVER modified: the patch is theirs to apply. Everything stated is read from the session state.
  */
 import { createTwoFilesPatch } from 'diff';
-import { hashText, stampFrom, tierFromAxioms, weakerOf, TIER_LABEL, provedSentence, formatCount, type Tier } from '@faithful/core';
+import { faithfulLibraryHash, resolveLeanDir, hashText, stampFrom, tierFromAxioms, weakerOf, TIER_LABEL, provedSentence, formatCount, type Tier } from '@faithful/core';
 import { buildEvidenceBlock } from '@faithful/engine';
 import type { Claim, Provenance, SessionState } from '@faithful/session';
 import { isDifferentialDetail, isProofDetail, isSmtDetail } from '@faithful/session';
@@ -174,7 +174,7 @@ export async function deliver(rt: SessionRuntime): Promise<DeliveryFiles> {
         evidenceProof = { tier: ptier };
         const acc = pd.accepted as { helpers: string; proof: string };
         incumbentProof = { theorem: pd.theoremId, statement: String(pd.statement), helpers: acc.helpers, proof: acc.proof, candidateModel: String(pd.candidateModel ?? '') };
-        claims.push({ kind: 'candidate-meets-spec', tier: ptier, statement: 'The optimized function (as modeled by the translator) meets the agreed spec under the preconditions, and stays inside the model\'s range.', theorem: pd.theoremId, axioms: pd.axioms, attempts: pd.attempts });
+        claims.push({ kind: 'candidate-meets-spec', tier: ptier, statement: `The optimized function (as modeled by the translator) meets the agreed spec under the preconditions, and stays inside the model's range.${pd.lengthFacts ? ' The Lean statement also states that every array argument has at most 2^32 - 1 elements and every string argument at most 2^53 - 1 code units, which holds for every JavaScript value.' : ''}`, theorem: pd.theoremId, axioms: pd.axioms, attempts: pd.attempts });
       }
     }
     deliveredTier = tier;
@@ -210,6 +210,10 @@ export async function deliver(rt: SessionRuntime): Promise<DeliveryFiles> {
 
   const dir = `.faithful/${fn}`;
   const files: string[] = [];
+  const libHash = async (): Promise<string | undefined> => {
+    const ld = resolveLeanDir();
+    return ld ? faithfulLibraryHash(ld) : undefined;
+  };
   const write = async (rel: string, text: string) => {
     files.push(rel);
     await rt.store.writeText(fn, rel, text);
@@ -222,6 +226,7 @@ export async function deliver(rt: SessionRuntime): Promise<DeliveryFiles> {
     generatedAt: new Date().toISOString(),
     stamp,
     deliveredTier,
+    faithfulLibraryHash: await libHash(),
     hashes: { originalSource: hashText(t.source.text), optimizedSource: hashText(optimizedSource), patch: '', leanFile: '', model: t.lean.hash, spec: ag.specHash, agreement: ag.hash },
     originalSource: t.source.text,
     originalFileSource: rt.fileText,

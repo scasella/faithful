@@ -33,6 +33,7 @@ export function fakeAdapter(files: FileEntry[] = []): FakeAdapter {
     agree: ok(),
     proveOriginal: ok(),
     startOptimize: ok(),
+    startTestedOnly: ok(),
     acceptFasterNotProved: ok(),
     stopOptimize: ok(),
     deliver: ok(),

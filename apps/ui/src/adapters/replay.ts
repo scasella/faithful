@@ -209,6 +209,9 @@ export class ReplayAdapter implements Adapter {
   startOptimize() {
     return this.refuse('Optimizing');
   }
+  startTestedOnly() {
+    return this.refuse('Optimizing with the Tested tier only');
+  }
   acceptFasterNotProved() {
     return this.refuse('Accepting a candidate');
   }

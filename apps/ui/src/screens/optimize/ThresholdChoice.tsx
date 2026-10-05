@@ -4,6 +4,7 @@
  * starts. Time budget is the default. Asymptotic is shown disabled: the server does not implement it in this build.
  */
 import { useReducer } from 'preact/hooks';
+import type { Threshold } from '@faithful/session';
 import { useApp } from '../../app/AppContext';
 import { ActionButton } from '../../components/ActionButton';
 import { KeyHint } from '../../components/KeyHint';
@@ -11,7 +12,17 @@ import { useKeys } from '../../lib/keys';
 import { DEFAULT_DRAFT, THRESHOLD_KINDS, draftReducer, parseThreshold } from './threshold';
 import './optimize.css';
 
-export function ThresholdChoice({ originalProved }: { originalProved: boolean }) {
+export interface ThresholdChoiceProps {
+  originalProved: boolean;
+  /** Tested-only path (Translate screen of a refused function): start with this instead of `startOptimize`. */
+  start?: (t: Threshold) => Promise<void>;
+  heading?: string;
+  startLabel?: string;
+  startKey?: string;
+  disabled?: boolean;
+}
+
+export function ThresholdChoice({ originalProved, start, heading, startLabel, startKey = 'o', disabled = false }: ThresholdChoiceProps) {
   const { adapter } = useApp();
   const [d, dispatch] = useReducer(draftReducer, DEFAULT_DRAFT);
   const parsed = parseThreshold(d);
@@ -20,8 +31,8 @@ export function ThresholdChoice({ originalProved }: { originalProved: boolean })
 
   return (
     <section class="stack op-threshold" aria-labelledby="threshold-title">
-      <h3 id="threshold-title">Next: when should optimizing stop?</h3>
-      {!originalProved && (
+      <h3 id="threshold-title">{heading ?? 'Next: when should optimizing stop?'}</h3>
+      {!originalProved && !start && (
         <p class="muted">
           The original is not proved against the agreed spec. Candidates are still checked; a candidate can only reach the proof tier through the direct theorem
           that it equals the original.
@@ -83,8 +94,13 @@ export function ThresholdChoice({ originalProved }: { originalProved: boolean })
         {parsed.ok ? '' : parsed.error}
       </p>
       <div class="row">
-        <ActionButton primary keyName="o" disabled={!parsed.ok} run={() => (parsed.ok ? adapter.startOptimize(parsed.threshold) : undefined)}>
-          Start optimizing
+        <ActionButton
+          primary
+          keyName={startKey}
+          disabled={!parsed.ok || disabled}
+          run={() => (parsed.ok ? (start ? start(parsed.threshold) : adapter.startOptimize(parsed.threshold)) : undefined)}
+        >
+          {startLabel ?? 'Start optimizing'}
         </ActionButton>
         <span class="muted fx-small">Tab moves between fields; keys are ignored while you type.</span>
       </div>

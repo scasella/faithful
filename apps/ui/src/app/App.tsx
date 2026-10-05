@@ -11,7 +11,7 @@ import { FIXTURE_DETAIL, FIXTURE_NOTICE } from '../fixtures/common';
 import { useKeys } from '../lib/keys';
 import { stampOf } from '../lib/provenance';
 import { SCREENS, SCREEN_KEYS } from '../screens';
-import { STAGES, attach, type Store } from '../store';
+import { STAGES, attach, skippedStages, type Store } from '../store';
 import { AppContext } from './AppContext';
 import { HelpPanel, REPLAY_KEYS } from './HelpPanel';
 import { JobBar } from './JobBar';
@@ -82,7 +82,7 @@ export function Shell({ store, adapter, replay, fixtureTitle }: Omit<AppProps, '
               </button>
             </span>
           </header>
-          <Stepper current={s.stage} shown={shown} onGo={(x) => store.go(x)} />
+          <Stepper current={s.stage} shown={shown} onGo={(x) => store.go(x)} skipped={skippedStages(s)} />
           <JobBar />
           {!replay && conn.kind === 'open' && conn.note && (
             <p class="conn-note" role="status">

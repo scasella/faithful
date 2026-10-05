@@ -19,7 +19,7 @@ export interface CallResult {
 }
 
 export type ToWorker =
-  | { type: 'load'; seq: number; id: string; js: string; fnName: string; instrumented: boolean }
+  | { type: 'load'; seq: number; id: string; js: string; fnName: string; instrumented: boolean; values?: 'subset' | 'js' }
   | { type: 'unload'; seq: number; id: string }
   | { type: 'call'; seq: number; id: string; args: Val[] }
   /** `items` are `[absolute index, args]`; the worker stores the index of the call in progress in the shared slot. */

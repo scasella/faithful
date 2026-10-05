@@ -2,6 +2,7 @@
  * The proof loop: ask Codex for a proof, check it ourselves, feed structured diagnostics (with goal states) back on
  * retry, stop on success or when the attempt/wall-clock budget runs out. A failed proof is reported as a failed proof.
  */
+import { StagnationTracker } from './stagnation.js';
 import { formatCount } from '@faithful/core';
 import { CodexClient, type CodexCall } from './codex.js';
 import { checkLean, type LeanDiagnostic } from './lean.js';
@@ -27,6 +28,8 @@ export interface ReferenceProof {
 }
 
 export interface ProveOptions {
+  /** Stop early on stagnation (default true); the attempt/time cap stays as a backstop. */
+  stagnation?: boolean;
   maxAttempts: number;
   /** Wall-clock for the whole loop, ms. */
   budgetMs: number;
@@ -46,6 +49,8 @@ export interface ProveOptions {
    * the spec's recursive functions, and diagnostics located in the attempt's own text. Default: `proofGuideDefault()`.
    */
   guide?: boolean;
+  /** Extra guide text for this kind of theorem (shown after the general guide when `guide` is on). */
+  guideExtra?: string;
 }
 
 /** Effort for attempt `n` (1-based) under a policy list. */
@@ -172,7 +177,9 @@ export interface ProofRecord {
   accepted: { attempt: ProofAttempt; source: string; axioms: string[] } | null;
   /** Last failing diagnostics, kept so a failed proof can be shown with its goal state. */
   lastDiagnostics: LeanDiagnostic[];
-  stoppedBy: 'proved' | 'attempts' | 'time' | 'codex-error' | 'aborted';
+  stoppedBy: 'proved' | 'attempts' | 'time' | 'codex-error' | 'aborted' | 'stagnation';
+  /** Plain-words reason when `stoppedBy` is 'stagnation'. */
+  stagnation?: string;
 }
 
 export function formatDiagnostics(diags: LeanDiagnostic[], max = 6, locate?: (line: number) => string | null): string {
@@ -211,6 +218,8 @@ export interface ProofPromptOptions {
   guide?: boolean;
   /** Induction principles of the recursive functions (from `inductionPrinciples`). */
   facts?: string;
+  /** Extra guide text for this kind of theorem. */
+  extra?: string;
 }
 
 const NON_LOOP = /_(chk|rangeOk|pre|asciiOk)$/;
@@ -262,6 +271,7 @@ export function buildProofPrompt(target: ProofTarget, history: ProofAttemptRecor
     '```',
     ...(lib ? ['', 'THE RUNTIME LIBRARY the model uses (Faithful.Core; read-only, already imported; its definitions are what `Faithful.*` names in the model mean):', '```lean', lib, '```'] : []),
     ...(popts.guide ? ['', PROOF_GUIDE] : []),
+    ...(popts.guide && popts.extra ? ['', popts.extra] : []),
     ...(popts.guide && popts.facts ? ['', 'INDUCTION PRINCIPLES Lean generated for the recursive functions above (`fun_induction F args` / `induction ... using F.induct` use these; the case binders follow them exactly):', '```lean', popts.facts, '```'] : []),
     '',
     `TASK: prove \`${target.theoremName}\`. Return JSON with:`,
@@ -305,6 +315,8 @@ export async function proveTheorem(codex: CodexClient, target: ProofTarget, opts
   let accepted: ProofRecord['accepted'] = null;
   let result: ProofResultTier = 'not-proved';
   const effort = opts.effort ?? proofEffortPolicy();
+  const tracker = opts.stagnation === false ? null : new StagnationTracker();
+  let stagnation: string | undefined;
   const guide = opts.guide ?? proofGuideDefault();
   const facts = guide ? await inductionPrinciples(target, { budgetMs: Math.min(60_000, opts.checkBudgetMs), leanDir: opts.leanDir }) : '';
   for (let n = 1; n <= opts.maxAttempts; n++) {
@@ -313,7 +325,7 @@ export async function proveTheorem(codex: CodexClient, target: ProofTarget, opts
     if (left <= 5_000) { stoppedBy = 'time'; break; }
     opts.onEvent?.({ type: 'attempt-start', n });
     const a0 = performance.now();
-    const prompt = buildProofPrompt(target, attempts, opts.reference, { guide, facts });
+    const prompt = buildProofPrompt(target, attempts, opts.reference, { guide, facts, extra: opts.guideExtra });
     const call = await codex.ask({ purpose: 'proof-attempt', prompt, schema: PROOF_SCHEMA, timeoutMs: Math.min(left, 600_000), signal: opts.signal, effort: effortFor(effort, n) });
     opts.onEvent?.({ type: 'codex-done', n, call });
     if (call.error) {
@@ -333,6 +345,12 @@ export async function proveTheorem(codex: CodexClient, target: ProofTarget, opts
       stoppedBy = 'proved';
       break;
     }
+    const why = tracker?.observe(check) ?? null;
+    if (why) {
+      stoppedBy = 'stagnation';
+      stagnation = why;
+      break;
+    }
   }
   const last = attempts.at(-1);
   return {
@@ -344,6 +362,7 @@ export async function proveTheorem(codex: CodexClient, target: ProofTarget, opts
     accepted,
     lastDiagnostics: last?.check?.diagnostics ?? [],
     stoppedBy,
+    stagnation,
   };
 }
 

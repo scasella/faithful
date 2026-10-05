@@ -8,7 +8,7 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
 import { FaithfulStore, captureToolchain, hashText, resolveConfig, resolveLeanDir, stampFrom, type Z3Info } from '@faithful/core';
 import { translate, type Precondition, type Translation } from '@faithful/translate';
-import { Sandbox, tsVsLean } from '@faithful/engine';
+import { Sandbox, inferSignature, signatureWords, tsVsLean } from '@faithful/engine';
 import {
   CodexClient,
   SPEC_SCHEMA,
@@ -198,6 +198,21 @@ export class SessionRuntime {
     return t;
   }
 
+  /**
+   * Continue a function the translator REFUSED on the Tested tier only (packages/cli/src/flow/tested.ts runs the loop).
+   * Never goes through `need()`: there is no translation. Fails with a plain reason when the function is not refused, the
+   * path already started, or inputs cannot be generated from its TypeScript signature.
+   */
+  async startTestedOnly(o: { specials?: boolean } = {}): Promise<void> {
+    const tr = this.state.translation;
+    if (!tr) throw new Error('open a function first');
+    if (tr.ok) throw new Error('this function is inside the verifiable subset; the Tested-only path is for functions the translator refused');
+    if (this.state.tested) throw new Error('the Tested-only path has already started for this function');
+    const sig = inferSignature(this.fileText, this.state.fn);
+    if (!sig.ok) throw new Error(`inputs cannot be generated from the signature of ${this.state.fn}: ${sig.reason}`);
+    await this.emit({ kind: 'tested.started', refusal: tr.refusal, signature: signatureWords(sig.sig), specials: !!o.specials, at: new Date().toISOString() });
+  }
+
   async chooseThrow(choice: 'precondition' | 'spec-case'): Promise<void> {
     await this.emit({ kind: 'throw.choice', choice });
   }
@@ -384,7 +399,8 @@ export class SessionRuntime {
     try {
       const core = dir ? await readFile(join(dir, 'Faithful', 'Core.lean'), 'utf8') : '';
       const simp = dir ? await readFile(join(dir, 'Faithful', 'Simp.lean'), 'utf8').catch(() => '') : '';
-      this.libCache = simp ? `${core.trimEnd()}\n\n-- ===== Faithful.Simp (imported by Faithful.Tactics) =====\n${simp}` : core;
+      const chk = dir ? await readFile(join(dir, 'Faithful', 'Chk.lean'), 'utf8').catch(() => '') : '';
+      this.libCache = [core.trimEnd(), simp && `-- ===== Faithful.Simp (imported by Faithful.Tactics) =====\n${simp.trimEnd()}`, chk && `-- ===== Faithful.Chk (imported by Faithful.Tactics) =====\n${chk.trimEnd()}`].filter(Boolean).join('\n\n') + '\n';
     } catch {
       this.libCache = '';
     }

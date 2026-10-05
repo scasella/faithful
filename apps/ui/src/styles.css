@@ -118,6 +118,7 @@ button { font: inherit; color: inherit; }
 .stepper .done button { border-top-color: var(--line-strong); color: var(--fg); }
 .stepper .current button { border-top-color: var(--fg); color: var(--fg); font-weight: 620; }
 .stepper .viewing button { border-top-color: var(--accent); color: var(--accent); }
+.stepper .skipped button { text-decoration: line-through; color: var(--muted); }
 .stepper-hint { margin-top: var(--s2); font-size: 0.75rem; color: var(--muted); }
 @media (max-width: 560px) {
   .stepper ol { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: var(--s2); }

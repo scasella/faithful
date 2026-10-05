@@ -210,6 +210,16 @@ export class ScriptedAdapter implements Adapter {
     return this.release(i, { stream: true, job: 'optimize', map: (e) => (e.kind === 'optimize.started' ? { ...e, threshold } : e) });
   }
 
+  startTestedOnly(threshold: Threshold, opts: { specials?: boolean } = {}): Promise<void> {
+    const i = this.find('optimize.stopped');
+    if (this.find('tested.started') < 0 || i < 0) return this.refuse('No Tested-only optimization is recorded');
+    return this.release(i, {
+      stream: true,
+      job: 'tested',
+      map: (e) => (e.kind === 'optimize.started' ? { ...e, threshold } : e.kind === 'tested.started' ? { ...e, specials: opts.specials === true } : e),
+    });
+  }
+
   async acceptFasterNotProved(candidateId: number): Promise<void> {
     const c = this.state().optimize.candidates.find((x) => x.id === candidateId);
     if (!c || c.outcome !== 'faster-not-proved') return this.refuse(`Candidate ${candidateId} is not faster-not-proved`);

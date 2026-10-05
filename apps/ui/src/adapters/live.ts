@@ -95,6 +95,9 @@ export class LiveAdapter implements Adapter {
   startOptimize(threshold: Threshold) {
     return this.post('/api/optimize/start', { threshold });
   }
+  startTestedOnly(threshold: Threshold, opts: { specials?: boolean } = {}) {
+    return this.post('/api/tested/start', { threshold, specials: opts.specials === true });
+  }
   acceptFasterNotProved(candidateId: number) {
     return this.post('/api/optimize/accept-faster-not-proved', { candidateId });
   }

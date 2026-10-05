@@ -29,3 +29,40 @@ export {
   type TsVsTsCandidateReport,
 } from './differential.js';
 export { loadCorpus, parseCorpusHeader, CORPUS_CLASSES, KNOWN_TRANSLATOR_GAPS, type CorpusEntry, type CorpusHeader } from './corpus.js';
+export {
+  SENTINEL_KEY,
+  SPECIAL_NAMES,
+  special,
+  sentinelName,
+  encodeJs,
+  decodeJs,
+  containsNonInteger,
+  containsSpecialNumber,
+  jsValEqual,
+  jsOutcomeEqual,
+  differsOnlyInZeroSign,
+  showJs,
+  showJsArgs,
+  showJsOutcome,
+  type SpecialName,
+} from './jsvalues.js';
+export {
+  inferSignature,
+  generateSignatureInputs,
+  boundaryValuesOf,
+  signatureWords,
+  signatureHasNumbers,
+  styWords,
+  sizedValue,
+  sizedDistributionWords,
+  NUMBER_INT_BOUNDARIES,
+  NUMBER_FLOAT_BOUNDARIES,
+  NUMBER_SPECIALS,
+  type STy,
+  type SigParam,
+  type FunctionSignature,
+  type SignatureResult,
+  type SignatureGenOptions,
+  type SignatureInputs,
+} from './signature.js';
+export { jsVsJs, runJs, screenOriginal, type JsProgram, type JsDifference, type JsVsJsReport } from './jsdifferential.js';
