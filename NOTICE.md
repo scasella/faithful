@@ -21,3 +21,7 @@ libraries below, for the Phase 9 measurement. Each file names its source path an
 | es-toolkit | https://github.com/toss/es-toolkit | `43e1118884e07cebdf1e767038f6e7f697fa27ec` | MIT | Copyright (c) 2024 Viva Republica, Inc. |
 | radash | https://github.com/rayepps/radash | `4cab1900d08e0997abc4f17aec3cbfe18958d766` | MIT | Copyright (c) 2022 radash |
 | remeda | https://github.com/remeda/remeda | `8e6e78f6eaf66eaf0b4797d72cc3691823c91335` | MIT | Copyright (c) 2018 remeda |
+
+## Showcase service worker
+
+`apps/showcase/public/coi-serviceworker.js` is coi-serviceworker 0.1.7 (https://github.com/gzuidhof/coi-serviceworker), MIT, © 2021 Guido Zuidhof; license text in `apps/showcase/public/coi-serviceworker.LICENSE.txt`. It adds the cross-origin-isolation headers that Z3's WASM build needs on static hosting.

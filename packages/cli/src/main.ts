@@ -5,6 +5,7 @@ import { startServer } from './server.js';
 import { createApi } from './api.js';
 import { runOptimize } from './optimizeCmd.js';
 import { runVerifyCmd } from './verifyCmd.js';
+import { runShowcaseRecord } from './showcaseRecord.js';
 import { runSetup } from './setup.js';
 
 const USAGE = `faithful: make a TypeScript function faster while Lean 4 checks that it still does what you agreed.
@@ -70,9 +71,15 @@ export async function main(argv: string[]): Promise<number> {
       }
       return runVerifyCmd(resolve(dir), log);
     }
-    case 'showcase-record':
-      log(`faithful ${cmd}: not implemented yet in this build.`);
-      return 2;
+    case 'showcase-record': {
+      const file = rest.find((a) => !a.startsWith('--'));
+      const fn = opt(rest, 'fn');
+      if (!file || !fn) {
+        log('usage: faithful showcase-record <file> --fn <name> [--name <slug>] [--out apps/showcase/public/recordings] [--minutes 8]');
+        return 2;
+      }
+      return runShowcaseRecord({ file, fn, name: opt(rest, 'name') ?? fn, out: resolve(opt(rest, 'out') ?? 'apps/showcase/public/recordings'), minutes: Number(opt(rest, 'minutes')) || 8, proofAttempts: Number(opt(rest, 'proof-attempts')) || 8, proofMinutes: Number(opt(rest, 'proof-minutes')) || 8, log });
+    }
     case '-h':
     case '--help':
     case 'help':

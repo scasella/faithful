@@ -76,9 +76,9 @@ describe('"faster": one rule, Speedup.significant (vs the original)', () => {
     expect(text).toContain('Not shown to be faster than the original on the declared distribution.');
     expect(text).toContain('speedup vs the original 1.0× (95% CI 0.9–1.1)');
     expect(text).not.toContain('Faster than the original');
-    const medians = text.match(/Median [\d.]+ ns\/call \(95% CI [\d.]+–[\d.]+\)/g) ?? [];
+    const medians = text.match(/Median [\d.]+ ns\/pass \(95% CI [\d.]+–[\d.]+\)/g) ?? [];
     expect(medians.length).toBeGreaterThanOrEqual(1);
-    expect(text.match(/Median [\d.]+ ns\/call/g)!.length).toBe(medians.length);
+    expect(text.match(/Median [\d.]+ ns\/pass/g)!.length).toBe(medians.length);
     assertClaimsExact(text);
   });
 });

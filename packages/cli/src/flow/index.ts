@@ -7,3 +7,4 @@ export * from './candidate.js';
 export * from './distribution.js';
 export * from './deliver.js';
 export * from './verify.js';
+export * from './autopilot.js';

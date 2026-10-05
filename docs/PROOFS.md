@@ -60,12 +60,12 @@ Added (lever c, on by default; `FAITHFUL_PROOF_GUIDE=0` turns it off):
 * `PROOF_GUIDE` (prove.ts): how the model is shaped (`Model.f` + one recursive `Model.f_loopN` per loop, returning the
   state tuple), and Lean 4.34 patterns that were each compiled against emitted models before being written down:
   `rw [Model.f_loopN]` unfolds one step, `simp [Model.f_loopN]` on a well-founded definition loops ("maximum recursion
-  depth", the most frequent baseline error); state the loop invariant for arbitrary state and prove it with
+  depth", 17 of 66 baseline TUNE attempts); state the loop invariant for arbitrary state and prove it with
   `fun_induction` (with how its case binders are counted) or a Nat measure; accumulator lemmas for spec helpers; the
   throwing branch closes by `rfl`; what `omega` does and does not understand (`Int.fdiv`/`Int.tmod` no; exact core lemma
   names `Int.fdiv_eq_ediv_of_nonneg`, `Int.tmod_eq_emod_of_nonneg`); `simp` turning `↑x.natAbs` into `|x|`; a short list of
-  List lemma names that exist in this toolchain; never `sorry` (an attempt with `sorry` is rejected with no feedback, the
-  most frequent low-effort failure).
+  List lemma names that exist in this toolchain; never `sorry` (an attempt with `sorry` is rejected with no feedback; 18 of 66 baseline TUNE
+  attempts).
 * **Induction principles**: before the first attempt the prover compiles the file once with `#check @F.induct` for every
   recursive function of the model and the spec (`inductionPrinciples`) and shows Lean's output. These are facts from
   Lean, not advice; `fun_induction` case names must be counted from them.
@@ -175,4 +175,92 @@ Final configuration (the code defaults): proof attempts at effort `high`, guide 
 `Faithful.Tactics` and listed in the prompt, spec prompt unchanged, budget 10 attempts / 12 minutes in `measure.mjs`, the
 CLI (`faithful optimize --proof-attempts/--proof-minutes`) and the local API default.
 
-HELDOUT_TBD
+## Held-out evaluation (run once, with the shipped defaults)
+
+`node scripts/measure.mjs --corpus --no-optimize --concurrency 3 --only <26 held-out ids>` with no `FAITHFUL_*`
+environment variables, i.e. exactly the code defaults (proof effort `high`, guide on, `Faithful.Simp`, 10 attempts /
+12 minutes), nothing else running on the machine. Output: `docs/measurements/2026-10-05-proofs-final-heldout/`. The
+baseline numbers are the held-out rows of `docs/measurements/2026-10-05-proofs-low/` (effort `low`, 6 attempts / 6 min),
+which already existed for all 39 functions; the baseline was not re-run.
+
+| class | baseline proved | final proved | final, within 6 attempts and 6 min | blocked at agreement (baseline / final) | final: median attempts / minutes of proved |
+|---|---|---|---|---|---|
+| numeric | 0/6 | 3/6 | 2 | 0 / 0 | 1 / 1.1 |
+| array | 1/9 | 4/9 | 3 | 1 / 1 | 3 / 2.1 |
+| string | 0/7 | 2/7 | 0 | 3 / 3 | 9 / 8.3 |
+| recursive | 0/4 | 3/4 | 2 | 0 / 0 | 5 / 5.0 |
+| **total** | **1/26** | **12/26** | **7** | 4 / 4 | 5 / 4.4 |
+
+Proved in the final run: array/flattenPairs, array/sortPointsByY, array/spread, array/prefixSums, numeric/clamp,
+numeric/collatzSteps, numeric/fibRecursive, recursive/fibonacci, recursive/toBinary, recursive/flattenPairs,
+string/capitalize, string/reverseString. Baseline: array/sortPointsByY only.
+
+The same four functions were blocked at agreement in both runs (array/sumOddSquares, string/caesarShift,
+string/ellipsize, string/repeatString): the autopilot's two "the spec is wrong" revisions did not converge and no carve-out
+class was offered. No proof was attempted for them; they count as not proved. Of the 22 functions that reached the proof
+stage, 12 were proved (baseline: 1 of 22).
+
+Budget-matched view: the same run contains the 6-attempt / 6-minute loop as a prefix, so 7 of the 12 proofs would have
+been found under the baseline budget; the other 5 needed attempts 7-10 or more than 6 minutes (prefixSums 10 attempts
+11.4 min, collatzSteps 9 / 10.4, recursive/flattenPairs 8 / 6.4, capitalize 8 / 6.7, reverseString 10 / 9.9). So of the
+improvement from 1 to 12, about 6 functions come from effort + prompt + simp lemmas at the old budget and about 5 from the
+larger budget.
+
+Cost, held-out (26 functions): Codex calls 198 final vs 175 baseline (157 proof attempts at `high` vs 132 at `low`);
+tokens 6.52M input (most of it cached Codex overhead, about 19k per call) / 0.46M output vs 4.22M / 0.07M; summed
+proof-loop time 169 min vs 31 min; summed session wall time 227 min vs 83 min (at concurrency 3 the run took 1 h 33 min of
+clock time; one function, string/repeatString, spent 39 min in the challenge search before blocking at agreement, as it
+did in the baseline). A proved function's proof took a median 5 attempts and 4.4 minutes; a function that is not proved costs
+the whole budget (10 attempts or 12 minutes, typically 10-13 minutes).
+
+The improvement held up on functions it was not tuned on (TUNE: 2-3 of 13 at baseline, 7-8 of 13 at the final stack; held-out:
+1 of 26 to 12 of 26). It is still fewer than half of the in-subset functions.
+
+## What still fails, and why (held-out, read after the run)
+
+Each of the 10 held-out failures ran out of attempts (7) or time (3). Dominant error per attempt, over all their attempts:
+`unsolved goals` 44, `omega` counterexample 30, looping `simp` 7, unknown lemma name 6, other compile errors 5. No attempt
+contained `sorry`, and no `pure`/`throw` residue appeared. By cause:
+
+* **Invariant too weak or not generalized** (array/maxSubarraySum, array/countOccurrences, array/twoSum,
+  numeric/intPow, numeric/factorial): the model writes a loop lemma whose statement is false or not inductive
+  (wrong state relation, invariant missing a bound), then fights the resulting goals. twoSum has two nested loops with
+  an early `return` (`Faithful.Flow.ret`); intPow halves the exponent with `Int.fdiv`/`Int.tmod` inside a `have` chain.
+* **Arithmetic the model cannot close** (numeric/floorDivMod: `Int.fdiv`/`Int.tmod` with a negative divisor, outside
+  what the `Faithful.Simp` normal forms cover; string/trimControl: `Faithful.charCodeAt` bounds; array/countOccurrences:
+  character code ranges): `omega` counterexamples repeated across attempts.
+* **The spec's shape** (recursive/reverseDigits: the agreed spec is an imperative `Id.run do ... while ...` loop, so
+  the goal contains the `forIn`/`Loop` encoding, for which neither the guide nor the library offers lemmas;
+  array/medianFloor: model and spec both sort with `List.mergeSort`, but with differently written comparators, and
+  relating the two needs facts about `mergeSort` that are not in the tactic set).
+* **List/String library gaps**: string/countVowels failed on `List.getD`/indexing side conditions.
+
+The TUNE functions that were never proved in any run, `string/longestRun` (five-component loop state with a run
+counter) and `string/toCsvRow` (`Faithful.split`/`join`/`strIndexOf`), are of the same kinds.
+
+## Limits
+
+* Every "Proved" is about the Lean model produced by the translator and the agreed spec, under the stated
+  preconditions; the link to the TypeScript is the translator's design and the test on N inputs that accompanies the
+  claim (docs/TIERS.md). Proof success rates say nothing about whether the spec is the one the user wanted.
+* The measurements use the autopilot user policy (docs `packages/cli/src/flow/autopilot.ts`); a real user who rules
+  differently gets different specs and different proof difficulty.
+* 13 TUNE functions with a freshly proposed spec in every run give a noise of about +-2 functions between runs of the same
+  configuration; individual lever effects other than effort are not established by these data.
+* `Faithful.Simp` makes `simp` stronger in every proof file. Proofs written against the old `Faithful.Tactics` can stop
+  compiling: re-checking the 20 proofs accepted in earlier runs (baseline and the effort-only runs) under the new
+  library, 19 still check and 1 (numeric/fibonacci from `tune-a-high`) fails with "No goals to be solved" because `simp`
+  now closes the goal one step earlier. `faithful verify` recompiles a delivered `.lean` file against the current
+  library, so a delivery made before this change can fail that check after it.
+* Effort `high` makes each attempt slower (30-95 s instead of 7-20 s) and the budget 10 attempts / 12 minutes means a
+  failing proof now costs about 12 minutes instead of 1-2.
+
+## Reproducing
+
+```
+node scripts/measure.mjs --corpus --no-optimize --concurrency 3 --out <dir> --only <ids>          # defaults = final config
+FAITHFUL_PROOF_EFFORT=low FAITHFUL_PROOF_GUIDE=0 node scripts/measure.mjs ... --proof-attempts 6 --proof-minutes 6
+                                                     # baseline prompt and effort (the Faithful.Simp import cannot be turned off)
+node scripts/proof-summary.mjs <dir> [--only ids] [--within 6,6]
+```
+

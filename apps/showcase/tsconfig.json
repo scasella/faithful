@@ -1,8 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ES2022", "lib": ["ES2023", "DOM", "DOM.Iterable"], "module": "ESNext", "moduleResolution": "Bundler",
+    "target": "ES2022", "lib": ["ES2023", "DOM", "DOM.Iterable", "WebWorker.ImportScripts"], "module": "ESNext", "moduleResolution": "Bundler",
     "jsx": "react-jsx", "jsxImportSource": "preact", "strict": true, "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true, "noEmit": true, "types": ["vite/client"]
+    "skipLibCheck": true, "noEmit": true, "allowImportingTsExtensions": true, "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@ui/*": ["../ui/src/*"],
+      "@faithful/core/tiers": ["../../packages/core/src/tiers.ts"],
+      "@faithful/core": ["../../packages/core/src/index.ts"],
+      "@faithful/session": ["../../packages/session/src/index.ts"],
+      "@faithful/translate": ["../../packages/translate/src/index.ts"],
+      "@faithful/engine": ["./src/live/engine.ts"],
+      "@faithful-engine-src/*": ["../../packages/engine/src/*"],
+      "@faithful-smt-src/*": ["../../packages/smt/src/*"],
+      "@preact/signals": ["../ui/node_modules/@preact/signals"],
+      "z3-solver/*": ["../../node_modules/z3-solver/*"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }

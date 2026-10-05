@@ -1,0 +1,165 @@
+/* Showcase page. Builds on the UI's tokens (apps/ui/src/styles.css); adds only the page frame and the live/replayed labels. */
+:root {
+  --live: #1d6a3e;
+  --live-bg: #e8f4ec;
+  --replayed: #5d5950;
+  --replayed-bg: #efece5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --live: #74c995;
+    --live-bg: #16261c;
+    --replayed: #c9c4b8;
+    --replayed-bg: #2a2824;
+  }
+}
+
+body {
+  background: var(--bg);
+}
+.site {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: var(--s5) var(--s4) var(--s8);
+}
+.site-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  align-items: baseline;
+  margin-bottom: var(--s5);
+}
+.site-head .kicker {
+  margin: 0;
+  font-weight: 600;
+}
+.site-head nav {
+  display: flex;
+  gap: var(--s3);
+}
+.site-head nav a[aria-current='page'] {
+  font-weight: 600;
+  text-decoration: none;
+}
+.opener {
+  max-width: var(--measure);
+  margin: var(--s6) auto var(--s7);
+}
+.opener-line {
+  font-size: 1.35rem;
+  line-height: 1.4;
+  margin-top: var(--s5);
+}
+.panel {
+  margin-top: var(--s7);
+}
+.panel > h2 {
+  font-size: 1.3rem;
+  margin-bottom: var(--s3);
+}
+.replay-frame {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: var(--s4);
+  background: var(--surface);
+}
+.replay-frame .shell {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 1px var(--s2);
+  border-radius: var(--r-s);
+  white-space: nowrap;
+}
+.badge.live {
+  color: var(--live);
+  background: var(--live-bg);
+}
+.badge.replayed,
+.badge.recorded {
+  color: var(--replayed);
+  background: var(--replayed-bg);
+}
+.badge.hand-written,
+.badge.yours {
+  color: var(--fixture-fg);
+  background: var(--fixture-bg);
+}
+.live-cand {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+  padding: var(--s4);
+  margin-top: var(--s4);
+}
+.live-cand h3 {
+  margin: 0 0 var(--s2);
+  font-size: 1.05rem;
+}
+.live-edit {
+  width: 100%;
+  box-sizing: border-box;
+  font: 0.9rem/1.45 var(--mono);
+  padding: var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-s);
+  background: var(--sunk);
+  color: var(--fg);
+}
+.live-label {
+  margin: var(--s3) 0;
+}
+.live-stages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.live-stages > li {
+  display: grid;
+  grid-template-columns: 13rem 6rem 1fr;
+  gap: var(--s3);
+  align-items: baseline;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-s);
+  background: var(--sunk);
+}
+.live-stages > li.fail .st {
+  color: var(--catch);
+  font-weight: 600;
+}
+.live-stages > li.pass .st {
+  color: var(--ok);
+}
+.live-stages .ms {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.live-stages .facts {
+  grid-column: 3;
+  margin: 0;
+  padding-left: var(--s4);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.live-catch {
+  margin-top: var(--s4);
+}
+.about {
+  max-width: var(--measure);
+}
+@media (max-width: 40rem) {
+  .live-stages > li {
+    grid-template-columns: 1fr auto;
+  }
+  .live-stages .sum,
+  .live-stages .facts {
+    grid-column: 1 / -1;
+  }
+}
