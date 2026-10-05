@@ -7,6 +7,7 @@ import { checkLean } from '@faithful/prover';
 import { captureToolchain } from '@faithful/core';
 import { guard, makeToken } from './hostGuard.js';
 import { runDoctor } from './doctor.js';
+import type { Api } from './api.js';
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -66,6 +67,8 @@ export interface ServeOptions {
   repoRoot: string;
   /** Extra API routes owned by workflow phases, mounted after the built-ins. */
   routes?: ApiRoutes;
+  /** The session API (events stream + routes), when running the full app. */
+  api?: Api;
 }
 
 export type ApiHandler = (req: { body: unknown; url: URL; repoRoot: string }) => Promise<unknown>;
@@ -86,7 +89,7 @@ export async function startServer(opts: ServeOptions): Promise<RunningServer> {
       return checkLean({ source: b.source, theorems, budgetMs: budget });
     },
   };
-  const routes: ApiRoutes = { ...builtins, ...opts.routes };
+  const routes: ApiRoutes = { ...builtins, ...opts.api?.routes, ...opts.routes };
 
   const server = createServer(async (req, res) => {
     try {
@@ -106,6 +109,7 @@ export async function startServer(opts: ServeOptions): Promise<RunningServer> {
       if (!g.ok) return send(res, g.status, JSON.stringify({ error: g.reason }));
 
       if (url.pathname.startsWith('/api/')) {
+        if (opts.api?.events(req, res, url)) return;
         const h = routes[`${req.method} ${url.pathname}`];
         if (!h) return send(res, 404, JSON.stringify({ error: 'no such route' }));
         const raw = req.method === 'POST' ? await readBody(req) : '';
@@ -127,7 +131,7 @@ export async function startServer(opts: ServeOptions): Promise<RunningServer> {
       if (rel === 'index.html') data = Buffer.from(data.toString('utf8').replace('__FAITHFUL_TOKEN__', token));
       return send(res, 200, data, MIME[extname(file)] ?? 'application/octet-stream');
     } catch (e) {
-      return send(res, 500, JSON.stringify({ error: (e as Error).message }));
+      return send(res, (e as { status?: number }).status ?? 500, JSON.stringify({ error: (e as Error).message }));
     }
   });
 
@@ -142,6 +146,9 @@ export async function startServer(opts: ServeOptions): Promise<RunningServer> {
     port,
     token,
     url: `http://127.0.0.1:${port}/`,
-    close: () => new Promise((ok) => { server.close(() => ok()); server.closeAllConnections(); }),
+    close: async () => {
+      await opts.api?.close();
+      await new Promise<void>((ok) => { server.close(() => ok()); server.closeAllConnections(); });
+    },
   };
 }

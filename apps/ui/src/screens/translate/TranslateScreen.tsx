@@ -1,0 +1,192 @@
+/**
+ * Translate: what the deterministic translator made of the function.
+ *   translated: preconditions in plain words (the same list the Agree screen shows), translator notes, the throw sites
+ *               with the choice "precondition" vs "spec case", and the Lean model (collapsed).
+ *   refused:    the translator's reason, the refusal code, the exact source span marked, and what still runs.
+ * Keys: 'p' / 'c' throw choice, 'n' propose a spec.
+ */
+import type { SessionState } from '@faithful/session';
+import type { Refusal, Translation } from '@faithful/translate';
+import { TIER_LABEL } from '@faithful/core/tiers';
+import { useApp } from '../../app/AppContext';
+import { Code } from '../../components/Code';
+import { InlineText } from '../../components/InlineText';
+import { ActionButton } from '../../components/ActionButton';
+import { Preconditions, preconditionView } from '../../components/Preconditions';
+import { REFUSAL_TITLE, lineExcerpt, tyWords } from './refusal';
+import './translate.css';
+
+export function TranslateScreen() {
+  const { store } = useApp();
+  const s = store.state.value;
+  const t = s.translation;
+  if (!t) {
+    return s.fn ? (
+      <p class="muted" role="status">
+        Translating <code>{s.fn}</code>. The translator is deterministic code; no model is called.
+      </p>
+    ) : (
+      <p class="muted">Choose a function first.</p>
+    );
+  }
+  return t.ok ? <Translated s={s} v={t.value} /> : <Refused s={s} r={t.refusal} />;
+}
+
+/** Why "Propose a spec" is unavailable, or null when it is available. */
+export function proposeBlocker(s: SessionState): string | null {
+  const t = s.translation;
+  if (!t || !t.ok) return 'There is no Lean model to write a spec against.';
+  if (s.proposals.length) return 'A spec has already been proposed. It is on the Agree screen.';
+  if (t.value.canThrow && s.throwChoice === null) return 'Choose how to treat the throw first (p or c).';
+  return null;
+}
+
+export const THROW_CHOICE_WORDS = {
+  precondition:
+    'Treat as a precondition: inputs on which the function throws are excluded. Every claim then covers only inputs where it returns normally, and "does not throw" is added to the preconditions.',
+  'spec-case':
+    'Model as a spec case: the spec must say which inputs throw and with which message. A throw is then compared like a return value: same inputs, same message.',
+} as const;
+
+function Translated({ s, v }: { s: SessionState; v: Translation }) {
+  const { adapter } = useApp();
+  const blocker = proposeBlocker(s);
+  const model = s.toolchain?.codex.model;
+  const choiceLocked = s.proposals.length > 0 || s.agreement !== null;
+
+  return (
+    <div class="stack-l tr">
+      <section class="stack">
+        <p class="tr-lead">
+          <code>{v.fnName}</code> is inside the verifiable subset. The translator, which is deterministic code, produced a Lean model of it. No model call
+          was involved.
+        </p>
+        <p class="tr-sig">
+          <code>
+            {v.fnName}({v.params.map((p) => `${p.name}: ${tyWords(p.ty)}`).join(', ')}) → {tyWords(v.ret)}
+            {v.canThrow ? ' or a throw' : ''}
+          </code>
+        </p>
+      </section>
+
+      <section class="stack" aria-labelledby="tr-pre">
+        <h3 id="tr-pre">Preconditions</h3>
+        <p class="muted">Every claim about this function covers only inputs that meet these. The Agree screen shows the same list.</p>
+        <Preconditions view={preconditionView(s)} />
+      </section>
+
+      {v.canThrow && (
+        <section class="stack" aria-labelledby="tr-throw">
+          <h3 id="tr-throw">This function can throw</h3>
+          <ul class="tr-sites">
+            {v.throwSites.map((site, i) => {
+              const ex = lineExcerpt(v.source.text, site.span);
+              return (
+                <li key={i} class="stack">
+                  <p>
+                    Throws <code>{JSON.stringify(site.message)}</code>{' '}
+                    <span class="muted">
+                      at line {site.span.line}, column {site.span.column}
+                    </span>
+                  </p>
+                  <Code text={ex.text} lang="ts" mark={ex.mark} from={ex.from} label={`Throw site ${i + 1}`} />
+                </li>
+              );
+            })}
+          </ul>
+          <div class="tr-choices" role="group" aria-label="How to treat the throw">
+            {(['precondition', 'spec-case'] as const).map((c) => (
+              <div key={c} class={`tr-choice${s.throwChoice === c ? ' on' : ''}`}>
+                <p>{THROW_CHOICE_WORDS[c]}</p>
+                {s.throwChoice === c ? (
+                  <p class="tr-chosen">Chosen.</p>
+                ) : (
+                  <ActionButton keyName={c === 'precondition' ? 'p' : 'c'} disabled={choiceLocked} run={() => adapter.chooseThrow(c)}>
+                    {c === 'precondition' ? 'Treat as a precondition' : 'Model as a spec case'}
+                  </ActionButton>
+                )}
+              </div>
+            ))}
+          </div>
+          {choiceLocked && <p class="muted">The choice was recorded before the spec was proposed and is part of what is agreed.</p>}
+        </section>
+      )}
+
+      <section class="stack" aria-labelledby="tr-notes">
+        <h3 id="tr-notes">Translator notes</h3>
+        {v.notes.length ? (
+          <ul class="tr-notes">
+            {v.notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        ) : (
+          <p class="muted">The translator recorded no documented semantic gaps for this function.</p>
+        )}
+      </section>
+
+      <details class="tr-model">
+        <summary>
+          Lean model <span class="muted">· {v.lean.names.original}</span>
+        </summary>
+        <div class="stack">
+          <p class="muted">
+            Produced by the fixed translator (docs/TRANSLATOR.md). Model hash <code class="tr-hash">{v.lean.hash}</code>
+          </p>
+          <Code text={v.lean.source} lang="lean" label="Lean model" />
+        </div>
+      </details>
+
+      <section class="stack tr-next">
+        <div class="row">
+          <ActionButton primary keyName="n" disabled={blocker !== null} run={() => adapter.proposeSpec()}>
+            Propose a spec
+          </ActionButton>
+        </div>
+        {blocker ? (
+          <p class="tr-why">{blocker}</p>
+        ) : (
+          <p class="muted">
+            This asks {model ?? 'the model'} to write a spec of what the function is meant to compute. The prompt is shown verbatim under the proposal.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Refused({ s, r }: { s: SessionState; r: Refusal }) {
+  return (
+    <div class="stack-l tr">
+      <section class="stack">
+        <p class="label">Outside the verifiable subset</p>
+        <h3 class="tr-refused-title">{REFUSAL_TITLE[r.code]}</h3>
+        <p class="tr-reason">
+          <InlineText text={r.reason} />
+        </p>
+        <p class="muted">
+          Refusal code <code>{r.code}</code> · line {r.span.line}, column {r.span.column}
+        </p>
+      </section>
+      <Code
+        text={s.source}
+        lang="ts"
+        mark={r.span}
+        label={`Source of ${s.fn}, refused part marked`}
+        caption={`Marked: the exact part the translator refused (line ${r.span.line}, column ${r.span.column}).`}
+      />
+      <section class="tr-still panel quiet stack">
+        <h3>What still runs</h3>
+        <p>
+          The {TIER_LABEL.tested} tier: differential testing of a candidate against your original on generated inputs, and mutation testing (broken
+          copies the inputs must catch).
+        </p>
+        <p>
+          The proof tier is not available for this function. There is no Lean model of it, so no spec can be agreed against a model and nothing can be
+          checked by Lean or Z3. No claim stronger than {TIER_LABEL.tested} will be made.
+        </p>
+        <p class="muted">A refusal is a finding, not a failure. The subset is not widened to admit a function.</p>
+      </section>
+    </div>
+  );
+}

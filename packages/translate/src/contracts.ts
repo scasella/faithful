@@ -26,7 +26,12 @@ export type Outcome =
   | { tag: 'ok'; value: Val }
   /** `throw new Error("literal")` or `throw "literal"`: modeled as `Except.error message`. */
   | { tag: 'throw'; message: string }
-  /** The range-instrumented original left +-2^53 or produced a non-integer: the input violates the `rangeOk` precondition. */
+  /**
+   * The range-instrumented original left +-2^53, produced a non-integer, indexed out of range, divided by zero, recursed
+   * deeper than `MAX_RECURSION_DEPTH` (ir.ts), built a string longer than `MAX_STRING_LENGTH` (ir.ts), or (detail
+   * `ascii ...`) case-mapped a non-ASCII string: the input violates
+   * the `rangeOk` (or `asciiOk`) precondition.
+   */
   | { tag: 'range-violation'; detail: string }
   /** Timeout, stack overflow, or a thrown non-literal error. Never counted as agreement. */
   | { tag: 'fault'; detail: string };
@@ -82,8 +87,10 @@ export type PreconditionKind =
   | 'bmp'
   /**
    * The generated `rangeOk` function: every intermediate value of the original is an integer within +-2^53, no array
-   * index or `charCodeAt` is out of bounds, no division or `%` by zero. In other words, the JS execution never leaves the
-   * model's total semantics (no NaN, no `undefined`, no Infinity).
+   * index or `charCodeAt` is out of bounds, no division or `%` by zero, no string built by concatenation or `join` is
+   * longer than `MAX_STRING_LENGTH` (ir.ts) UTF-16 units. In other words, the JS execution never leaves the
+   * model's total semantics (no NaN, no `undefined`, no Infinity). For a self-recursive function also: at most
+   * `MAX_RECURSION_DEPTH` (ir.ts) activations are live at once (deeper recursion can exhaust the JavaScript stack).
    */
   | 'range-ok'
   /** Strings that reach `toLowerCase`/`toUpperCase` are ASCII: the Lean model maps ASCII letters only (documented gap). */
@@ -119,9 +126,16 @@ export interface LeanModel {
   names: { original: string; rangeOk: string; pre: string };
   /** Lean type text of each parameter, in order, and of the result (`Except String α` when `canThrow`). */
   paramTypes: string[];
+  /** (Additive.) Lean binder name of each parameter, in order (TS names sanitized: `max` -> `max_`, ...). */
+  paramNames?: string[];
   retType: string;
   /** SHA-256 of `source`. */
   hash: string;
+  /**
+   * (Additive.) Lean structures emitted for the record types of this function: shape key (see `recordKey` in ir.ts),
+   * structure name inside `namespace Model`, and fields (TypeScript name, Lean name, type). Needed to build Lean values.
+   */
+  records?: Array<{ key: string; name: string; fields: Array<{ name: string; lean: string; ty: Ty }> }>;
 }
 
 export interface Translation {
@@ -135,6 +149,12 @@ export interface Translation {
   preconditions: Precondition[];
   /** The function's source text exactly as given, and its hash. */
   source: { text: string; hash: string };
+  /**
+   * (Additive.) The plain original as a self-contained unit for running it: the module-level constants the function
+   * reads (their statements verbatim, possibly with `export`), then `source.text`. `source.text` alone does not run
+   * when the function reads a module constant. Absent in translations stored before this field existed.
+   */
+  plainTs?: string;
   /** The same function with every arithmetic result wrapped in a range check; see docs/DESIGN.md "Range checks". */
   instrumentedTs: string;
   /** Documented semantic gaps this particular function touches (e.g. `UTF-16 gap`, `sort stability`). */

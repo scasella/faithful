@@ -1,11 +1,26 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/translate" },
-    { "path": "packages/engine" },
-    { "path": "packages/smt" },
-    { "path": "packages/prover" },
-    { "path": "packages/cli" }
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/translate"
+    },
+    {
+      "path": "packages/engine"
+    },
+    {
+      "path": "packages/smt"
+    },
+    {
+      "path": "packages/prover"
+    },
+    {
+      "path": "packages/session"
+    },
+    {
+      "path": "packages/cli"
+    }
   ]
 }

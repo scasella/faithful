@@ -7,5 +7,5 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "dependencies": { "@faithful/core": "workspace:*", "@faithful/translate": "workspace:*" }
+  "dependencies": { "@faithful/core": "workspace:*", "@faithful/translate": "workspace:*", "typescript": "^5.9.3" }
 }

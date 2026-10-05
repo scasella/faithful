@@ -1,0 +1,47 @@
+/* Optimize. Structure is stable while events stream in: panels keep their rows, candidates only append. */
+.fx-small { font-size: 0.8125rem; }
+.fx-stack-s { display: flex; flex-direction: column; gap: var(--s2); }
+.fx-fields { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s4); }
+.fx-field { display: flex; flex-direction: column; gap: var(--s1); font-size: 0.875rem; color: var(--muted); min-width: 0; }
+.fx-field.fx-wide { flex: 1 1 16rem; }
+.fx-field input {
+  font: inherit; font-size: 1rem; color: var(--fg); background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r-s); padding: 0.4rem 0.6rem; width: 9rem; max-width: 100%;
+}
+.fx-field.fx-wide input { width: 100%; }
+
+.fx-choices { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.fx-choice {
+  display: flex; gap: var(--s2); align-items: flex-start; padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-s);
+  background: var(--surface); cursor: pointer; min-width: 0;
+}
+.fx-choice.on { border-color: var(--fg); }
+.fx-choice.off { opacity: 0.6; cursor: not-allowed; }
+.fx-choice input { margin-top: 0.3rem; accent-color: var(--fg); }
+.fx-choice input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fx-choice-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fx-choice-title { font-weight: 620; font-size: 0.9375rem; }
+.fx-choice-words { font-size: 0.8125rem; color: var(--muted); }
+@media (max-width: 640px) { .fx-choices { grid-template-columns: 1fr; } }
+
+.op-head.panel { padding: var(--s4) 0 var(--s3); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.op-head [role='status'] { min-height: 1.3em; }
+.op-incumbent { border-color: var(--line-strong); }
+.op-bench p + p { margin-top: var(--s1); }
+.op-bench-verdict { font-size: 0.9rem; }
+.op-bench-faster .op-bench-verdict { color: var(--ok); }
+.op-bench-overlap .op-bench-verdict, .op-bench-no-baseline .op-bench-verdict { color: var(--muted); }
+.op-accepted-note { font-size: 0.9rem; border-left: 3px solid var(--warn); padding-left: var(--s3); }
+.op-accept .op-consequence { border-left: 3px solid var(--warn); padding-left: var(--s3); }
+.op-accept .op-consequence p + p { margin-top: var(--s2); }
+.op-accept .fx-choices { grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); }
+.op-final .kv { grid-template-columns: max-content minmax(0, 1fr); }
+.op-readout-rows { margin: 0; padding-left: 1.2rem; font-size: 0.9375rem; }
+.op-readout-rows li + li { margin-top: var(--s2); }
+.op-cands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s5); overflow-anchor: auto; }
+.op-cand h4 { font-size: 1rem; font-weight: 620; }
+@media (max-width: 560px) {
+  .op-final .kv { grid-template-columns: 1fr; }
+  .op-final .kv dd { margin-bottom: var(--s2); }
+  .op-cand.panel, .op-accept.panel, .op-final.panel, .op-incumbent.panel { padding: var(--s4); }
+}

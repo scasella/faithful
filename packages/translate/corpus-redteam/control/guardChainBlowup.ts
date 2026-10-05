@@ -1,0 +1,5 @@
+// @redteam area=control status=held
+// @redteam-expect refuse:unsupported-syntax
+// @redteam-note refused: control flow too complex to translate (more than 40000 IR nodes after duplicating continuations)
+// @redteam-note twelve sequential guarded early returns: refused by the 40,000 IR node bound (documented gap, NOTES.md "Known gaps")
+export function f(n: number): number { let x = 0; if (n > 0) { x = x + 0; if (n === 0) return x; } if (n > 1) { x = x + 1; if (n === 7) return x; } if (n > 2) { x = x + 2; if (n === 14) return x; } if (n > 3) { x = x + 3; if (n === 21) return x; } if (n > 4) { x = x + 4; if (n === 28) return x; } if (n > 5) { x = x + 5; if (n === 35) return x; } if (n > 6) { x = x + 6; if (n === 42) return x; } if (n > 7) { x = x + 7; if (n === 49) return x; } if (n > 8) { x = x + 8; if (n === 56) return x; } if (n > 9) { x = x + 9; if (n === 63) return x; } if (n > 10) { x = x + 10; if (n === 70) return x; } if (n > 11) { x = x + 11; if (n === 77) return x; } return x; }

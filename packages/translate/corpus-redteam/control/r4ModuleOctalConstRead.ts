@@ -1,0 +1,5 @@
+// @redteam area=control status=divergence input=[3] ts=module does not load (SyntaxError: Octal literals are not allowed in strict mode; harness: "the original did not load in the sandbox") lean={"tag":"ok","value":11}
+// @redteam-expect refuse:unsupported-syntax
+// @redteam-note round 4: a module-level `const K = 010` that the function READS. Inside the function the same literal is refused (TS1121, step 4 of translate()), but step 4 keeps only diagnostics whose start lies inside the function statement, and moduleLiteral inlines the constant with its sloppy-mode value 8 (Lean `n + (8 : Int)`, instrumentedTs `const K = 8`). An ES module (strict) containing `010` is a SyntaxError: Node refuses to load it, and the engine's sandbox refuses the plainTs too (tsVsLean throws "did not load"). The model claims f(3) = 11 for a function that never runs. Correct: refuse, e.g. by also checking the TypeScript diagnostics of every module constant the function reads (the statements copied into plainTs/instrumentedTs).
+const K = 010;
+export function f(n: number): number { return n + K; }

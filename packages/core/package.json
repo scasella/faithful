@@ -6,6 +6,15 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "dependencies": {  }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tiers": {
+      "types": "./dist/tiers.d.ts",
+      "default": "./dist/tiers.js"
+    }
+  },
+  "dependencies": {}
 }

@@ -1,0 +1,103 @@
+/* Agree screen. Tokens only (styles.css), so both themes keep their AA pairs. */
+
+.ag-says { display: grid; gap: var(--s1); }
+.ag-says-text { font-size: 1.125rem; line-height: 1.5; max-width: 40rem; }
+
+.ag-agreed { border: 1px solid var(--ok); border-left-width: 6px; border-radius: var(--r); padding: var(--s4) var(--s5); background: var(--surface); }
+.ag-agreed .label { color: var(--ok); }
+.ag-agreed > * + * { margin-top: var(--s2); }
+.ag-hashline { font-size: 0.9375rem; }
+.ag-hash { overflow-wrap: anywhere; word-break: break-all; }
+
+/* the center: the challenge list */
+.ag-ch-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
+.ag-ch-head h3 { font-size: 1.125rem; }
+.ag-keys { font-size: 0.8125rem; color: var(--muted); }
+.ag-run { max-width: 42rem; }
+.ag-run b { font-weight: 620; }
+.ag-ch-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.ag-ch { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: var(--s4) var(--s5); }
+.ag-ch:not(.ruled):not(.on) { cursor: pointer; }
+.ag-ch.on { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.ag-ch.ruled { background: transparent; }
+.ag-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4); }
+.ag-cells > div { min-width: 0; display: grid; align-content: start; gap: var(--s1); }
+.ag-big { font-size: 1.125rem; font-weight: 560; overflow-wrap: anywhere; }
+.ag-origin { font-size: 0.75rem; color: var(--muted); }
+.ag-ruling { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--line); font-size: 0.9375rem; overflow-wrap: anywhere; }
+.ag-ruling .label { margin-right: var(--s2); }
+.ag-later { margin-top: var(--s3); font-size: 0.875rem; }
+.ag-rule { margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--line); }
+.ag-rule > .ag-q + .row { margin-top: var(--s3); }
+.ag-q { font-weight: 560; }
+.ag-fine { font-size: 0.8125rem; color: var(--muted); max-width: 40rem; }
+.ag-rule .ag-fine { margin-top: var(--s3); }
+.ag-carve-menu { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.ag-carve-menu .btn { justify-content: space-between; text-align: left; width: 100%; }
+.ag-field { display: grid; gap: var(--s1); }
+.ag-field label { font-size: 0.875rem; color: var(--muted); }
+.ag-field textarea, .ag-field input {
+  width: 100%; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong);
+  border-radius: var(--r-s); padding: 0.5rem 0.7rem;
+}
+.ag-field input.mono { font-family: var(--mono); font-size: 0.9375rem; }
+.ag-field textarea::placeholder, .ag-field input::placeholder { color: var(--muted); opacity: 1; }
+@media (max-width: 560px) {
+  .ag-ch { padding: var(--s4); }
+  .ag-cells { grid-template-columns: 1fr; gap: var(--s3); }
+}
+
+.ag-bar { padding: var(--s4) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.ag-why { margin-top: var(--s3); font-size: 0.9375rem; max-width: 42rem; overflow-wrap: anywhere; }
+
+/* spec, then examples: stacked inside the same reading measure as every other screen (a wider breakout made this the
+   only screen whose edges moved, and split the reader's attention). */
+.ag-cols { display: grid; gap: var(--s6); grid-template-columns: minmax(0, 1fr); }
+.ag-cols > * { min-width: 0; }
+.ag-lines { list-style: none; margin: 0; padding: 0; counter-reset: ln; }
+.ag-lines li { padding: var(--s2) var(--s3); border-radius: var(--r-s); border-left: 3px solid transparent; cursor: default; }
+.ag-lines li + li { margin-top: 2px; }
+.ag-lines li:hover, .ag-lines li.on { background: var(--sunk); border-left-color: var(--mark-bg); }
+.ag-line-lean { display: block; margin-top: var(--s1); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.ag-props > summary { cursor: pointer; color: var(--muted); font-size: 0.875rem; width: fit-content; }
+.ag-props ul { margin: var(--s3) 0 0; padding-left: 1.2em; }
+.ag-props li + li { margin-top: var(--s2); }
+.ag-props code { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.ag-invalid { border-left: 4px solid var(--catch); padding: var(--s2) var(--s4); }
+.ag-invalid p { color: var(--catch); }
+.ag-invalid pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.8125rem; margin: var(--s2) 0 0; }
+
+.ag-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.ag-table th { text-align: left; font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 var(--s2) var(--s2); border-bottom: 1px solid var(--line-strong); }
+.ag-table td { padding: var(--s2); border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.ag-table th:first-child, .ag-table td:first-child { padding-left: 0; }
+.ag-table td:first-child { min-width: 7ch; }
+.ag-table td:first-child .val { overflow-wrap: normal; word-break: break-word; }
+@media (max-width: 560px) {
+  .ag-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ag-table, .ag-table tbody, .ag-table tr, .ag-table td { display: block; width: 100%; }
+  .ag-table tr { padding: var(--s2) 0; border-bottom: 1px solid var(--line); }
+  .ag-table td { border: 0; padding: 2px 0; display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: var(--s2); }
+  .ag-table td::before { content: attr(data-label); color: var(--muted); font-size: 0.75rem; }
+}
+
+.ag-history > summary { cursor: pointer; color: var(--muted); width: fit-content; }
+.ag-hist-list { list-style: none; margin: var(--s4) 0 0; padding: 0; }
+.ag-hist-list > li + li { margin-top: var(--s5); padding-top: var(--s5); border-top: 1px solid var(--line); }
+.ag-inval-list { margin: 0; padding-left: 1.2em; }
+.ag-inval-list li + li { margin-top: var(--s3); }
+.ag-inval-list .muted { font-size: 0.875rem; overflow-wrap: anywhere; }
+
+/* the only modal */
+dialog.ag-dialog { width: min(36rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: hidden; }
+dialog.ag-dialog[open] { display: flex; flex-direction: column; }
+dialog.ag-dialog .ag-dlg-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding-right: var(--s2); }
+.ag-dlg-lead { margin-top: var(--s3); font-size: 1.0625rem; font-weight: 560; }
+.ag-dlg-body { margin-top: var(--s4); font-size: 0.9375rem; }
+.ag-dlg-body h3 { font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-top: var(--s4); margin-bottom: var(--s2); }
+.ag-dlg-body ul, .ag-dlg-body ol { margin: 0; padding-left: 1.2em; }
+.ag-dlg-body li + li { margin-top: var(--s1); }
+.ag-dlg-hash { margin-top: var(--s5); padding: var(--s3) var(--s4); background: var(--sunk); border-radius: var(--r-s); }
+.ag-dlg-actions { margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--line); justify-content: flex-end; flex: none; }
+
+.ag-sub { font-size: 0.9375rem; padding-top: var(--s3); }

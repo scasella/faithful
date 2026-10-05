@@ -1,0 +1,7 @@
+.copyblock { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; }
+.copyblock pre {
+  flex: 1 1 16rem; min-width: 0; margin: 0; background: var(--sunk); border-radius: var(--r-s); padding: var(--s2) var(--s3);
+  overflow-x: auto; font-size: 0.875rem; user-select: all;
+}
+.copyblock pre code { font-size: inherit; }
+.copyblock .copy-status { font-size: 0.8125rem; color: var(--muted); min-width: 0; }

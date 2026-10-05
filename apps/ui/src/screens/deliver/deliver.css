@@ -1,0 +1,18 @@
+/* Deliver. */
+.fx-stack-s { display: flex; flex-direction: column; gap: var(--s2); }
+.dl-screen .dl-not-modified { font-size: 1.0625rem; font-weight: 600; border-left: 4px solid var(--ok); padding: var(--s2) var(--s4); background: var(--surface); border-radius: 0 var(--r-s) var(--r-s) 0; }
+.dl-screen .op-accepted-note { font-size: 0.9rem; border-left: 3px solid var(--warn); padding-left: var(--s3); }
+.dl-files { list-style: none; margin: 0; padding: 0; }
+.dl-files li { display: flex; flex-direction: column; gap: 2px; padding: var(--s2) 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.dl-files code { overflow-wrap: anywhere; }
+.dl-files .dl-file-what { font-size: 0.875rem; color: var(--muted); }
+.dl-diff { background: var(--sunk); border-radius: var(--r-s); overflow-x: auto; font-family: var(--mono); font-size: 0.8125rem; line-height: 1.6; padding: var(--s3) var(--s4); margin-left: 0; margin-right: 0; margin-bottom: 0; }
+.dl-diff code { white-space: pre; font-size: inherit; display: inline-block; min-width: 100%; }
+.dl-diff .dl-d-file { color: var(--muted); }
+.dl-diff .dl-d-hunk { color: var(--accent); }
+.dl-diff .dl-d-line { display: block; min-width: fit-content; }
+.dl-diff .dl-d-del { background: color-mix(in srgb, var(--catch) 12%, transparent); }
+.dl-diff .dl-d-add { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.dl-diff .dl-d-sign { display: inline-block; width: 1.5ch; user-select: none; color: var(--muted); }
+.dl-diff .dl-d-del .dl-d-sign { color: var(--catch); }
+.dl-diff .dl-d-add .dl-d-sign { color: var(--ok); }

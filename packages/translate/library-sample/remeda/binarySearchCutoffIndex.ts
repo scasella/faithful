@@ -1,0 +1,38 @@
+// @sample library=remeda path=packages/remeda/src/internal/binarySearchCutoffIndex.ts commit=8e6e78f6eaf66eaf0b4797d72cc3691823c91335 license=MIT
+// Copyright (c) 2018 remeda; MIT License; see LICENSES/remeda.txt
+
+/**
+ * A binary search implementation that finds the index at which `predicate`
+ * stops returning `true` and starts returning `false` (consistently) when run
+ * on the items of the array. It **assumes** that mapping the array via the
+ * predicate results in the shape `[...true[], ...false[]]`. *For any other case
+ * the result is unpredictable*.
+ *
+ * This is the base implementation of the `sortedIndex` functions which define
+ * the predicate for the user, for common use-cases.
+ *
+ * It is similar to `findIndex`, but runs at O(logN), whereas the latter is
+ * general purpose function which runs on any array and predicate, but runs at
+ * O(N) time.
+ */
+export function binarySearchCutoffIndex<T>(
+  array: readonly T[],
+  predicate: (value: T, index: number, data: readonly T[]) => boolean,
+): number {
+  let lowIndex = 0;
+  let highIndex = array.length;
+
+  while (lowIndex < highIndex) {
+    // eslint-disable-next-line no-bitwise -- We use bitwise operator here as a way to find the mid-point and round it down using the same operation.
+    const pivotIndex = (lowIndex + highIndex) >>> 1;
+    const pivot = array[pivotIndex]!;
+
+    if (predicate(pivot, pivotIndex, array)) {
+      lowIndex = pivotIndex + 1;
+    } else {
+      highIndex = pivotIndex;
+    }
+  }
+
+  return highIndex;
+}

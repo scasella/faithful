@@ -1,0 +1,44 @@
+/* Prove original. Tokens come from src/styles.css; nothing here adds emphasis beyond the failure line. */
+.fx-small { font-size: 0.8125rem; }
+.fx-stack-s > * + * { margin-top: var(--s2); }
+.fx-stack-s { display: flex; flex-direction: column; gap: var(--s2); }
+.pv-screen .pv-thm-words { font-size: 1.0625rem; max-width: 40rem; }
+.pv-screen .pv-pre-list { margin: var(--s2) 0 0; padding-left: 1.2rem; font-size: 0.9rem; }
+.pv-screen .pv-pre-list li + li { margin-top: var(--s1); }
+.pv-screen .pv-pre-list .pv-carve-item .label { color: var(--warn); }
+
+.fx-fields { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s4); }
+.fx-field { display: flex; flex-direction: column; gap: var(--s1); font-size: 0.875rem; color: var(--muted); min-width: 0; }
+.fx-field.fx-wide { flex: 1 1 16rem; }
+.fx-field input {
+  font: inherit; font-size: 1rem; color: var(--fg); background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r-s); padding: 0.4rem 0.6rem; width: 9rem; max-width: 100%;
+}
+.fx-field.fx-wide input { width: 100%; }
+.fx-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* budget strip: fixed two cells so ticking digits never move anything */
+.pv-budget { display: grid; grid-template-columns: repeat(2, minmax(0, 12rem)); gap: var(--s4); align-items: end; }
+.pv-budget-cell { border-top: 2px solid var(--line-strong); padding-top: var(--s2); }
+.pv-budget-v { font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pv-budget-note { grid-column: 1 / -1; font-size: 0.8125rem; }
+
+.pv-verdict.pv-not-proved .pv-fail-line { font-size: 1.25rem; font-weight: 650; }
+.pv-verdict .pv-trust-note { font-size: 0.9rem; border-left: 3px solid var(--warn); padding-left: var(--s3); max-width: 40rem; }
+
+.pv-attempts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s4); }
+.pv-attempt.pv-pending { padding: var(--s3) 0; }
+.pv-attempt.pv-bad { border-left: 3px solid var(--line-strong); }
+.pv-attempt.pv-ok { border-left: 3px solid var(--ok); }
+.pv-attempt-head .pv-ok-word { color: var(--ok); }
+.pv-attempt-head .pv-bad-word { color: var(--fg); }
+.pv-diags { list-style: none; margin: 0; padding: 0; }
+.pv-diags > li + li { margin-top: var(--s3); }
+.pv-offers .panel { padding: var(--s4) var(--s5); }
+@media (max-width: 560px) {
+  .pv-budget { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pv-offers .panel, .pv-attempt.panel { padding: var(--s4); }
+}
+.pv-screen .prov-trigger, .op-screen .prov-trigger { text-align: left; }
+.pv-budget-sentence { max-width: 40rem; }
+.pv-budget-sentence .fx-small { display: block; margin-top: var(--s1); }

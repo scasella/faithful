@@ -1,0 +1,3 @@
+// @redteam area=arithmetic status=held expect=ok
+// @inputs [[0,true],[0,false],[1,true],[1,false],[-1,true],[-1,false],[2,true],[2,false],[-3,true],[-3,false],[7,true],[7,false],[9007199254740992,true],[9007199254740992,false],[-9007199254740992,true],[-9007199254740992,false],[9007199254740991,true],[9007199254740991,false],[-9007199254740991,true],[-9007199254740991,false],[9007199254740988,true],[9007199254740988,false],[-9007199254740988,true],[-9007199254740988,false],[20,true],[20,false],[19,true],[19,false],[18,true],[18,false]]
+export function template(a: number, b: boolean): string { return `${a}:${-a}:${b}:${a < 0}:${Math.abs(a)}:${a % 7}`; }

@@ -1,0 +1,213 @@
+{
+  "rows": [
+    {
+      "name": "difference",
+      "lib": "es-toolkit",
+      "file": "es-toolkit/difference.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "this top-level statement runs code when the module loads (it could replace builtins such as Math.floor, or change state the function sees); subset v1 allows only function, type and constant declarations with literal or function initializers at module level",
+      "line": 4,
+      "at": "import { difference as differenceToolkit } from '../../array/difference.ts';"
+    },
+    {
+      "name": "unzipWith",
+      "lib": "es-toolkit",
+      "file": "es-toolkit/unzipWith.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "overloaded functions are outside subset v1",
+      "line": 22,
+      "at": "unzipWith"
+    },
+    {
+      "name": "stubA",
+      "lib": "es-toolkit",
+      "file": "es-toolkit/stubA.ts",
+      "ok": false,
+      "code": "missing-annotation",
+      "reason": "the return type needs an annotation",
+      "line": 4,
+      "at": "stubA"
+    },
+    {
+      "name": "words",
+      "lib": "es-toolkit",
+      "file": "es-toolkit/words.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "the function does not type-check: TS2304 Cannot find name 'CASE_SPLIT_PATTERN'.",
+      "line": 22,
+      "at": "CASE_SPLIT_PATTERN"
+    },
+    {
+      "name": "clamp",
+      "lib": "es-toolkit",
+      "file": "es-toolkit/clamp.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "overloaded functions are outside subset v1",
+      "line": 17,
+      "at": "clamp"
+    },
+    {
+      "name": "overArgs",
+      "lib": "es-toolkit",
+      "file": "es-toolkit/overArgs.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "this top-level statement runs code when the module loads (it could replace builtins such as Math.floor, or change state the function sees); subset v1 allows only function, type and constant declarations with literal or function initializers at module level",
+      "line": 4,
+      "at": "import { identity } from '../../function/identity.ts';"
+    },
+    {
+      "name": "pullAll",
+      "lib": "es-toolkit",
+      "file": "es-toolkit/pullAll.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "overloaded functions are outside subset v1",
+      "line": 34,
+      "at": "pullAll"
+    },
+    {
+      "name": "range",
+      "lib": "radash",
+      "file": "radash/range.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "this top-level statement runs code when the module loads (it could replace builtins such as Math.floor, or change state the function sees); subset v1 allows only function, type and constant declarations with literal or function initializers at module level",
+      "line": 4,
+      "at": "import { isArray, isFunction } from './typed'"
+    },
+    {
+      "name": "alphabetical",
+      "lib": "radash",
+      "file": "radash/alphabetical.ts",
+      "ok": false,
+      "code": "generic",
+      "reason": "generic functions are outside subset v1",
+      "line": 9,
+      "at": "T"
+    },
+    {
+      "name": "trim",
+      "lib": "radash",
+      "file": "radash/trim.ts",
+      "ok": false,
+      "code": "unsupported-type",
+      "reason": "parameter `str` can be null/undefined; null and undefined are supported only as a function's return type (T | null)",
+      "line": 18,
+      "at": "string | null | undefined"
+    },
+    {
+      "name": "tryit",
+      "lib": "radash",
+      "file": "radash/tryit.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "this top-level statement runs code when the module loads (it could replace builtins such as Math.floor, or change state the function sees); subset v1 allows only function, type and constant declarations with literal or function initializers at module level",
+      "line": 4,
+      "at": "import { isArray, isPromise } from './typed'"
+    },
+    {
+      "name": "objectify",
+      "lib": "radash",
+      "file": "radash/objectify.ts",
+      "ok": false,
+      "code": "generic",
+      "reason": "generic functions are outside subset v1",
+      "line": 8,
+      "at": "T"
+    },
+    {
+      "name": "lowerize",
+      "lib": "radash",
+      "file": "radash/lowerize.ts",
+      "ok": false,
+      "code": "generic",
+      "reason": "generic functions are outside subset v1",
+      "line": 11,
+      "at": "T extends Record<string, any>"
+    },
+    {
+      "name": "intersects",
+      "lib": "radash",
+      "file": "radash/intersects.ts",
+      "ok": false,
+      "code": "generic",
+      "reason": "generic functions are outside subset v1",
+      "line": 8,
+      "at": "T"
+    },
+    {
+      "name": "forEachObj",
+      "lib": "remeda",
+      "file": "remeda/forEachObj.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "overloaded functions are outside subset v1",
+      "line": 53,
+      "at": "forEachObj"
+    },
+    {
+      "name": "binarySearchCutoffIndex",
+      "lib": "remeda",
+      "file": "remeda/binarySearchCutoffIndex.ts",
+      "ok": false,
+      "code": "generic",
+      "reason": "generic functions are outside subset v1",
+      "line": 18,
+      "at": "T"
+    },
+    {
+      "name": "firstBy",
+      "lib": "remeda",
+      "file": "remeda/firstBy.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "overloaded functions are outside subset v1",
+      "line": 54,
+      "at": "firstBy"
+    },
+    {
+      "name": "floor",
+      "lib": "remeda",
+      "file": "remeda/floor.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "overloaded functions are outside subset v1",
+      "line": 24,
+      "at": "floor"
+    },
+    {
+      "name": "hasSubObject",
+      "lib": "remeda",
+      "file": "remeda/hasSubObject.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "overloaded functions are outside subset v1",
+      "line": 82,
+      "at": "hasSubObject"
+    },
+    {
+      "name": "heapMaybeInsert",
+      "lib": "remeda",
+      "file": "remeda/heapMaybeInsert.ts",
+      "ok": false,
+      "code": "unsupported-syntax",
+      "reason": "this top-level statement runs code when the module loads (it could replace builtins such as Math.floor, or change state the function sees); subset v1 allows only function, type and constant declarations with literal or function initializers at module level",
+      "line": 4,
+      "at": "import { hasAtLeast } from \"../hasAtLeast\";"
+    }
+  ],
+  "inSubset": 0,
+  "refused": 20,
+  "histogram": {
+    "generic": 5,
+    "unsupported-type": 1,
+    "unsupported-syntax": 13,
+    "missing-annotation": 1
+  },
+  "crashes": 0
+}

@@ -1,0 +1,60 @@
+// @redteam area=strings status=held
+// @inputs [[""],["a"],["\u00e9"]]
+// Lean binder hygiene: string locals named like Lean keywords/emitter heads, non-ASCII and $ identifiers.
+export function f(s: string): string {
+  const id = s + "0";
+  const x = id + "1";
+  const τ0 = x + "2";
+  const $s = τ0 + "3";
+  const s$ = $s + "4";
+  const _ = s$ + "5";
+  const α = _ + "6";
+  const getD = α + "7";
+  const ofList = getD + "8";
+  const toList = ofList + "9";
+  const Unit = toList + "0";
+  const True = Unit + "1";
+  const by = True + "2";
+  const at = by + "3";
+  const open = at + "4";
+  const end = open + "5";
+  const fun = end + "6";
+  const match = fun + "7";
+  const mut = match + "8";
+  const have = mut + "9";
+  const show = have + "0";
+  const calc = show + "1";
+  const where = calc + "2";
+  const deriving = where + "3";
+  const instance = deriving + "4";
+  const structure = instance + "5";
+  const namespace = structure + "6";
+  const section = namespace + "7";
+  const theorem = section + "8";
+  const example = theorem + "9";
+  const abbrev = example + "0";
+  const axiom = abbrev + "1";
+  const partial = axiom + "2";
+  const unsafe = partial + "3";
+  const macro = unsafe + "4";
+  const syntax = macro + "5";
+  const notation = syntax + "6";
+  const infix = notation + "7";
+  const set_option = infix + "8";
+  const universe = set_option + "9";
+  const variable = universe + "0";
+  const mutual = variable + "1";
+  const termination_by = mutual + "2";
+  const decreasing_by = termination_by + "3";
+  const sorry = decreasing_by + "4";
+  const rfl = sorry + "5";
+  const simp = rfl + "6";
+  const omega = simp + "7";
+  const Faithful = omega + "8";
+  const Model = Faithful + "9";
+  const Std = Model + "0";
+  const Lean = Std + "1";
+  const IO = Lean + "2";
+  const Mathlib = IO + "3";
+  return id + x + τ0 + $s + s$ + _ + α + getD + ofList + toList + Unit + True + by + at + open + end + fun + match + mut + have + show + calc + where + deriving + instance + structure + namespace + section + theorem + example + abbrev + axiom + partial + unsafe + macro + syntax + notation + infix + set_option + universe + variable + mutual + termination_by + decreasing_by + sorry + rfl + simp + omega + Faithful + Model + Std + Lean + IO + Mathlib;
+}

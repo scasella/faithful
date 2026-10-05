@@ -1,0 +1,28 @@
+/* CarveOutBand and the shared precondition list. Tokens only (styles.css), so both themes keep their AA pairs. */
+
+.carve-band {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--surface); border: 1px solid var(--line-strong); border-left: 6px solid var(--warn);
+  border-radius: 0 var(--r-s) var(--r-s) 0; padding: var(--s2) var(--s4);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.06);
+}
+.carve-band-head { font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 700; color: var(--warn); }
+.carve-band-sub { text-transform: none; letter-spacing: normal; font-weight: 400; color: var(--muted); margin-left: var(--s2); }
+.carve-band ul { list-style: none; margin: var(--s1) 0 0; padding: 0; }
+.carve-band li { font-size: 0.9375rem; overflow-wrap: anywhere; }
+.carve-band li + li { margin-top: var(--s1); }
+.carve-band-cond { white-space: pre-wrap; }
+
+.pre-list { list-style: none; margin: 0; padding: 0; }
+.pre { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: var(--s1) var(--s4); padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
+.pre:first-child { border-top: 1px solid var(--line); }
+.pre-kind { font-size: 0.8125rem; color: var(--muted); padding-top: 0.1rem; }
+.pre-words { min-width: 0; overflow-wrap: anywhere; }
+.pre-exact { grid-column: 2; font-size: 0.8125rem; }
+.pre-exact > summary { cursor: pointer; color: var(--muted); width: fit-content; }
+.pre-exact .kv { margin-top: var(--s2); }
+.pre-exact code { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .pre { grid-template-columns: 1fr; }
+  .pre-exact { grid-column: 1; }
+}

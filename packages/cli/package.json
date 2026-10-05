@@ -6,6 +6,23 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } }, "bin": { "faithful": "./dist/bin.js" },
-  "dependencies": { "@faithful/core": "workspace:*", "@faithful/translate": "workspace:*", "@faithful/engine": "workspace:*", "@faithful/smt": "workspace:*", "@faithful/prover": "workspace:*" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "faithful": "./dist/bin.js"
+  },
+  "dependencies": {
+    "@faithful/core": "workspace:*",
+    "@faithful/translate": "workspace:*",
+    "@faithful/engine": "workspace:*",
+    "@faithful/smt": "workspace:*",
+    "@faithful/prover": "workspace:*",
+    "@faithful/session": "workspace:*",
+    "typescript": "^5.9.3",
+    "diff": "^8.0.0"
+  }
 }
