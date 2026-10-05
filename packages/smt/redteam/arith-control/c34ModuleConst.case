@@ -1,0 +1,9 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+const K = 3;
+export function f(n: number): number { return n % K; }
+// ---- candidate
+const K = -3;
+export function f(n: number): number { return n % K + (n < 0 ? 1 : 0) - (n < 0 ? 1 : 0) + (n === 5 ? 1 : 0); }

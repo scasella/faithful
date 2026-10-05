@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(xs: number[], t: number): number { for (const x of xs) { if (x === t) { return 1; } } throw new Error("missing"); }
+// ---- candidate
+export function f(xs: number[], t: number): number { if (xs.indexOf(t) > 0) { return 1; } throw new Error("missing"); }

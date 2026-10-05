@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { if (x < 0) { throw new Error("neg"); } s += x; } return s; }
+// ---- candidate
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { s += x; } for (const x of xs) { if (x < 0) { throw new Error("neg"); } } return s; }

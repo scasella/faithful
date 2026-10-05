@@ -1,0 +1,8 @@
+// @fn f
+// @expect narrowed
+// @bounds [{"array": 2, "string": 1, "int": 5, "unroll": 3}]
+// @note round 3: element value drives the inner loop; diff at element 4 > U
+// ---- original
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { for (let i = 0; i < x; i++) { s += 1; } } return s; }
+// ---- candidate
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { s += x > 0 ? (x === 4 ? 5 : x) : 0; } return s; }

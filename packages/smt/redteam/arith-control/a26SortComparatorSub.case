@@ -1,0 +1,9 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":3,"string":1,"int":9007199254740992,"unroll":6}]
+// @inputs [[[9007199254740992,-9007199254740992]],[[1,2]],[[-9007199254740992,9007199254740992]],[[3,1,2]]]
+// @note the comparator a - b is not range-checked by the instrumentation (the sort is read as ascending by key), so both sort [2^53, -2^53] alike
+// ---- original
+export function f(xs: number[]): number[] { return xs.slice().sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)); }
+// ---- candidate
+export function f(xs: number[]): number[] { return xs.slice().sort((a, b) => a - b); }

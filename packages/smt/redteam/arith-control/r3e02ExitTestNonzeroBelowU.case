@@ -1,0 +1,8 @@
+// @fn f
+// @expect narrowed
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 2}]
+// @note round 3: same pair at U = 2: every differing n (>= 3) needs 3+ iterations; must narrow to ints <= 2
+// ---- original
+export function f(n: number): number { let s = 0; for (let i = 0; i < n; i++) { s += 1; } return s; }
+// ---- candidate
+export function f(n: number): number { let s = 0; for (let i = 0; 100 % (i - 3) !== 99 && i < n; i++) { s += 1; } return s; }

@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(n: number): number { if (n < 0) { throw new Error("neg"); } if (n === 0) { return 0; } return f(n - 1) + 2; }
+// ---- candidate
+export function f(n: number): number { if (n < 0) { throw new Error("neg"); } return 2 * n; }

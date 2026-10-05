@@ -37,7 +37,8 @@ export interface SmtStageResult {
 }
 
 export interface SmtChecker {
-  check(original: Translation, candidateSource: string, fnName: string, o: { budgetMs: number }): Promise<SmtStageResult>;
+  /** `originalFile` is the whole translation unit the original was translated from. */
+  check(original: Translation, originalFile: string, candidateSource: string, fnName: string, o: { budgetMs: number }): Promise<SmtStageResult>;
 }
 
 // ───────────── options ─────────────
@@ -60,7 +61,7 @@ const toSummary = (r: { pass: { estimate: number; lo: number; hi: number }; tria
   median: r.pass.estimate * 1e6,
   lo: r.pass.lo * 1e6,
   hi: r.pass.hi * 1e6,
-  unit: 'ns/call',
+  unit: 'ns/pass',
   trials: r.trials,
   distribution: r.distribution,
   sizes: r.sizes,
@@ -307,7 +308,7 @@ export class Optimizer {
     if (!rt.smt) {
       await done(stage('smt', 'skipped', 0, 'the SMT tier is not available in this build'));
     } else {
-      const sm = await rt.smt.check(t, source, t.fnName, { budgetMs: this.opts.smtBudgetMs ?? 60_000 });
+      const sm = await rt.smt.check(t, rt.fileText, source, t.fnName, { budgetMs: this.opts.smtBudgetMs ?? 60_000 });
       if (sm.status === 'counterexample' && sm.counterexample) {
         await done(stage('smt', 'fail', sm.ms, `Z3 found an input where the candidate differs${sm.k ? ` (arrays up to k=${sm.k})` : ''}`, sm.detail));
         return reject({
@@ -407,7 +408,7 @@ export class Optimizer {
     const statement = `∀ ${binders}, ${hyps.join(' → ')} → ${ct.lean.names.pre} ${call} = true ∧ ${ct.lean.names.original} ${call} = Spec.spec ${call}`.replace(/\s+/g, ' ');
     const thm = `candidate_${id}_meets_spec`;
     const modelSource = `${t.lean.source.trimEnd()}\n\n-- candidate model\n${stripRecordDecls(leanBody(ct.lean.source))}\n`;
-    const target = { modelSource, specSource: ag.specLean, theoremName: thm, statement, tacticImports: ['Faithful.Tactics'], library: await rt.librarySource() };
+    const target = { modelSource, specSource: ag.specLean, theoremName: thm, statement, tacticImports: rt.proofImports(), library: await rt.librarySource() };
     const budget = this.opts.proofBudget ?? { maxAttempts: 4, minutes: 6 };
     const rec = await proveTheorem(rt.codex, target, {
       maxAttempts: budget.maxAttempts,

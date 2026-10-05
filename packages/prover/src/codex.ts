@@ -105,6 +105,16 @@ function errorTail(jsonl: string, stderr: string): string {
   return lines.slice(-6).join('\n');
 }
 
+export interface CodexRequest {
+  purpose: string;
+  prompt: string;
+  schema: JsonSchema;
+  timeoutMs?: number;
+  signal?: AbortSignal;
+  /** Reasoning effort for this call only (e.g. a proof retry at higher effort); defaults to the client's configured effort. */
+  effort?: string;
+}
+
 export class CodexClient {
   private readonly queue = new SerialQueue();
   private readonly cfg: FaithfulConfig;
@@ -119,21 +129,27 @@ export class CodexClient {
     return this.cfg.model;
   }
 
+  /** The configured default effort (`FAITHFUL_EFFORT`, default `low`). */
+  get effort(): string {
+    return this.cfg.effort;
+  }
+
   /** Serialized: at most one codex process at a time. Never throws; failures are in `call.error`. */
-  ask(req: { purpose: string; prompt: string; schema: JsonSchema; timeoutMs?: number; signal?: AbortSignal }): Promise<CodexCall> {
+  ask(req: CodexRequest): Promise<CodexCall> {
     return this.queue.run(() => this.doAsk(req));
   }
 
-  private async doAsk(req: { purpose: string; prompt: string; schema: JsonSchema; timeoutMs?: number; signal?: AbortSignal }): Promise<CodexCall> {
+  private async doAsk(req: CodexRequest): Promise<CodexCall> {
     const startedAt = new Date().toISOString();
     const t0 = performance.now();
+    const effort = req.effort || this.cfg.effort;
     const call: CodexCall = {
       purpose: req.purpose,
       prompt: req.prompt,
       schema: req.schema,
       argv: [],
       model: this.cfg.model,
-      effort: this.cfg.effort,
+      effort,
       startedAt,
       ms: 0,
       rawOutput: null,
@@ -159,7 +175,7 @@ export class CodexClient {
       const schemaPath = join(dir, 'schema.json');
       const outPath = join(dir, 'out.json');
       await writeFile(schemaPath, JSON.stringify(req.schema), 'utf8');
-      call.argv = buildCodexArgs(this.cfg, { workDir, schemaPath, outPath });
+      call.argv = buildCodexArgs({ model: this.cfg.model, effort }, { workDir, schemaPath, outPath });
       const timeoutMs = req.timeoutMs ?? this.cfg.codexTimeoutMs;
       let r;
       try {

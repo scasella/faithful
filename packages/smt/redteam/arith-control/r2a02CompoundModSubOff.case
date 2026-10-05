@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":5,"unroll":4}]
+// ---- original
+export function f(x: number, y: number): number { x -= y; x %= y; return x; }
+// ---- candidate
+export function f(x: number, y: number): number { return (x % y) - y; }

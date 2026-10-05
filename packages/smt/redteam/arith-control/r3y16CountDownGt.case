@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 1, "string": 1, "int": 8, "unroll": 12}, {"array": 1, "string": 1, "int": 16, "unroll": 12}]
+// @note round 3: at U = 6, n = -1 already needs 11 iterations (size-driven unknown, correct); U = 12 covers [-1, 1]
+// ---- original
+export function f(n: number): number { let s = 0; for (let i = 10; i > n; i--) { s += i; } return s; }
+// ---- candidate
+export function f(n: number): number { let s = 0; for (let k = n + 1; k <= 10; k++) { s += k; } return s; }

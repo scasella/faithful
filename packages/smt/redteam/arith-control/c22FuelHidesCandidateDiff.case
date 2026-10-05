@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal-within-U
+// @bounds [{"array":1,"string":1,"int":20,"unroll":10}]
+// @note documented limit: n >= 13 needs more than U = 10 iterations
+// ---- original
+export function f(n: number): number { return 0; }
+// ---- candidate
+export function f(n: number): number { for (let i = 0; i < n; i++) { if (i === 12) { return 1; } } return 0; }

@@ -170,7 +170,7 @@ export interface BenchSummary {
   /** 95% bootstrap CI, in the same unit. */
   lo: number;
   hi: number;
-  unit: 'ns/call';
+  unit: 'ns/pass';
   trials: number;
   distribution: string;
   sizes: number[];

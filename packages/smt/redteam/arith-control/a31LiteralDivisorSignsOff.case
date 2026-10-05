@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":9,"unroll":4}]
+// @note -7 % b is negative; the candidate uses the Euclidean remainder
+// ---- original
+export function f(a: number, b: number): number { return b === 0 ? 0 : -7 % b + Math.floor(a / -4); }
+// ---- candidate
+export function f(a: number, b: number): number { return b === 0 ? 0 : ((-7 % b) + Math.abs(b)) % Math.abs(b) + Math.floor(a / -4); }

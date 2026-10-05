@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(a: number, b: number): boolean { return b === 0 || a % b === 0; }
+// ---- candidate
+export function f(a: number, b: number): boolean { return !(b !== 0 && a % b !== 0); }

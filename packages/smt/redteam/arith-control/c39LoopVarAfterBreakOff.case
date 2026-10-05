@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16},{"array":3,"string":2,"int":4,"unroll":16}]
+// @note not found: original returns xs.length, candidate -1
+// ---- original
+export function f(xs: number[], t: number): number { let i = 0; for (i = 0; i < xs.length; i++) { if (xs[i] === t) { break; } } return i; }
+// ---- candidate
+export function f(xs: number[], t: number): number { return xs.indexOf(t); }

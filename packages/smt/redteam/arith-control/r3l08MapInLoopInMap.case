@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 3}]
+// ---- original
+export function f(xs: number[]): number[] { return xs.map((x) => { let s = 0; for (let i = 0; i < 2; i++) { s += [x, i].map((y) => y * 2).reduce((a, b) => a + b, 0); } return s; }); }
+// ---- candidate
+export function f(xs: number[]): number[] { return xs.map((x) => 4 * x + 2); }

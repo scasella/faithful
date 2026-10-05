@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":3,"unroll":4}]
+// ---- original
+export function f(a: number, b: number, c: number): number { return Math.max(-a, -b, -c); }
+// ---- candidate
+export function f(a: number, b: number, c: number): number { return -Math.min(a, b, c); }

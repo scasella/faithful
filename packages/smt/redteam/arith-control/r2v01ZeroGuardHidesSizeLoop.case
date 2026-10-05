@@ -1,0 +1,16 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":2,"string":1,"int":3,"unroll":4}]
+// @note round 2: the loop is driven by the array length; n === 0 short-circuits it, so every excluded input has n != 0 and the exclusion is labeled int-driven; truth differs at (1, [0])
+// ---- original
+export function f(n: number, xs: number[]): number {
+  if (n === 0) { return 0; }
+  let s = 0;
+  for (let i = 0; i < 100 * xs.length; i++) { s += 1; }
+  return s;
+}
+// ---- candidate
+export function f(n: number, xs: number[]): number {
+  if (n === 0) { return 0; }
+  return xs.length >= 1 ? 7 : 0;
+}

@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 3}]
+// ---- original
+export function f(xs: number[]): string | null { for (const x of xs) { if (x < 0) { return ""; } } return null; }
+// ---- candidate
+export function f(xs: number[]): string | null { for (const x of xs) { if (x < 0) { return null; } } return null; }

@@ -1,0 +1,16 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":2,"string":1,"int":2,"unroll":4}]
+// @note round 2: as r2v01 with the guard on an array element: truth differs at [1]
+// ---- original
+export function f(xs: number[]): number {
+  if (xs.length > 0 && xs[0] === 0) { return 0; }
+  let s = 0;
+  for (let i = 0; i < 100 * xs.length; i++) { s += 1; }
+  return s;
+}
+// ---- candidate
+export function f(xs: number[]): number {
+  if (xs.length > 0 && xs[0] === 0) { return 0; }
+  return xs.length >= 1 ? 7 : 0;
+}

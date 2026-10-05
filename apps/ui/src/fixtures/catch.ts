@@ -360,7 +360,7 @@ const CAND3_REJECTION = {
   theorem: CAND3_THEOREM,
 };
 
-const BASELINE = { median: 61.4, lo: 60.2, hi: 62.9, unit: 'ns/call' as const, trials: 30, distribution: DISTRIBUTION, sizes: [9] };
+const BASELINE = { median: 61.4, lo: 60.2, hi: 62.9, unit: 'ns/pass' as const, trials: 30, distribution: DISTRIBUTION, sizes: [9] };
 
 export const catchFixture: Fixture = {
   name: 'catch',
@@ -575,7 +575,7 @@ export const catchFixture: Fixture = {
         outcome: 'incumbent',
         tier: 'proved',
         rejection: null,
-        bench: { median: 14.6, lo: 14.1, hi: 15.2, unit: 'ns/call', trials: 30, distribution: DISTRIBUTION, sizes: [] },
+        bench: { median: 14.6, lo: 14.1, hi: 15.2, unit: 'ns/pass', trials: 30, distribution: DISTRIBUTION, sizes: [] },
         speedup: { ratio: 4.21, lo: 3.93, hi: 4.58, significant: true },
       },
     ],
@@ -595,7 +595,7 @@ export const catchFixture: Fixture = {
         outcome: 'faster-not-proved',
         tier: 'verified-to-k',
         rejection: CAND3_REJECTION,
-        bench: { median: 12.0, lo: 11.6, hi: 12.5, unit: 'ns/call', trials: 30, distribution: DISTRIBUTION, sizes: [] },
+        bench: { median: 12.0, lo: 11.6, hi: 12.5, unit: 'ns/pass', trials: 30, distribution: DISTRIBUTION, sizes: [] },
         speedup: { ratio: 5.12, lo: 4.79, hi: 5.43, significant: true },
       },
     ],

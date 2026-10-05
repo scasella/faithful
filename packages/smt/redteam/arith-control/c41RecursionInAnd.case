@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":8,"unroll":12}]
+// @note self-call on the right of && and ||; flipping the conjunction order is invisible here because f(n - 2) cannot throw for n > 0
+// ---- original
+export function f(n: number): boolean { if (n < -2) { throw new Error("low"); } return n <= 0 || (n % 3 !== 0 && f(n - 2)); }
+// ---- candidate
+export function f(n: number): boolean { if (n < -2) { throw new Error("low"); } return n <= 0 || (f(n - 2) && n % 3 !== 0); }

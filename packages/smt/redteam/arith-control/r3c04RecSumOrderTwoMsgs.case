@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 7}]
+// @note round 3: f(4): orig throws "three" (f(3) first), cand throws "two" (f(2) first)
+// ---- original
+export function f(n: number): number { if (n <= 0) { return 0; } if (n === 3) { throw new Error("three"); } if (n === 2) { throw new Error("two"); } return f(n - 1) + f(n - 2); }
+// ---- candidate
+export function f(n: number): number { if (n <= 0) { return 0; } if (n === 3) { throw new Error("three"); } if (n === 2) { throw new Error("two"); } return f(n - 2) + f(n - 1); }

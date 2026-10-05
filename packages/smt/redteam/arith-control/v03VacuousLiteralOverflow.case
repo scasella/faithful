@@ -1,0 +1,8 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":2,"string":2,"int":6,"unroll":8}]
+// @note the original leaves the model (2^53 + 1) on every input, so unsat is consistent with the claim text but vacuous: nothing was verified. The non-vacuity check that fixes V1 (v01, v02) must catch this too; this test fails until it does
+// ---- original
+export function f(a: number): number { return 9007199254740992 + 1 + a; }
+// ---- candidate
+export function f(a: number): number { return a * 7; }

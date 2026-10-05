@@ -33,7 +33,7 @@ export function msText(ms: number): string {
 }
 
 export function nsText(ns: number): string {
-  return `${floor1(ns)} ns/call`;
+  return `${floor1(ns)} ns/pass`;
 }
 
 /** Exact, compact text of a value in the value domain. Strings are JSON-quoted; null is the option `none`. */

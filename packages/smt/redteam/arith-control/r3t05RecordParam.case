@@ -1,0 +1,8 @@
+// @fn f
+// @expect narrowed
+// @bounds [{"array": 1, "string": 1, "int": 5, "unroll": 3}]
+// @note round 3: record field drives the loop; diff at n = 4 > U
+// ---- original
+export function f(p: { n: number; m: number }): number { let s = 0; for (let i = 0; i < p.n; i++) { s += 1; } return s + p.m; }
+// ---- candidate
+export function f(p: { n: number; m: number }): number { return (p.n === 4 ? 0 : Math.max(p.n, 0)) + p.m; }

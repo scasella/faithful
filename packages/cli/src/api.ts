@@ -9,6 +9,7 @@ import { listExportedFunctions } from '@faithful/translate';
 import { captureToolchain } from '@faithful/core';
 import { openZ3, type Z3Driver } from '@faithful/smt';
 import type { StampedEvent } from '@faithful/session';
+import { smtChecker } from './smtChecker.js';
 import { Optimizer, SessionRuntime, deliver, type RulingInput } from './flow/index.js';
 import type { ApiRoutes } from './server.js';
 
@@ -57,7 +58,7 @@ export async function createApi(repoRoot: string): Promise<Api> {
     z3 = null;
   }
   const rt = new SessionRuntime({ repoRoot, z3: z3?.info() ?? null });
-  // rt.smt is set once the SMT encoder (packages/smt) is wired: see wireSmt() in smtChecker.ts
+  if (z3) rt.smt = smtChecker(z3);
   let optimizer: Optimizer | null = null;
   let abort: AbortController | null = null;
 
@@ -117,7 +118,7 @@ export async function createApi(repoRoot: string): Promise<Api> {
     },
     'POST /api/prove/original': async ({ body }) => {
       const bud = b(b(body).budget);
-      const budget = { maxAttempts: Number(bud.maxAttempts) || 6, minutes: Number(bud.minutes) || 10 };
+      const budget = { maxAttempts: Number(bud.maxAttempts) || 10, minutes: Number(bud.minutes) || 12 };
       return job('prove-original', () => rt.proveOriginal(budget));
     },
     'POST /api/optimize/start': async ({ body }) => {

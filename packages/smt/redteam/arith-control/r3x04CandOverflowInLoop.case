@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 4}]
+// @note round 3: candidate range violation mid-loop when |p| >= 5
+// ---- original
+export function f(n: number, a: number): number { let p = a; for (let i = 0; i < n; i++) { p = p + 1; } return p; }
+// ---- candidate
+export function f(n: number, a: number): number { let p = a; for (let i = 0; i < n; i++) { p = Math.floor(p * 2251799813685248 / 2251799813685248) + 1; } return p; }

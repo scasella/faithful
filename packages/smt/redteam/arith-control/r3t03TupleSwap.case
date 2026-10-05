@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 3, "unroll": 3}]
+// ---- original
+export function f(a: number, b: number): [number, number] { return [Math.min(a, b), Math.max(a, b)]; }
+// ---- candidate
+export function f(a: number, b: number): [number, number] { return [Math.max(a, b), Math.min(a, b)]; }

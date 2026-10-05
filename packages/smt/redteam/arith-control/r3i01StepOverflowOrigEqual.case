@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 1, "string": 1, "int": 3, "unroll": 3}]
+// @note round 3: orig overflows on the increment when a >= 1 (excluded); a <= 0: one iteration
+// ---- original
+export function f(a: number, b: number): number { let s = 0; for (let i = a; i < b; i += 9007199254740992) { s += 1; } return s; }
+// ---- candidate
+export function f(a: number, b: number): number { return a < b ? 1 : 0; }

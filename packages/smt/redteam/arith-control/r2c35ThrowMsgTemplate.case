@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":3,"unroll":4}]
+// @note round 2: a substitution-free template literal message
+// ---- original
+export function f(n: number): number { if (n > 0) { throw new Error(`abc`); } return n; }
+// ---- candidate
+export function f(n: number): number { if (n > 0) { throw "abc"; } return n; }

@@ -1,0 +1,16 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":2,"string":1,"int":2,"unroll":4}]
+// @note round 2: the all-zero input leaves the model (12 % 0), so no excluded input has all integers 0; the loop is driven by the array length only; truth differs at (1, [0])
+// ---- original
+export function f(n: number, xs: number[]): number {
+  const q = 12 % n;
+  let s = q;
+  for (let i = 0; i < 100 * xs.length; i++) { s += 1; }
+  return s;
+}
+// ---- candidate
+export function f(n: number, xs: number[]): number {
+  const q = 12 % n;
+  return xs.length >= 1 ? q + 7 : q;
+}

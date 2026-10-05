@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":3,"string":1,"int":2,"unroll":8}]
+// ---- original
+export function f(xs: number[]): number { if (xs.length === 0) { return 0; } return xs[0] + f(xs.slice(1)); }
+// ---- candidate
+export function f(xs: number[]): number { if (xs.length === 0) { return 0; } return xs[0] + f(xs.slice(2)); }

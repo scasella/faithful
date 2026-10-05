@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 2, "string": 1, "int": 3, "unroll": 5}]
+// @note round 3: orig: bounds violation on xs[1] at the last element when it is <= 0 (excluded); cand returns; the candidate differs only where the original violates: equal
+// ---- original
+export function f(xs: number[]): number { if (xs.length === 0) { return 0; } return xs[0] > 0 ? f(xs.slice(1)) + xs[0] : f(xs.slice(1)) - xs[1]; }
+// ---- candidate
+export function f(xs: number[]): number { if (xs.length === 0) { return 0; } return xs[0] > 0 ? f(xs.slice(1)) + xs[0] : f(xs.slice(1)) - (xs.length > 1 ? xs[1] : 0); }

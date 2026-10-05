@@ -1,0 +1,8 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":2,"string":2,"int":20,"unroll":10}]
+// @note the original's loop always runs 12 times (> U = 10): every input is excluded, yet unsat ("Verified to k") is returned while the functions differ on every input
+// ---- original
+export function f(a: number): number { let s = 0; for (let i = 0; i < 12; i++) { s += 1; } return a + s; }
+// ---- candidate
+export function f(a: number): number { return a; }

@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 1, "string": 1, "int": 5, "unroll": 3}, {"array": 1, "string": 1, "int": 5, "unroll": 7}]
+// @note round 3: both always throw "e"; the candidate one level earlier
+// ---- original
+export function f(n: number): number { if (n <= 0) { throw new Error("e"); } return f(n - 1); }
+// ---- candidate
+export function f(n: number): number { if (n <= 1) { throw new Error("e"); } return f(n - 1); }

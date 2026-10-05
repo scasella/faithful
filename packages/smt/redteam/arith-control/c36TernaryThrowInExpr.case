@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// @note equal for b > 0; differs for b < 0 and a < 0 with remainder
+// ---- original
+export function f(a: number, b: number): number { if (b === 0) { throw new Error("z"); } return a > 0 ? Math.floor(a / b) : Math.ceil(a / b); }
+// ---- candidate
+export function f(a: number, b: number): number { if (b === 0) { throw new Error("z"); } return a >= 0 ? Math.floor(a / b) : Math.floor(a / b) + (a % b === 0 ? 0 : 1); }

@@ -22,7 +22,7 @@ export interface SmtDetail {
   budgetMs: number;
   z3: Z3Info;
   /** Result at that k: unsat = no distinguishing input up to k under the encoding. */
-  result: 'unsat' | 'sat' | 'unknown' | 'timeout';
+  result: 'unsat' | 'sat' | 'unknown' | 'timeout' | 'unsupported' | 'inconclusive';
   encoding: string;
 }
 

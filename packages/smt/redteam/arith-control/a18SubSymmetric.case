@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":3,"string":1,"int":9007199254740992,"unroll":6}]
+// @domain {"ints":[0,1,-1,2,-2,3,9007199254740992,-9007199254740992,9007199254740991,-9007199254740991,4503599627370496,-4503599627370496,4503599627370497,-4503599627370497,4503599627370497]}
+// ---- original
+export function f(a: number, b: number): number { return a - b; }
+// ---- candidate
+export function f(a: number, b: number): number { return -(b - a); }

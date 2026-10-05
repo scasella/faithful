@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(n: number): number | null { return n > 0 ? n : null; }
+// ---- candidate
+export function f(n: number): number | null { return n >= 0 ? n : null; }

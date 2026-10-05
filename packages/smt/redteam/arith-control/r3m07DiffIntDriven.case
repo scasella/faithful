@@ -1,0 +1,8 @@
+// @fn f
+// @expect narrowed
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 3}]
+// @note round 3: diff at a = 2, b <= -2: a-b >= 4 > U; small integers with a big difference; box must exclude b = -2? box(2) contains a = 2, b = -2 (4 iterations) => excluded inside box(2): B' must be 1
+// ---- original
+export function f(a: number, b: number): number { let s = 0; for (let i = b; i < a; i++) { s += 1; } return s; }
+// ---- candidate
+export function f(a: number, b: number): number { return a - b > 3 && a === 2 ? 0 : Math.max(a - b, 0); }

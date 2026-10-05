@@ -1,0 +1,8 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":2,"string":2,"int":20,"unroll":10}]
+// @note realistic: a fixed-width digit loop (16 steps) in the original; the candidate is wrong for every n >= 10, the SMT tier says unsat at the default U = 10
+// ---- original
+export function f(n: number): number { let s = 0; let m = n < 0 ? -n : n; for (let i = 0; i < 16; i++) { s += m % 10; m = Math.floor(m / 10); } return s; }
+// ---- candidate
+export function f(n: number): number { return n < 0 ? -n : n; }

@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":9,"unroll":8}]
+// ---- original
+export function f(n: number): number { let s = 0; for (let i = n; i > 0; i -= 2) { if (i % 3 === 0) { continue; } s += i; } return s; }
+// ---- candidate
+export function f(n: number): number { let s = 0; let i = n; while (i > 0) { if (i % 3 !== 0 || i === 9) { s += i; } i -= 2; } return s; }

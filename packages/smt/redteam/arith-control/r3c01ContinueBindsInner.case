@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 4}]
+// ---- original
+export function f(xs: number[], n: number): number { let s = 0; for (let i = 0; i < n; i++) { for (const x of xs) { if (x === i) { continue; } s += x; } s += 100; } return s; }
+// ---- candidate
+export function f(xs: number[], n: number): number { let s = 0; for (let i = 0; i < n; i++) { for (const x of xs) { if (x !== i) { s += x; } } s += 100; } return s; }

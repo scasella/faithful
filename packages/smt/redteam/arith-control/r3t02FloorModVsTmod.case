@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 3}]
+// ---- original
+export function f(a: number, b: number): { q: number; r: number } { const q = Math.floor(a / b); return { q: q, r: a - q * b }; }
+// ---- candidate
+export function f(a: number, b: number): { q: number; r: number } { const q = Math.floor(a / b); return { q: q, r: a % b }; }

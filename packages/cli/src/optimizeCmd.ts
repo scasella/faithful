@@ -123,4 +123,4 @@ export async function runOptimize(o: OptimizeCmdOptions): Promise<number> {
     await api.close();
   }
 }
-void openZ3;
+

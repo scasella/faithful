@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 3, "string": 1, "int": 2, "unroll": 3}]
+// @note round 3: stop at a zero vs not: equal unless a nonzero follows a zero (needs len >= 2)
+// ---- original
+export function f(xs: number[]): number { let s = 0; for (let i = 0; i < xs.length && xs[i] !== 0; i++) { s += xs[i]; } return s; }
+// ---- candidate
+export function f(xs: number[]): number { let s = 0; for (let i = 0; i < xs.length; i++) { s += xs[i]; } return s; }

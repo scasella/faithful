@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 3, "unroll": 3}]
+// @note round 3: candidate: i - 2^53 < -2^53 when a <= -1 and a > b
+// ---- original
+export function f(a: number, b: number): number { return a > b ? 1 : 0; }
+// ---- candidate
+export function f(a: number, b: number): number { let s = 0; for (let i = a; i > b; i -= 9007199254740992) { s += 1; } return s; }

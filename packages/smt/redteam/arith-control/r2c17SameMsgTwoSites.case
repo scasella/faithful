@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":7,"unroll":4}]
+// ---- original
+export function f(n: number): number { if (n < 0) { throw new Error("x"); } if (n > 5) { throw "x"; } return n; }
+// ---- candidate
+export function f(n: number): number { if (n < 0 || n > 5) { throw Error("x"); } return n; }

@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":3,"string":1,"int":3,"unroll":8}]
+// ---- original
+export function f(xs: number[]): number { let r = xs; let s = 0; while (r.length > 0) { s += r[0]; r = r.slice(2); } return s; }
+// ---- candidate
+export function f(xs: number[]): number { return xs.filter((x, i) => i % 2 === 0).reduce((a, x) => a + x, 0); }

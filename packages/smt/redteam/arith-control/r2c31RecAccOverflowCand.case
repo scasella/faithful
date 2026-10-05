@@ -1,0 +1,9 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":4503599627370496,"unroll":8}]
+// @domain {"ints":[0,1,2,3,-1,1125899906842624,2251799813685248,4503599627370496,-4503599627370496]}
+// @note round 2: both compute acc * 2^n; they overflow on the same inputs (at different points), so the pair is equal inside the model
+// ---- original
+export function f(n: number, acc: number): number { if (n <= 0) { return acc; } return f(n - 1, acc + acc); }
+// ---- candidate
+export function f(n: number, acc: number): number { if (n <= 0) { return acc; } return 2 * f(n - 1, acc); }

@@ -1,0 +1,17 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":131072,"unroll":8}]
+// @domain {"ints":[0,1,-1,2,-3,131072,-131072,208063,208064,-208064]}
+// @note round 2: x^3 within 2^53 for |x| <= 208063 (2^17 bound: 131072^3 = 2^51)
+// ---- original
+export function f(x: number): number {
+  let p = 1;
+  for (let i = 0; i < 3; i++) { if (i === 2) { break; } p = p * x; }
+  return p;
+}
+// ---- candidate
+export function f(x: number): number {
+  let p = 1;
+  for (let i = 0; i < 3; i++) { const t = p * x; if (i === 2) { break; } p = t; }
+  return p;
+}

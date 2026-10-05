@@ -6,7 +6,7 @@ import { CATCH, indexOf, render } from '../prove/testutil';
 import { DECLARED_BY_SERVER, DEFAULT_DRAFT, draftReducer, parseThreshold, thresholdWords } from './threshold';
 import { acceptBlocker, acceptConsequence, finalReadout, verdictText } from './speed';
 
-const bench = (lo: number, hi: number, median = (lo + hi) / 2): BenchSummary => ({ median, lo, hi, unit: 'ns/call', trials: 30, distribution: 'd', sizes: [] });
+const bench = (lo: number, hi: number, median = (lo + hi) / 2): BenchSummary => ({ median, lo, hi, unit: 'ns/pass', trials: 30, distribution: 'd', sizes: [] });
 
 describe('threshold selection state', () => {
   it('defaults to a 10-minute time budget', () => {

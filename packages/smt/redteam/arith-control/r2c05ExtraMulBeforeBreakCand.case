@@ -1,0 +1,17 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":134217728,"unroll":8}]
+// @domain {"ints":[0,1,-1,2,-3,94906265,-94906265,94906266,-94906266,134217728,-134217728]}
+// @note round 2: the candidate computes x^3 before breaking: range violation where the original returns x^2
+// ---- original
+export function f(x: number): number {
+  let p = 1;
+  for (let i = 0; i < 3; i++) { if (i === 2) { break; } p = p * x; }
+  return p;
+}
+// ---- candidate
+export function f(x: number): number {
+  let p = 1;
+  for (let i = 0; i < 3; i++) { const t = p * x; if (i === 2) { break; } p = t; }
+  return p;
+}

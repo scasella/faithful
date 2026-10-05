@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 4, "unroll": 4}]
+// @note round 3: orig: i=2 inner loop j=0,1 -> throws j1 before return 5; cand returns 5. n >= 3
+// ---- original
+export function f(n: number): number { for (let i = 0; i < n; i++) { for (let j = 0; j < i; j++) { if (j === 1) { throw new Error("j1"); } } if (i === 2) { return 5; } } return 0; }
+// ---- candidate
+export function f(n: number): number { for (let i = 0; i < n; i++) { if (i === 2) { return 5; } for (let j = 0; j < i; j++) { if (j === 1) { throw new Error("j1"); } } } return 0; }

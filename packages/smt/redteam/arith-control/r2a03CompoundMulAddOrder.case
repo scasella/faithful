@@ -1,0 +1,9 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":134217728,"unroll":4}]
+// @domain {"ints":[0,1,-1,94906265,-94906265,94906266,134217728,-134217728,67108864]}
+// @note round 2: the original's 2ab overflows only in the sum (ab within range)
+// ---- original
+export function f(a: number, b: number): number { let s = a; s *= b; s += a * b; return s; }
+// ---- candidate
+export function f(a: number, b: number): number { return 2 * (a * b); }

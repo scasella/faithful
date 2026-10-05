@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 1, "string": 1, "int": 4, "unroll": 3}]
+// ---- original
+export function f(a: number, b: number): number { let x = a; if (b > 0) { let x = b; x += 1; } return x; }
+// ---- candidate
+export function f(a: number, b: number): number { return a; }

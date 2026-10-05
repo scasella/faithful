@@ -1,0 +1,9 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":8}]
+// @note at U = 16 this pair answers unknown (encoding over 40,000,000 characters): the encoding doubles with every unrolling step (finding V2)
+// @note negative odd i: i % 2 is -1
+// ---- original
+export function f(a: number, b: number): number { let s = 0; for (let i = a; i < b; i++) { if (i % 2 === 1) { continue; } s += i; } return s; }
+// ---- candidate
+export function f(a: number, b: number): number { let s = 0; for (let i = a; i < b; i++) { if (i % 2 !== 0) { continue; } s += i; } return s; }

@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// @note equal for b > 0 only
+// ---- original
+export function f(a: number, b: number): number { return Math.ceil(a / b); }
+// ---- candidate
+export function f(a: number, b: number): number { return Math.floor((a + b - 1) / b); }

@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 4}, {"array": 2, "string": 1, "int": 2, "unroll": 6}]
+// ---- original
+export function f(xs: number[], n: number): number { let k = 0; while (k < n) { for (const x of xs) { if (x === k) { return k; } } k += 1; } return -1; }
+// ---- candidate
+export function f(xs: number[], n: number): number { let best = -1; for (let k = n - 1; k >= 0; k--) { if (xs.includes(k)) { best = k; } } return best; }

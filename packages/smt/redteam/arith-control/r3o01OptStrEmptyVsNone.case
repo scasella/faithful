@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 3, "int": 1, "unroll": 3}]
+// @note round 3: some("") vs none at length 1
+// ---- original
+export function f(s: string): string | null { return s.length > 0 ? s.slice(1) : null; }
+// ---- candidate
+export function f(s: string): string | null { return s.length > 1 ? s.slice(1) : null; }

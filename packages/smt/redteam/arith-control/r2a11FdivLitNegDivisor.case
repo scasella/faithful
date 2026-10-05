@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":8,"unroll":4}]
+// ---- original
+export function f(x: number): number { return Math.floor(x / -3) + Math.ceil(-x / 3); }
+// ---- candidate
+export function f(x: number): number { return -Math.ceil(x / 3) - Math.floor(x / 3); }

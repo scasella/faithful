@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":7,"unroll":4}]
+// @note round 2: differs for mixed signs only
+// ---- original
+export function f(x: number, y: number): number { return y * Math.floor(x / y); }
+// ---- candidate
+export function f(x: number, y: number): number { return x - (x % y); }

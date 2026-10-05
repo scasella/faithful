@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 2, "string": 1, "int": 3, "unroll": 3}]
+// ---- original
+export function f(xs: number[], k: number): number { const ys = xs.map((x) => { const k = 2; return x * k; }); return ys.length + k; }
+// ---- candidate
+export function f(xs: number[], k: number): number { return xs.length + k; }

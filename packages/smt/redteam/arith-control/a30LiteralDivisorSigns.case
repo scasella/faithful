@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":9,"unroll":4}]
+// @note literal-operand paths of fdiv/cdiv/tmod (negative literal divisor, literal dividends of both signs)
+// ---- original
+export function f(a: number, b: number): number { return Math.ceil(a / -3) * 1000 + Math.floor(a / -4) * 100 + (b === 0 ? 0 : (7 % b) * 10 + (-7 % b)); }
+// ---- candidate
+export function f(a: number, b: number): number { return -Math.floor(a / 3) * 1000 + Math.floor(-a / 4) * 100 + (b === 0 ? 0 : (7 % Math.abs(b)) * 10 - (7 % Math.abs(b))); }

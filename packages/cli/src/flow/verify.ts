@@ -50,6 +50,8 @@ export async function verifyDirectory(dir: string, opts: { smt?: SmtChecker | nu
 
   // 2. Lean
   let leanTiers: Array<'proved' | 'proved-trusting-compiler'> = [];
+  let modelAgreements = 0;
+  let modelDisagreements = 0;
   if (prov.hashes.leanFile) {
     const leanText = await readFile(join(dir, `${fn}.lean`), 'utf8');
     add('lean file hash', hashText(leanText) === prov.hashes.leanFile, `${fn}.lean matches its recorded hash`);
@@ -81,6 +83,8 @@ export async function verifyDirectory(dir: string, opts: { smt?: SmtChecker | nu
     }
     // 4. model-vs-TypeScript check (the N behind "Proved")
     const rep2 = await tsVsLean(t, { n: 300, seed: 99 }, { lean: { evalBatch: (p, e, o) => evalBatch(p, e, { ...o, leanDir: opts.leanDir }) }, sandbox: sb });
+    modelAgreements = rep2.agreements;
+    modelDisagreements = rep2.disagreements.length;
     add('model vs TypeScript', rep2.disagreements.length === 0, `${rep2.agreements} inputs agree, ${rep2.disagreements.length} disagreements (original's model)`);
   } finally {
     await sb.close();
@@ -89,15 +93,15 @@ export async function verifyDirectory(dir: string, opts: { smt?: SmtChecker | nu
   // 5. SMT
   const sc = prov.claims.find((c) => c.kind === 'candidate-vs-original-smt' && c.k);
   if (sc && opts.smt && prov.optimizedSource !== prov.originalSource) {
-    const r = await opts.smt.check(t, prov.optimizedSource, fn, { budgetMs: 120_000 });
+    const r = await opts.smt.check(t, prov.originalFileSource ?? prov.originalSource, prov.optimizedSource, fn, { budgetMs: 120_000 });
     add('smt', r.status === 'verified', `${r.status}${r.k ? ` at k=${r.k}` : ''}: ${r.note}`);
   } else if (sc) {
     add('smt', false, 'the SMT checker is not available in this build; the recorded Verified-to-k claim was NOT re-checked');
   }
 
   const stamp = stampFrom(await captureToolchain());
-  const ev = leanTiers.length
-    ? buildEvidenceBlock({ stamp, proof: { tier: leanTiers.includes('proved-trusting-compiler') ? 'proved-trusting-compiler' : 'proved' }, differential: { inputs: 300 } } as never).text
+  const ev = leanTiers.length && modelDisagreements === 0 && modelAgreements > 0
+    ? buildEvidenceBlock({ stamp, proof: { tier: leanTiers.includes('proved-trusting-compiler') ? 'proved-trusting-compiler' : 'proved' }, differential: { inputs: modelAgreements } } as never).text
     : null;
   return { ok: checks.every((c) => c.ok), checks, evidence: ev };
 }

@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":3,"string":1,"int":2,"unroll":8}]
+// ---- original
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { if (x === 0) { continue; } if (x < 0) { return s * 10 + x; } s += x; } return s; }
+// ---- candidate
+export function f(xs: number[]): number { let s = 0; for (let i = 0; i < xs.length; i++) { const x = xs[i]; if (x < 0) { return s * 10 + x; } s += x; } return s; }

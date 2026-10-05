@@ -1,0 +1,8 @@
+// @fn f
+// @expect narrowed
+// @bounds [{"array": 1, "string": 1, "int": 5, "unroll": 4}]
+// @note round 3: diff at a + b = 6 needs 6 iterations
+// ---- original
+export function f(a: number, b: number): number { let s = 0; for (let i = 0; i < a + b; i++) { s += 1; } return s; }
+// ---- candidate
+export function f(a: number, b: number): number { const t = a + b; return t <= 0 ? 0 : (t === 6 ? 0 : t); }

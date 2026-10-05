@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// @note n = -2: loop 0, formula 1
+// ---- original
+export function f(n: number): number { let c = 0; for (let i = 0; i < n; i++) { for (let j = 0; j < n; j++) { if (j > i) { break; } c++; } } return c; }
+// ---- candidate
+export function f(n: number): number { return Math.floor(n * (n + 1) / 2); }

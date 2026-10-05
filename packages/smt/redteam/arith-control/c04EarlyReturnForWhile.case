@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(n: number, t: number): number { for (let i = 0; i < n; i++) { if (i * i > t) { return i; } } return -1; }
+// ---- candidate
+export function f(n: number, t: number): number { let i = 0; while (i < n) { if (i * i > t) { return i; } i++; } return -1; }

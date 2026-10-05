@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@faithful/core": "workspace:*",
+    "@faithful/engine": "workspace:*",
+    "@faithful/session": "workspace:*",
     "@faithful/translate": "workspace:*",
     "z3-solver": "^5.2.0"
   }

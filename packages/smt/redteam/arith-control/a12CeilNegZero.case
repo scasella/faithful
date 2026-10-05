@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// @note Math.ceil(-1/2) is -0
+// ---- original
+export function f(a: number, b: number): number { return Math.ceil(a / b); }
+// ---- candidate
+export function f(a: number, b: number): number { return Math.ceil(a / b) + 0; }

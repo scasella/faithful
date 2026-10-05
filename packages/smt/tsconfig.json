@@ -3,5 +3,5 @@
   "compilerOptions": { "outDir": "dist", "rootDir": "src" },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../core" }, { "path": "../translate" }]
+  "references": [{ "path": "../core" }, { "path": "../translate" }, { "path": "../engine" }, { "path": "../session" }]
 }

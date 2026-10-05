@@ -60,7 +60,7 @@ export async function main(argv: string[]): Promise<number> {
         log('usage: faithful optimize <file> --fn <name> [--minutes 10] [--yes]');
         return 2;
       }
-      return runOptimize({ file, fn, repo: opt(rest, 'repo') ?? process.cwd(), minutes: Number(opt(rest, 'minutes')) || 10, yes: flag(rest, 'yes'), proofAttempts: Number(opt(rest, 'proof-attempts')) || 6, proofMinutes: Number(opt(rest, 'proof-minutes')) || 10, log });
+      return runOptimize({ file, fn, repo: opt(rest, 'repo') ?? process.cwd(), minutes: Number(opt(rest, 'minutes')) || 10, yes: flag(rest, 'yes'), proofAttempts: Number(opt(rest, 'proof-attempts')) || 10, proofMinutes: Number(opt(rest, 'proof-minutes')) || 12, log });
     }
     case 'verify': {
       const dir = rest.find((a) => !a.startsWith('--'));

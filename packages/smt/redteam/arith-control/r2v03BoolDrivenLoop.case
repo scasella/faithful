@@ -1,0 +1,12 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":1,"string":1,"int":2,"unroll":4}]
+// @note round 2: a loop driven by a boolean must be size-driven (refused), not int-driven
+// ---- original
+export function f(b: boolean): number {
+  let s = 0;
+  for (let i = 0; i < (b ? 50 : 0); i++) { s += 1; }
+  return s;
+}
+// ---- candidate
+export function f(b: boolean): number { return b ? 49 : 0; }

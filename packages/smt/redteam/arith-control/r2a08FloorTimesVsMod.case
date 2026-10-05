@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":7,"unroll":4}]
+// ---- original
+export function f(x: number, y: number): number { return y * Math.floor(x / y); }
+// ---- candidate
+export function f(x: number, y: number): number { return x - (((x % y) + y) % y); }

@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 3}]
+// @note round 3: equal everywhere; candidate needs n iterations
+// ---- original
+export function f(n: number): number { if (n > 2) { throw new Error("big"); } return n; }
+// ---- candidate
+export function f(n: number): number { let s = 0; for (let i = 0; i < n; i++) { s += 1; } if (s > 2) { throw new Error("big"); } return n < 0 ? n : s; }

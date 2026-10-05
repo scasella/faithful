@@ -48,7 +48,7 @@ export interface Provenance {
   file: string;
   generatedAt: string;
   stamp: Stamp;
-  /** The incumbent's delivery tier: the weakest tier among claims the delivery rests on. */
+  /** The highest tier the delivered function reached against the agreed spec (proof, else bounded SMT, else tested). Caveats list anything that qualifies it. */
   deliveredTier: Tier;
   hashes: {
     originalSource: string;

@@ -116,7 +116,7 @@ export function verifyMarkdown(fn: string, dir: string, leanDir: string | null):
     `cd ${leanDir ?? '<faithful>/lean'} && lake env lean ${dir}/${fn}.lean`,
     '```',
     '',
-    'The output lists `#print axioms` for each theorem. A proof counts as Proved only if the axioms are within `propext`, `Classical.choice`, `Quot.sound`. A theorem that depends on `sorryAx`, or on a `native_decide` axiom, is not a proof (the latter is labeled "Proved (trusting the compiler)").',
+    'The output lists `#print axioms` for each theorem. A proof counts as Proved only if the axioms are within `propext`, `Classical.choice`, `Quot.sound`. A theorem that depends on `sorryAx` or any other axiom is not a proof. One that depends on a `native_decide` axiom is labeled "Proved (trusting the compiler)".',
     '',
     'To apply the optimized function: `git apply ' + `${dir}/patch.diff` + '` (Faithful never modifies your files).',
     '',
@@ -193,6 +193,12 @@ export async function deliver(rt: SessionRuntime): Promise<DeliveryFiles> {
     mc = rt.state.modelChecks.filter((m) => m.subject === need).at(-1);
   }
   differentialN = mc?.inputs;
+  const modelDisagrees = (mc?.disagreements ?? 0) > 0;
+  if (modelDisagrees) {
+    // The Lean model disagrees with the TypeScript on some input: a proof about the model says nothing about the function.
+    evidenceProof = undefined;
+    if (deliveredTier === 'proved' || deliveredTier === 'proved-trusting-compiler') deliveredTier = bounded ? 'verified-to-k' : 'tested';
+  }
   const evidence = buildEvidenceBlock({
     stamp,
     proof: evidenceProof,
@@ -231,6 +237,7 @@ export async function deliver(rt: SessionRuntime): Promise<DeliveryFiles> {
       ...(ag.carveOuts.length ? [`This result excludes carved-out inputs: ${ag.carveOuts.map((c) => c.words).join(' ')}`] : []),
       ...(inc?.outcome === 'accepted-at-verified' ? ['The optimized function was accepted by the user at the Verified-to-k tier. It is NOT proved.'] : []),
       ...(deliveredTier === 'not-proved' ? ['Nothing is proved for the delivered function.'] : []),
+      ...(modelDisagrees ? [`The Lean model disagreed with the TypeScript on ${mc!.disagreements} generated input(s), so no Proved claim is made even though a Lean proof about the model exists.`] : []),
       ...(evidenceProof ? [provedSentence(differentialN ?? 0)] : []),
     ],
   };

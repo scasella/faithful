@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 4}]
+// @note round 3: reassigning the iterated array inside for...of does not change the iteration in JS
+// ---- original
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { xs = xs.concat([x]); s += x; } return s + xs.length; }
+// ---- candidate
+export function f(xs: number[]): number { return xs.reduce((a, b) => a + b, 0) + 2 * xs.length; }

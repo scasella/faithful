@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":2,"unroll":4}]
+// @note round 2 (finding R2-L1): a fixed 4-iteration loop at U = 4. encodingNote promises every input on which both functions "finish within 4 iterations of each loop entry"; the loop's exit test is a 5th activation, which is fuel, so the answer is unknown ("vacuous ... needs more than U = 4 iterations"), contradicting the note. Fix either the fuel count or the wording; this case expects the wording to be true.
+// ---- original
+export function f(n: number): number { let s = 0; for (let i = 0; i < 4; i++) { s += i; } return s + n; }
+// ---- candidate
+export function f(n: number): number { return n + 6; }

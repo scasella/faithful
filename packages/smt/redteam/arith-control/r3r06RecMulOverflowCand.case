@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 5}]
+// @note round 3: candidate overflows at a*2^51 when |a| >= 5 at any depth
+// ---- original
+export function f(n: number, a: number): number { if (n <= 0) { return a; } return f(n - 1, a + 1); }
+// ---- candidate
+export function f(n: number, a: number): number { if (n <= 0) { return a; } return f(n - 1, Math.floor(a * 2251799813685248 / 2251799813685248) + 1); }

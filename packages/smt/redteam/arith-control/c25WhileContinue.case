@@ -1,0 +1,7 @@
+// @fn f
+// @expect refused
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16},{"array":3,"string":2,"int":9,"unroll":24}]
+// ---- original
+export function f(n: number): number { let s = 0; let i = 0; while (i < n) { i++; if (i % 3 === 0) { continue; } s += i; } return s; }
+// ---- candidate
+export function f(n: number): number { let s = 0; for (let i = 1; i <= n; i++) { if (i % 3 !== 0) { s += i; } } return s; }

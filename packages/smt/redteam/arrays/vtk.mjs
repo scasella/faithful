@@ -1,0 +1,16 @@
+import { readFileSync } from 'node:fs';
+const root = '/Users/scasella/Downloads/faithful-app/packages';
+const { verifiedToK, openZ3 } = await import(root + '/smt/dist/index.js');
+const { translateWithIr } = await import(root + '/translate/dist/index.js');
+const { Sandbox } = await import(root + '/engine/dist/index.js');
+const file = process.argv[2];
+const src = readFileSync(file, 'utf8');
+const fn = (n) => { const w = translateWithIr(src, n); if (!w.result.ok) throw new Error(JSON.stringify(w.result)); return { translation: w.result, ir: w.ir }; };
+const z3 = await openZ3('system');
+const sandbox = await Sandbox.open();
+const r = await verifiedToK(fn('original'), fn('candidate'), { budgetMs: 180000, z3, sandbox });
+for (const a of r.attempts) console.log(a.status, JSON.stringify(a.bounds), 'U', a.unroll, a.coverage ? JSON.stringify(a.coverage) : '', a.reason ?? '');
+console.log('FINAL', r.result.status, 'k', r.result.k);
+console.log(r.detail?.encoding);
+await sandbox.close();
+process.exit(0);

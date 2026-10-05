@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 1, "string": 1, "int": 5, "unroll": 6}]
+// @note round 3: f(4): orig f(3) throws first; cand f(2) then f(3) throws: same message. f(5): both throw "three"
+// ---- original
+export function f(n: number): number { if (n <= 0) { return 0; } if (n === 3) { throw new Error("three"); } return f(n - 1) + f(n - 2); }
+// ---- candidate
+export function f(n: number): number { if (n <= 0) { return 0; } if (n === 3) { throw new Error("three"); } return f(n - 2) + f(n - 1); }

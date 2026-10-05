@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":3,"string":1,"int":9007199254740992,"unroll":6}]
+// @inputs [[[9007199254740992]],[[1,2]],[[]],[[-9007199254740992,0]],[[4503599627370497]]]
+// ---- original
+export function f(xs: number[]): number[] { return xs.map((x) => x); }
+// ---- candidate
+export function f(xs: number[]): number[] { return xs.map((x) => x * 2 - x); }

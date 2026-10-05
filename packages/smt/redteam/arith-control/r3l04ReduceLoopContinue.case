@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 2, "string": 1, "int": 3, "unroll": 4}, {"array": 2, "string": 1, "int": 3, "unroll": 8}]
+// ---- original
+export function f(xs: number[]): number { return xs.reduce((acc, x) => { let s = acc; for (let i = 0; i < x; i++) { if (i % 2 === 1) { continue; } s += 1; } return s; }, 0); }
+// ---- candidate
+export function f(xs: number[]): number { return xs.reduce((acc, x) => acc + (x > 0 ? Math.floor((x + 1) / 2) : 0), 0); }

@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16},{"array":3,"string":2,"int":4,"unroll":16}]
+// @note the candidate reads xs[xs.length]: bounds violation where the original is in range
+// ---- original
+export function f(xs: number[]): number { let s = 0; for (let i = 0; i < xs.length; i++) { s += xs[i]; } return s; }
+// ---- candidate
+export function f(xs: number[]): number { let s = 0; for (let i = 0; i <= xs.length; i++) { s += xs[i]; } return s; }

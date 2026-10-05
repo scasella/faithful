@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(a: number): number { return Math.abs(a); }
+// ---- candidate
+export function f(a: number): number { return a < 0 ? -a : a; }

@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 3}]
+// @note round 3: floor-mod by ((a % b) + b) % b is right for both signs of b
+// ---- original
+export function f(a: number, b: number): { q: number; r: number } { const q = Math.floor(a / b); return { q: q, r: a - q * b }; }
+// ---- candidate
+export function f(a: number, b: number): { q: number; r: number } { const q = Math.floor(a / b); return { r: ((a % b) + b) % b, q: q }; }

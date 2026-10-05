@@ -1,0 +1,12 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":6,"unroll":8}]
+// ---- original
+export function f(n: number): number {
+  let s = 0;
+  for (let i = 0; i < n; i++) { s += i; }
+  if (n <= 0) { return 0; }
+  return s + f(n - 1);
+}
+// ---- candidate
+export function f(n: number): number { return n <= 0 ? 0 : Math.floor((n - 1) * n * (n + 1) / 6); }

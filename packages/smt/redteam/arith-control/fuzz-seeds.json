@@ -1,0 +1,162 @@
+[
+ {
+  "name": "sumSkip",
+  "bounds": {
+   "array": 3,
+   "string": 1,
+   "int": 2,
+   "unroll": 4
+  },
+  "source": "export function f(xs: number[]): number { let s = 0; for (let i = 0; i < xs.length; i++) { if (xs[i] < 0) { continue; } if (xs[i] === 2) { break; } s += xs[i] * 2; } return s; }"
+ },
+ {
+  "name": "digitSum",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 40,
+   "unroll": 4
+  },
+  "source": "export function f(n: number): number { let m = Math.abs(n); let s = 0; while (m > 0) { s += m % 10; m = Math.floor(m / 10); } return n < 0 ? -s : s; }"
+ },
+ {
+  "name": "gcdBounded",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 6,
+   "unroll": 8
+  },
+  "source": "export function f(a: number, b: number): number { let x = Math.abs(a); let y = Math.abs(b); for (let i = 0; i < 8 && y !== 0; i++) { const t = x % y; x = y; y = t; } return x; }"
+ },
+ {
+  "name": "powRec",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 4,
+   "unroll": 5
+  },
+  "source": "export function f(b: number, e: number): number { if (e <= 0) { return 1; } return b * f(b, e - 1); }"
+ },
+ {
+  "name": "firstNeg",
+  "bounds": {
+   "array": 3,
+   "string": 1,
+   "int": 2,
+   "unroll": 4
+  },
+  "source": "export function f(xs: number[]): number | null { for (let i = 0; i < xs.length; i++) { if (xs[i] < 0) { return i; } } return null; }"
+ },
+ {
+  "name": "fizz",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 8,
+   "unroll": 3
+  },
+  "source": "export function f(n: number): number { if (n === 0) { throw new Error(\"zero\"); } if (n % 15 === 0) { return 15; } if (n % 5 === 0) { return 5; } if (n % 3 === 0) { return 3; } return n % 2; }"
+ },
+ {
+  "name": "pages",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 6,
+   "unroll": 3
+  },
+  "source": "export function f(n: number, per: number): number { if (per <= 0) { throw new Error(\"per\"); } return Math.ceil(n / per) - Math.floor(n / per); }"
+ },
+ {
+  "name": "bits",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 16,
+   "unroll": 6
+  },
+  "source": "export function f(n: number): number { let c = 0; let m = n; while (m > 0) { c += m % 2; m = Math.floor(m / 2); } return c; }"
+ },
+ {
+  "name": "countDown",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 6,
+   "unroll": 7
+  },
+  "source": "export function f(n: number): number { let s = 0; for (let i = n; i >= 0; i -= 2) { s += i; if (s > 6) { return -s; } } return s; }"
+ },
+ {
+  "name": "sumRec",
+  "bounds": {
+   "array": 3,
+   "string": 1,
+   "int": 2,
+   "unroll": 4
+  },
+  "source": "export function f(xs: number[]): number { if (xs.length === 0) { return 0; } if (xs[0] === 0) { throw new Error(\"z\"); } return xs[0] + f(xs.slice(1)); }"
+ },
+ {
+  "name": "clampMod",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 7,
+   "unroll": 3
+  },
+  "source": "export function f(a: number, b: number): number { const lo = Math.min(a, b); const hi = Math.max(a, b); const r = (a * b) % 4; return Math.max(lo, Math.min(hi, r)); }"
+ },
+ {
+  "name": "nested",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 4,
+   "unroll": 5
+  },
+  "source": "export function f(n: number, m: number): number { let s = 0; for (let i = 0; i < n; i++) { for (let j = 0; j < m; j++) { if (j > i) { break; } s += i - j; } } return s; }"
+ },
+ {
+  "name": "forOfRet",
+  "bounds": {
+   "array": 3,
+   "string": 1,
+   "int": 2,
+   "unroll": 4
+  },
+  "source": "export function f(xs: number[]): number { let acc = 1; for (const x of xs) { if (x === 0) { return acc; } acc = acc * x + 1; } return -acc; }"
+ },
+ {
+  "name": "tri",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 6,
+   "unroll": 7
+  },
+  "source": "export function f(n: number): number { if (n < 0) { throw new Error(\"neg\"); } let s = 0; let i = 0; while (i < n) { i += 1; s += i; } return s; }"
+ },
+ {
+  "name": "reduceLoop",
+  "bounds": {
+   "array": 2,
+   "string": 1,
+   "int": 3,
+   "unroll": 4
+  },
+  "source": "export function f(xs: number[]): number { return xs.reduce((acc, x) => { let t = 0; for (let i = 0; i < 3; i++) { if (i === x) { t = i * 2; } } return acc + t; }, 0); }"
+ },
+ {
+  "name": "halveRec",
+  "bounds": {
+   "array": 1,
+   "string": 1,
+   "int": 20,
+   "unroll": 6
+  },
+  "source": "export function f(n: number): number { if (n < 1) { return 0; } return 1 + f(Math.floor(n / 2)); }"
+ }
+]

@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16},{"array":3,"string":2,"int":9,"unroll":24}]
+// ---- original
+export function f(xs: number[], t: number): number { for (const x of xs) { if (x === t) { return 1; } } throw new Error("missing"); }
+// ---- candidate
+export function f(xs: number[], t: number): number { if (xs.includes(t)) { return 1; } throw new Error("missing"); }

@@ -1,0 +1,9 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":3,"string":1,"int":9007199254740992,"unroll":6}]
+// @note equal values everywhere, but at a = -2^53 the candidate computes a - 1 or a - 2 (outside +-2^53): a candidate-only range violation
+// @domain {"ints":[0,1,-1,2,-2,3,9007199254740992,-9007199254740992,9007199254740991,-9007199254740991,4503599627370496,-4503599627370496,4503599627370497,-4503599627370497,4503599627370497]}
+// ---- original
+export function f(a: number): number { return Math.floor(a / 3); }
+// ---- candidate
+export function f(a: number): number { return Math.floor((a - ((a % 3) + 3) % 3) / 3); }

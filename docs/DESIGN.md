@@ -2,7 +2,7 @@
 
 This is the document every package is built against. Rationale for deviations from the original brief is at the end.
 Date of measurements below: 2026-10-04. Toolchain: Node v25.8.1, Lean 4.34.0, Mathlib `5ed2965256430c3649e86755f9576b54eca72435`
-(v4.34.0), Z3 via `z3-solver` 5.2.0 (WASM) or system z3 5.1.0, Codex CLI 0.159.2, model `gpt-6-luna` (effort `low`), macOS arm64.
+(v4.34.0), Z3 via `z3-solver` 5.2.0 (WASM) or system z3 5.1.0, Codex CLI 0.159.2, model `gpt-6-luna` (effort `low` for spec and candidate calls; proof attempts default to `high`, see docs/PROOFS.md), macOS arm64.
 
 ## Non-negotiables
 

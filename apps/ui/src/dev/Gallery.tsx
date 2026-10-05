@@ -136,7 +136,7 @@ export function Gallery() {
             <h2>KeyHint and Provenance</h2>
             <p>
               <KeyHint keys={['←', '[']} /> previous · <KeyHint keys="?" /> keys · a number with provenance:{' '}
-              <Num what="Example: baseline median">61.4 ns/call</Num>
+              <Num what="Example: baseline median">61.4 ns/pass</Num>
             </p>
           </section>
 

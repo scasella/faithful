@@ -19,8 +19,8 @@ const flag = (n) => args.includes('--' + n);
 const out = opt('out', 'docs/measurements/run');
 const concurrency = Number(opt('concurrency', 4));
 const minutes = Number(opt('minutes', 6));
-const proofAttempts = Number(opt('proof-attempts', 6));
-const proofMinutes = Number(opt('proof-minutes', 6));
+const proofAttempts = Number(opt('proof-attempts', 10));
+const proofMinutes = Number(opt('proof-minutes', 12));
 const only = opt('only', '')?.split(',').filter(Boolean) ?? [];
 const noOptimize = flag('no-optimize');
 

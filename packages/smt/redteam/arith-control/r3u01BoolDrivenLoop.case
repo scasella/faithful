@@ -1,0 +1,7 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array": 1, "string": 1, "int": 3, "unroll": 4}]
+// ---- original
+export function f(b: boolean, n: number): number { const m = b ? 20 : 1; let s = 0; for (let i = 0; i < m; i++) { s += 1; } return s + n; }
+// ---- candidate
+export function f(b: boolean, n: number): number { return (b ? 21 : 1) + n; }

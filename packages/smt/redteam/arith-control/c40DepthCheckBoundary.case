@@ -1,0 +1,9 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":520,"unroll":520}]
+// @inputs [[0],[1],[498],[499],[500],[501],[519],[-1]]
+// @note the recursion-depth check (D = 500) fires in the candidate for n >= 499 (top-level depth 1); exercises the depth status the NOTES say never fires below U = 500
+// ---- original
+export function f(n: number): number { return n <= 0 ? 0 : n; }
+// ---- candidate
+export function f(n: number): number { if (n <= 0) { return 0; } return 1 + f(n - 1); }

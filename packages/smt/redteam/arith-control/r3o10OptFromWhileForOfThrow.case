@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 4}]
+// @note round 3: check order swapped inside for...of: an element cannot be both === k (k >= 0) and < -1, so equal
+// ---- original
+export function f(xs: number[], n: number): number | null { let k = 0; while (k < n) { for (const x of xs) { if (x === k) { return k; } if (x < -1) { throw new Error("neg"); } } k += 1; } return null; }
+// ---- candidate
+export function f(xs: number[], n: number): number | null { let k = 0; while (k < n) { for (const x of xs) { if (x < -1) { throw new Error("neg"); } if (x === k) { return k; } } k += 1; } return null; }

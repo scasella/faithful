@@ -1,0 +1,9 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":3,"string":1,"int":9007199254740992,"unroll":6}]
+// @inputs [[[-1,9007199254740992,9007199254740992]],[[1,2]],[[9007199254740992,9007199254740992,-1]],[[]],[[-1]]]
+// @note [-1, 2^53, 2^53]: original throws, candidate overflows first
+// ---- original
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { if (x < 0) { throw new Error("neg"); } s += x; } return s; }
+// ---- candidate
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { s += x; } for (const x of xs) { if (x < 0) { throw new Error("neg"); } } return s; }

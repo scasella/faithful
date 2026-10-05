@@ -1,0 +1,16 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":2,"string":1,"int":2,"unroll":4}]
+// @note round 2: as r2v01, the zero input throws (inside the model, not excluded)
+// ---- original
+export function f(n: number, xs: number[]): number {
+  if (n === 0) { throw new Error("zero"); }
+  let s = 0;
+  for (let i = 0; i < 100 * xs.length; i++) { s += 1; }
+  return s;
+}
+// ---- candidate
+export function f(n: number, xs: number[]): number {
+  if (n === 0) { throw new Error("zero"); }
+  return xs.length >= 1 ? 7 : 0;
+}

@@ -1,0 +1,8 @@
+// @fn f
+// @expect narrowed
+// @bounds [{"array": 1, "string": 1, "int": 5, "unroll": 3}]
+// @note round 3: same pair at U = 3: n = 3 needs 4 activations; must narrow below 3
+// ---- original
+export function f(n: number): number { if (n <= 0) { return 0; } return 1 + f(n - 1); }
+// ---- candidate
+export function f(n: number): number { if (n <= 0) { return 0; } if (n === 3) { return 4; } return 1 + f(n - 1); }

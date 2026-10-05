@@ -1,0 +1,8 @@
+// @fn f
+// @expect refused
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 6}]
+// @note round 3: does `/` refuse? (float) -- expected refused or diff
+// ---- original
+export function f(n: number, a: number): number { if (n <= 0) { return a; } return f(n - 1, a * 2); }
+// ---- candidate
+export function f(n: number, a: number): number { if (n <= 0) { return a; } return f(n - 1, a * 4503599627370496 / 4503599627370496 * 2); }

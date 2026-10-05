@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 3}]
+// @note round 3: a % b checked first in candidate; b = 0 excluded in original anyway
+// ---- original
+export function f(a: number, b: number): [number, number] { return [Math.ceil(a / b), Math.floor(a / b)]; }
+// ---- candidate
+export function f(a: number, b: number): [number, number] { const f0 = Math.floor(a / b); return [a % b === 0 ? f0 : f0 + 1, f0]; }

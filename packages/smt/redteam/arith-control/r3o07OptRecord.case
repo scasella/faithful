@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 3, "unroll": 3}]
+// ---- original
+export function f(a: number): { v: number } | null { if (a > 0) { return { v: a }; } return null; }
+// ---- candidate
+export function f(a: number): { v: number } | null { if (a >= 0) { return { v: a }; } return null; }

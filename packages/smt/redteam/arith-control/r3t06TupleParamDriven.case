@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 5, "unroll": 4}]
+// @note round 3: diff at p[0] = 3 (p[1] != 0)
+// ---- original
+export function f(p: [number, number]): number { let s = 0; for (let i = 0; i < p[0]; i++) { s += p[1]; } return s; }
+// ---- candidate
+export function f(p: [number, number]): number { return p[0] === 3 ? 0 : Math.max(p[0], 0) * p[1]; }

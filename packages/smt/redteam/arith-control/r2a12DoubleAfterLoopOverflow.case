@@ -1,0 +1,9 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":4503599627370496,"unroll":8}]
+// @domain {"ints":[0,1,-1,1125899906842624,1125899906842625,-1125899906842624,-1125899906842625,2251799813685248,4503599627370496]}
+// @note round 2: the candidate's extra doubling overflows just above 2^50
+// ---- original
+export function f(x: number): number { let p = x; for (let i = 0; i < 2; i++) { p = p * 2; } return p; }
+// ---- candidate
+export function f(x: number): number { let p = x; for (let i = 0; i < 3; i++) { p = p * 2; } return Math.floor(p / 2); }

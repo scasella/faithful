@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 4}]
+// ---- original
+export function f(xs: number[]): number { let i = 0; for (; i < xs.length; i++) { if (xs[i] < 0) { break; } } return i; }
+// ---- candidate
+export function f(xs: number[]): number { let i = 0; while (i < xs.length) { if (xs[i] < 0) { return i; } i++; } return xs.length; }

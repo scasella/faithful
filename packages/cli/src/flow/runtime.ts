@@ -4,7 +4,7 @@
  * call is recorded verbatim; every claim is derived from a checked result, never from the model's say-so.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
 import { FaithfulStore, captureToolchain, hashText, resolveConfig, resolveLeanDir, stampFrom, type Z3Info } from '@faithful/core';
 import { translate, type Precondition, type Translation } from '@faithful/translate';
@@ -161,6 +161,8 @@ export class SessionRuntime {
 
   async openFunction(file: string, fn: string): Promise<void> {
     const abs = resolve(this.opts.repoRoot, file);
+    const rel = relative(resolve(this.opts.repoRoot), abs);
+    if (rel.startsWith('..') || isAbsolute(rel)) throw new Error('the file must be inside the repository');
     const source = await readFile(abs, 'utf8');
     await this.start(file, fn, source);
   }
@@ -375,15 +377,23 @@ export class SessionRuntime {
   }
 
   private libCache: string | undefined;
+  /** The runtime library shown (read-only) to the prover: Faithful.Core, then Faithful.Simp (imported by Faithful.Tactics). */
   async librarySource(): Promise<string | undefined> {
     if (this.libCache !== undefined) return this.libCache;
     const dir = this.opts.leanDir ?? resolveLeanDir();
     try {
-      this.libCache = dir ? await readFile(join(dir, 'Faithful', 'Core.lean'), 'utf8') : '';
+      const core = dir ? await readFile(join(dir, 'Faithful', 'Core.lean'), 'utf8') : '';
+      const simp = dir ? await readFile(join(dir, 'Faithful', 'Simp.lean'), 'utf8').catch(() => '') : '';
+      this.libCache = simp ? `${core.trimEnd()}\n\n-- ===== Faithful.Simp (imported by Faithful.Tactics) =====\n${simp}` : core;
     } catch {
       this.libCache = '';
     }
     return this.libCache || undefined;
+  }
+
+  /** Imports of proof files: the slim tactic set, which includes Faithful.Simp. */
+  proofImports(): string[] {
+    return ['Faithful.Tactics'];
   }
 
   /** Compare a Lean model with its TypeScript on N inputs (the N that accompanies every "Proved"). Records the result. */
@@ -407,7 +417,7 @@ export class SessionRuntime {
     const theoremId = stmt.theoremName;
     const view: ProofView = { theoremId, statement: stmt.statement, statementWords: stmt.words, pinnedTo: ag.hash, attempts: [], result: 'running', accepted: null, ms: 0, budget: { maxAttempts: budget.maxAttempts, minutes: budget.minutes } };
     await this.emit({ kind: 'proof.started', proof: view });
-    const target = { modelSource: t.lean.source, specSource: ag.specLean, theoremName: stmt.theoremName, statement: stmt.statement, tacticImports: ['Faithful.Tactics'], library: await this.librarySource() };
+    const target = { modelSource: t.lean.source, specSource: ag.specLean, theoremName: stmt.theoremName, statement: stmt.statement, tacticImports: this.proofImports(), library: await this.librarySource() };
     const callIds = new Map<number, number>();
     const pending: Promise<void>[] = [];
     const rec = await proveTheorem(this.codex, target, {

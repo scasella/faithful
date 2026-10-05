@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":6,"unroll":4}]
+// ---- original
+export function f(y: number): number { return -7 % y + 7 % -y; }
+// ---- candidate
+export function f(y: number): number { return -(7 % y) + 7 % y; }

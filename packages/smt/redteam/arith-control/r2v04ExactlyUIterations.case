@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":1,"string":1,"int":2,"unroll":5}]
+// @note round 2: 4 iterations at U = 5
+// ---- original
+export function f(n: number): number { let s = 0; for (let i = 0; i < 4; i++) { s += i; } return s + n; }
+// ---- candidate
+export function f(n: number): number { return n + 6; }

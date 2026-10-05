@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16},{"array":3,"string":2,"int":9,"unroll":24}]
+// ---- original
+export function f(n: number): number { let c = 0; for (let i = n; i > 0; i -= 2) { c++; } return c; }
+// ---- candidate
+export function f(n: number): number { let c = 0; for (let i = n; i >= 0; i -= 2) { c++; } return c; }

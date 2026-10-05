@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array": 2, "string": 1, "int": 3, "unroll": 4}]
+// ---- original
+export function f(xs: number[]): number[] { return xs.filter((x) => { let found = false; for (let i = 0; i < 3; i++) { if (i === x) { found = true; break; } } return found; }); }
+// ---- candidate
+export function f(xs: number[]): number[] { return xs.filter((x) => x >= 0 && x < 3); }

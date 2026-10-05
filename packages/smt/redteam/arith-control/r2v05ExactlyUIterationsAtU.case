@@ -1,0 +1,8 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array":1,"string":1,"int":2,"unroll":4}]
+// @note round 2: a fixed 4-iteration loop at U = 4: the 5th activation (exit test) is fuel; truth differs everywhere; must not be unsat
+// ---- original
+export function f(n: number): number { let s = 0; for (let i = 0; i < 4; i++) { s += i; } return s + n; }
+// ---- candidate
+export function f(n: number): number { return n + 7; }

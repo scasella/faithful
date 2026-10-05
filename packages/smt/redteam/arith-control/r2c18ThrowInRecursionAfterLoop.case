@@ -1,0 +1,20 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":5,"unroll":8}]
+// @note round 2: original throws for n >= 3 (reaching n = 3), candidate for n >= 4
+// ---- original
+export function f(n: number): number {
+  if (n <= 0) { return 0; }
+  let s = 0;
+  for (let i = 0; i < n; i++) { s += i; }
+  if (s === 3) { throw new Error("three"); }
+  return s + f(n - 1);
+}
+// ---- candidate
+export function f(n: number): number {
+  if (n <= 0) { return 0; }
+  let s = 0;
+  for (let i = 0; i < n; i++) { s += i; }
+  if (s === 6) { throw new Error("three"); }
+  return s + f(n - 1);
+}

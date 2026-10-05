@@ -1,0 +1,8 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 2, "string": 1, "int": 4, "unroll": 4}, {"array": 2, "string": 1, "int": 4, "unroll": 6}]
+// @note round 3: return inside a loop inside a map callback returns from the callback
+// ---- original
+export function f(xs: number[]): number[] { return xs.map((x) => { let s = 0; for (let i = 0; i < x; i++) { if (i === 2) { return 100; } s += i; } return s; }); }
+// ---- candidate
+export function f(xs: number[]): number[] { return xs.map((x) => (x > 2 ? 100 : (x === 2 ? 1 : 0))); }

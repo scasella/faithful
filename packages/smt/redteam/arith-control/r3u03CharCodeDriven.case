@@ -1,0 +1,7 @@
+// @fn f
+// @expect not-unsat
+// @bounds [{"array": 1, "string": 1, "int": 2, "unroll": 4}]
+// ---- original
+export function f(s: string): number { if (s.length === 0) { return 0; } let c = 0; for (let i = 0; i < s.charCodeAt(0) - 96; i++) { c += 1; } return c; }
+// ---- candidate
+export function f(s: string): number { if (s.length === 0) { return 0; } const k = s.charCodeAt(0) - 96; return k === 6 ? 0 : Math.max(k, 0); }

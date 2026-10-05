@@ -1,0 +1,8 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 8, "unroll": 5}]
+// @note round 3: candidate violates (7 % 0) when i reaches 1 (every n >= 1)
+// ---- original
+export function f(n: number): number { let c = 0; let i = n; while (i > 0) { i = Math.floor(i / 2); c += 1; } return c; }
+// ---- candidate
+export function f(n: number): number { let c = 0; let i = n; while (i > 0 && 7 % (i - 1) !== 99) { i = Math.floor(i / 2); c += 1; } return c; }

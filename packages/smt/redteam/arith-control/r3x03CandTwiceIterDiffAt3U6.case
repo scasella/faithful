@@ -1,0 +1,7 @@
+// @fn f
+// @expect diff
+// @bounds [{"array": 1, "string": 1, "int": 6, "unroll": 6}]
+// ---- original
+export function f(n: number): number { let s = 0; for (let i = 0; i < n; i++) { s += 1; } return s; }
+// ---- candidate
+export function f(n: number): number { let s = 0; for (let i = 0; i < 2 * n; i++) { s += 1; } if (s === 6) { return 0; } return Math.floor(s / 2); }

@@ -1,0 +1,8 @@
+// @fn f
+// @expect refused
+// @bounds [{"array": 2, "string": 1, "int": 2, "unroll": 4}]
+// @note round 3: findIndex may be refused
+// ---- original
+export function f(xs: number[]): number { let i = 0; for (; i < xs.length; i++) { if (xs[i] < 0) { break; } } return i; }
+// ---- candidate
+export function f(xs: number[]): number { const j = xs.findIndex((x) => x < 0); return j < 0 ? xs.length : j; }

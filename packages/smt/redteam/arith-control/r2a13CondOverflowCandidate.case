@@ -1,0 +1,9 @@
+// @fn f
+// @expect diff
+// @bounds [{"array":1,"string":1,"int":9007199254740992,"unroll":8}]
+// @domain {"ints":[0,1,-1,9007199254740990,9007199254740991,-9007199254740992]}
+// @note round 2: the candidate's condition x + 2 overflows at x >= 2^53 - 1
+// ---- original
+export function f(x: number): number { let c = 0; for (let i = 0; i < 2; i++) { c += 1; } return c + 0 * (x - x); }
+// ---- candidate
+export function f(x: number): number { let c = 0; for (let i = x; i < x + 2; i++) { c += 1; } return c; }

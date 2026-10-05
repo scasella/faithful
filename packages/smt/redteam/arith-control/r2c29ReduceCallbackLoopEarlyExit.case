@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":3,"string":1,"int":3,"unroll":8}]
+// ---- original
+export function f(xs: number[]): number { return xs.reduce((acc, x) => { let r = acc; for (let i = 0; i < 3; i++) { if (i === x) { break; } r += 1; } return r; }, 0); }
+// ---- candidate
+export function f(xs: number[]): number { let s = 0; for (const x of xs) { s += x >= 0 && x < 3 ? x : 3; } return s; }

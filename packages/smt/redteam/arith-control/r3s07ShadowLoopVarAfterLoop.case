@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 1, "string": 1, "int": 4, "unroll": 6}]
+// ---- original
+export function f(n: number): number { let i = 100; let s = 0; for (let i = 0; i < n; i++) { s += i; } return s + i; }
+// ---- candidate
+export function f(n: number): number { const m = Math.max(n, 0); return Math.floor(m * (m - 1) / 2) + 100; }

@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal-or-narrowed
+// @bounds [{"array": 1, "string": 1, "int": 4, "unroll": 4}, {"array": 1, "string": 1, "int": 4, "unroll": 6}]
+// ---- original
+export function f(n: number, m: number): number { for (let i = 0; i < n; i++) { for (let j = 0; j < m; j++) { if (i * j === 2) { return i * 10 + j; } } } return -1; }
+// ---- candidate
+export function f(n: number, m: number): number { if (n > 1 && m > 2) { return 12; } if (n > 2 && m > 1) { return 21; } return -1; }

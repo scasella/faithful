@@ -1,0 +1,7 @@
+// @fn f
+// @expect equal
+// @bounds [{"array":2,"string":2,"int":6,"unroll":16}]
+// ---- original
+export function f(a: number): number { return a * 1e3 + 0x10 + 0b11 + 0o7 + 1_0; }
+// ---- candidate
+export function f(a: number): number { return a * 1000 + 36; }
