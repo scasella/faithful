@@ -84,7 +84,7 @@ export function reduce(s: SessionState, e: SessionEvent): SessionState {
       };
     }
     case 'proof.started':
-      return { ...s, proofs: [...s.proofs.filter((p) => p.theoremId !== e.proof.theoremId), e.proof], stage: 'prove' };
+      return { ...s, proofs: [...s.proofs.filter((p) => p.theoremId !== e.proof.theoremId), e.proof], stage: s.stage === 'optimize' ? 'optimize' : 'prove' };
     case 'proof.attempt':
       return updateProof(s, e.theoremId, (p) => ({ ...p, attempts: [...p.attempts, e.attempt] }));
     case 'proof.done':

@@ -409,7 +409,13 @@ export class Optimizer {
     const thm = `candidate_${id}_meets_spec`;
     const modelSource = `${t.lean.source.trimEnd()}\n\n-- candidate model\n${stripRecordDecls(leanBody(ct.lean.source))}\n`;
     const target = { modelSource, specSource: ag.specLean, theoremName: thm, statement, tacticImports: rt.proofImports(), library: await rt.librarySource() };
-    const budget = this.opts.proofBudget ?? { maxAttempts: 4, minutes: 6 };
+    const budget = this.opts.proofBudget ?? { maxAttempts: 8, minutes: 12 };
+    await rt.emit({
+      kind: 'proof.started',
+      proof: { theoremId: thm, statement, statementWords: 'For every input that satisfies the original\'s preconditions, the optimized function stays inside the model\'s range and returns exactly what the agreed spec says.', pinnedTo: ag.hash, attempts: [], result: 'running', accepted: null, ms: 0, budget: { maxAttempts: budget.maxAttempts, minutes: budget.minutes } },
+    });
+    const callIds = new Map<number, number>();
+    const pending: Promise<void>[] = [];
     const rec = await proveTheorem(rt.codex, target, {
       maxAttempts: budget.maxAttempts,
       budgetMs: budget.minutes * 60_000,
@@ -418,8 +424,39 @@ export class Optimizer {
       reference: this.originalProofRef ? { description: 'the proof that the ORIGINAL meets the same spec', ...this.originalProofRef } : undefined,
       signal: this.opts.signal,
       onEvent: (e) => {
-        if (e.type === 'codex-done') void rt.recordCall(e.call);
+        if (e.type === 'codex-done') pending.push(rt.recordCall(e.call).then((cid) => void callIds.set(e.n, cid)));
+        if (e.type === 'checked') {
+          const v = e.check.verdict;
+          pending.push(
+            Promise.all(pending.slice()).then(() =>
+              rt.emit({
+                kind: 'proof.attempt',
+                theoremId: thm,
+                attempt: {
+                  n: e.n,
+                  callId: callIds.get(e.n) ?? null,
+                  helpers: e.check.attemptText?.helpers ?? '',
+                  proof: e.check.attemptText?.proof ?? '',
+                  verdict: v.status === 'proved' ? v.tier : v.status === 'rejected' ? 'rejected' : 'failed',
+                  failureReason: v.status === 'failed' ? v.reason : v.status === 'rejected' ? v.reasons.join('; ') : undefined,
+                  diagnostics: e.check.diagnostics.filter((d) => d.severity === 'error').map((d) => ({ line: d.line, column: d.column, message: d.message, goal: d.goal })),
+                  ms: e.ms,
+                },
+              }),
+            ),
+          );
+        }
       },
+    });
+    await Promise.all(pending);
+    await rt.emit({
+      kind: 'proof.done',
+      theoremId: thm,
+      result: rec.result,
+      accepted: rec.accepted ? { helpers: rec.accepted.attempt.helpers, proof: rec.accepted.attempt.proof, source: rec.accepted.source, axioms: rec.accepted.axioms } : null,
+      ms: rec.ms,
+      failureLine: rec.result === 'not-proved' ? failureLine(rec) : undefined,
+      stoppedBy: rec.stoppedBy,
     });
     const detail = {
       stage: 'proof',
