@@ -13,11 +13,12 @@ than the upper bound. It agreed with the original on all 1000 generated test inp
 counterexample, found one: `clamp(-2, -1, -3)`. The original throws, the rewrite returns -1. Faithful rejected the
 rewrite and showed that input.
 
-That is the whole idea. Faithful gives a model your function and checks every rewrite it proposes. A rewrite must
-compile, be free of side effects, match the original on generated inputs, survive a bounded solver search for a
-difference, and measurably run faster. One that clears those and is significantly faster is then checked in Lean 4, a
-proof assistant, against a spec you agreed to in plain words before any rewrite was tried. You get a patch, the spec, the
-Lean file, and a `VERIFY.md` with which anyone can re-check the result. Your source files are never modified.
+That is the whole idea. Faithful is an LLM-assisted way to optimize a single TypeScript function: it gives a model your
+function and checks every rewrite it proposes. A rewrite must compile, be free of side effects, match the original on
+generated inputs, survive a bounded solver search for a difference, and measurably run faster. One that clears those and
+is significantly faster is then checked in Lean 4, a proof assistant, against a spec you agreed to in plain words before
+any rewrite was tried. You get a patch, the spec, the Lean file, and a `VERIFY.md` with which anyone can re-check the
+result. Your source files are never modified.
 
 Every result carries exactly one of five labels, and the tool never rounds a claim up: a rewrite that is faster but not
 proved is delivered as exactly that. What a proof covers is stated precisely below: it is about a Lean model of your
