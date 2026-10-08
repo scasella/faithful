@@ -1,4 +1,4 @@
-# Library sample (Phase 9)
+# Library sample
 
 20 exported functions drawn at random from three MIT-licensed TypeScript utility libraries, to measure how much real-world
 utility code falls in the translator's verifiable subset. The draw does not depend on whether the translator accepts a function;

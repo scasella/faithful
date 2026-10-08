@@ -1,5 +1,6 @@
 {
   "name": "@faithful/engine",
+  "description": "Sandbox, differential and mutation testers, benchmark and evidence line for checking candidate rewrites.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

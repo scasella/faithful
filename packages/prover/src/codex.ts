@@ -1,6 +1,6 @@
 /**
  * Codex driver: one `codex exec` subprocess per request, serialized, process group killed on timeout.
- * Adapted from scasella/undefined server/codexService.ts (MIT, (c) 2026 Stephen Casella): the argument shape, the
+ * Adapted from scasella/undefined apps/site/server/codexService.ts (MIT, (c) 2026 Stephen Casella): the argument shape, the
  * auth-failure patterns and the serial queue. Changes: Node-only, no SSE, every call is returned as a complete
  * record (`CodexCall`) so the prompt can be shown verbatim ("What the model saw") and replayed in the showcase.
  *

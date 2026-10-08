@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
-const root = '/Users/scasella/Downloads/faithful-app/packages';
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../../../', import.meta.url)).replace(/\/$/, '');
 const { sanityCheck, openZ3 } = await import(root + '/smt/dist/index.js');
 const { translateWithIr } = await import(root + '/translate/dist/index.js');
 const { Sandbox } = await import(root + '/engine/dist/index.js');

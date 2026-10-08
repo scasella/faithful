@@ -1,5 +1,5 @@
 /**
- * Adapted from scasella/undefined src/sandbox/mask.ts, MIT, (c) 2026 Stephen Casella; changes: retargeted from browser
+ * Adapted from scasella/undefined packages/engine/src/sandbox/mask.ts, MIT, (c) 2026 Stephen Casella; changes: retargeted from browser
  * Web Workers to Node worker_threads (trapped names are Node's ambient globals: process, require, module, Buffer,
  * console, timers, performance, crypto, fetch, WebAssembly, SharedArrayBuffer/Atomics, Intl, WeakRef/FinalizationRegistry);
  * violations are structured records `{ kind, what }` instead of strings; the intrinsic snapshot is taken explicitly by

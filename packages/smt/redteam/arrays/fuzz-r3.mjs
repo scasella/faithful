@@ -3,7 +3,8 @@
 // instrumented original on generated inputs, plus uniqueness). For every (function, mutant) pair: brute force over ALL
 // inputs within small bounds in the sandbox, and checkEquivalent at the same bounds; a disagreement is printed as BUG.
 //   node packages/smt/redteam/arrays/fuzz-r3.mjs [count=40] [seed=1]
-const root = '/Users/scasella/Downloads/faithful-app/packages';
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../../../', import.meta.url)).replace(/\/$/, '');
 const { sanityCheck, checkEquivalent, openZ3, runInstrumented } = await import(root + '/smt/dist/index.js');
 const { translateWithIr } = await import(root + '/translate/dist/index.js');
 const { Sandbox, outcomeEqual } = await import(root + '/engine/dist/index.js');

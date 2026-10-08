@@ -1,5 +1,5 @@
 /**
- * Adapted from scasella/undefined src/mutation/mutate.ts, MIT, (c) 2026 Stephen Casella; changes: mutates the
+ * Adapted from scasella/undefined packages/engine/src/mutation/mutate.ts, MIT, (c) 2026 Stephen Casella; changes: mutates the
  * TypeScript source of one named function (not compiled JS) with a type checker at hand, so `+` on strings is not
  * swapped and "return a different variable" only substitutes a variable whose type fits the declared return type;
  * added kinds remove-statement, swap-branches, loop-bound and return-variable, dropped return-undefined (outside the

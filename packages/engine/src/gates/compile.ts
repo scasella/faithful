@@ -7,7 +7,7 @@
  * (in order) and return type. Types are compared structurally: aliases and interfaces are expanded and record fields
  * sorted, so `type P = {x: number}` and an inline `{ x: number }` print the same canonical text.
  *
- * Idea of the lazily-built, cached compiler state adapted from scasella/undefined src/gates/compile.ts (MIT); the
+ * Idea of the lazily-built, cached compiler state adapted from scasella/undefined packages/engine/src/gates/compile.ts (MIT); the
  * implementation here is new (Node file system host, two-file program, structural signature check).
  */
 import ts from 'typescript';

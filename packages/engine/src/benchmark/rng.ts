@@ -1,6 +1,9 @@
 /**
  * Seeded randomness shared by the benchmark (bootstrap resampling, input generation) and the mutation tester (mutant
  * selection, second-pass inputs). mulberry32: small, fast, deterministic; NOT cryptographic.
+ *
+ * `mulberry32` and `shuffle` are adapted from `prng` and `shuffle` in scasella/undefined
+ * packages/engine/src/mutation/mutate.ts (MIT, (c) 2026 Stephen Casella).
  */
 export type Rng = () => number;
 

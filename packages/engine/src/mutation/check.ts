@@ -1,5 +1,5 @@
 /**
- * Adapted in part from scasella/undefined src/mutation/run.ts and classify.ts, MIT, (c) 2026 Stephen Casella; changes:
+ * Adapted in part from scasella/undefined packages/engine/src/mutation/run.ts and classify.ts, MIT, (c) 2026 Stephen Casella; changes:
  * the runner is the engine's Sandbox (original and each mutant run on the same inputs, outcomes compared) instead of
  * an injected gate runner; outcomes are caught / caught-by-time-limit / not-distinguished / stillborn instead of
  * killed / killed-by-bound / survived / stillborn; a second pass over more and larger inputs separates likely

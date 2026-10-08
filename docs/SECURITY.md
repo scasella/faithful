@@ -394,9 +394,10 @@ fingerprint and the axiom check do not depend on it.
   `index.html` with the token in it, so any process (or other user) on the machine that can connect to 127.0.0.1 can
   read the token and use every API route.
 * `POST /api/lean/check` compiles arbitrary Lean source supplied by the token holder; Lean `#eval` can perform I/O.
-* `POST /api/session/open` resolves the given `file` against the repository root without confining it to the
-  repository, so the token holder can open any readable `.ts` text, and its contents enter the session files and,
-  through the spec, proof and candidate prompts, the parts listed above reach Codex.
+* `POST /api/session/open` reads only files whose real path is inside the repository (`SessionRuntime.openFunction`
+  refuses `..` paths, absolute paths elsewhere and symlinks that point outside; covered by
+  `packages/cli/src/flow/openConfinement.test.ts`). Whatever it does read enters the session files and, through the
+  spec, proof and candidate prompts, the parts listed above reach Codex.
 * The proof-text vetting is a regular-expression list (above); the fingerprint and axiom checks are what make an
   accepted proof trustworthy.
 * The z3-solver dependency is a semver range constrained by the lockfile, not an exact version in `package.json`.

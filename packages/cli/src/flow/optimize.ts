@@ -351,7 +351,7 @@ export class Optimizer {
       rejection = {
         stage: 'benchmark',
         kind: 'not-faster',
-        reason: `not faster than the ${inc ? 'incumbent' : 'original'}: speedup ${vsIncumbent.ratio.toFixed(2)}× (95% CI ${vsIncumbent.lo.toFixed(2)}–${vsIncumbent.hi.toFixed(2)}), the intervals overlap`,
+        reason: `not faster than the ${inc ? 'incumbent' : 'original'}: speedup ${speedupText({ ratio: vsIncumbent.ratio, lo: vsIncumbent.lo, hi: vsIncumbent.hi })}, the intervals overlap`,
       };
     } else {
       // 6. Lean proof against the agreed spec

@@ -1,5 +1,5 @@
 /**
- * `moduleProblems` adapted from scasella/undefined src/gates/compile.ts, MIT, (c) 2026 Stephen Casella; changes: also
+ * `moduleProblems` adapted from scasella/undefined packages/engine/src/gates/compile.ts, MIT, (c) 2026 Stephen Casella; changes: also
  * rejects import declarations, re-exports and `export =`, returns positions for line/column reporting. The rest is new.
  *
  * Turn a TypeScript translation unit into strict-mode script JS that `evalMasked` can run: types erased by
