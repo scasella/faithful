@@ -26,3 +26,11 @@
   .pre { grid-template-columns: 1fr; }
   .pre-exact { grid-column: 1; }
 }
+
+/* the receipt's version: in the flow (not sticky), dominant, before any speedup */
+.carve-band.carve-receipt { position: static; border-left-width: 8px; padding: var(--s4) var(--s5); box-shadow: none; }
+.carve-receipt .carve-band-head { font-size: 0.8125rem; }
+.carve-receipt-lead { margin-top: var(--s2); font-size: 1.0625rem; font-weight: 600; max-width: 42rem; }
+.carve-receipt ul { margin-top: var(--s3); }
+.carve-receipt li { font-size: 1rem; }
+@media (max-width: 560px) { .carve-band.carve-receipt { padding: var(--s3) var(--s4); } }

@@ -5,6 +5,12 @@
  *   - throw sites: modeled as a precondition (policy.throwChoice)
  *   - a disagreement: first "the spec is wrong" (revise) up to `maxRevisions` times; after that, if a carve-out class exists
  *     (the first class offered, negative/empty/etc.), carve it out; otherwise the session is BLOCKED at agreement (reported).
+ *     A carve-out that, with the ones before it, excludes at least half of the generated inputs (the challenge run's
+ *     `carvedOut * 2 >= generatedBeforeCarveOuts`) is not a carve-out but a different function: the session is then BLOCKED
+ *     at agreement (reported, with the counts appended to that carve-out ruling's note) instead of proving a theorem about what is left.
+ *   - the policy only ever sees real disagreements: an input on which Lean could not evaluate the spec (a spec fault) is
+ *     counted in the run's `excluded.specFaults` and never listed, and a run whose spec faults are at least as many as its
+ *     compared inputs blocks Agree (agreeBlocker) without a disagreement to rule on, so the session ends BLOCKED at agreement.
  *   - Agree: yes, once no disagreement remains.
  *   - faster-but-not-proved candidates: never accepted (policy.acceptVerified = false by default).
  */
@@ -101,6 +107,7 @@ export async function runAutopilot(o: AutopilotOptions): Promise<{ result: Autop
     log('proposing spec');
     let prop = await rt.proposeSpec();
     let revisions = 0;
+    let carvedTooMuch = false;
     for (let guard = 0; guard < 8; guard++) {
       if (!prop.validation.ok) {
         // a spec that does not compile is not a user ruling: ask again (counted in specProposals)
@@ -124,9 +131,19 @@ export async function runAutopilot(o: AutopilotOptions): Promise<{ result: Autop
         if (!opts.length) break;
         await rt.rule({ challengeId: d.id, ruling: 'function-wrong', then: 'carve-out', carve: opts[0]!.cls });
         res.rulings.push({ ruling: 'function-wrong', then: 'carve-out', note: opts[0]!.excluded });
+        // rule() re-ran the search under the new carve-outs: refuse to go on if they took half or more of the inputs
+        const ex = rt.state.challengeRuns.at(-1)?.excluded;
+        const of = ex?.generatedBeforeCarveOuts ?? 0;
+        if (ex && of > 0 && ex.carvedOut * 2 >= of) {
+          carvedTooMuch = true;
+          // the note goes on the carve-out ruling itself (scripts/launch-tables.mjs counts rulings; this is not one)
+          const last = res.rulings.at(-1)!;
+          last.note = `${last.note}; BLOCKED: the carve-outs exclude ${ex.carvedOut} of ${of} generated inputs (at least half), so the autopilot does not agree to a theorem about what is left`;
+          break;
+        }
       }
     }
-    if (rt.agreeBlocker()) {
+    if (carvedTooMuch || rt.agreeBlocker()) {
       res.blockedAt = 'agreement';
       res.bestTier = 'blocked';
       finish();

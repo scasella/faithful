@@ -1,4 +1,8 @@
-/** Source with line numbers, light highlighting (TypeScript, Lean) and an optional marked span (e.g. a refusal). */
+/**
+ * Source with line numbers, light highlighting (TypeScript, Lean) and an optional marked span (e.g. a refusal); and
+ * CodePair, the original and a candidate side by side (stacked on a narrow screen).
+ */
+import type { CandidateRecord } from '@faithful/session';
 import { tokenize, toLines, type Lang } from '../lib/highlight';
 
 export interface CodeProps {
@@ -45,5 +49,26 @@ export function Code({ text, lang, mark, label, caption, from = 1 }: CodeProps) 
       </pre>
       {caption && <figcaption class="code-caption">{caption}</figcaption>}
     </figure>
+  );
+}
+
+/** The original and a candidate side by side. `rejected` marks the candidate's column (the CatchCard's pair). */
+export function CodePair({ original, candidate, rejected = false }: { original: string; candidate: Pick<CandidateRecord, 'id' | 'source'>; rejected?: boolean }) {
+  return (
+    <div class="code-pair" role="group" aria-label={`Original and candidate ${candidate.id}`}>
+      {original && (
+        <div class="code-pair-col">
+          <p class="code-pair-head">Original</p>
+          <Code text={original} lang="ts" label="Source of the original" />
+        </div>
+      )}
+      <div class={`code-pair-col${rejected ? ' rejected' : ''}`}>
+        <p class="code-pair-head">
+          Candidate {candidate.id}
+          {rejected && <span class="code-pair-rejected"> · rejected</span>}
+        </p>
+        <Code text={candidate.source} lang="ts" label={`Source of candidate ${candidate.id}`} />
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,75 @@
+{
+  "rows": [
+    {
+      "file": "src/gcd.ts",
+      "name": "gcd",
+      "line": 2,
+      "hasJsDoc": true,
+      "tier": "provable",
+      "reason": null
+    },
+    {
+      "file": "src/clamp.ts",
+      "name": "clamp",
+      "line": 1,
+      "hasJsDoc": false,
+      "tier": "provable",
+      "reason": null
+    },
+    {
+      "file": "src/half.ts",
+      "name": "half",
+      "line": 2,
+      "hasJsDoc": true,
+      "tier": "tested",
+      "reason": null
+    }
+  ],
+  "totalMatches": 7,
+  "counts": {
+    "provable": 2,
+    "tested": 1,
+    "unknown": 0,
+    "none": 4
+  },
+  "cannotRun": [
+    {
+      "file": "src/overloaded.ts",
+      "name": "halve",
+      "line": 2,
+      "hasJsDoc": true,
+      "tier": "none",
+      "reason": "Cannot run on its own: halve is overloaded (2 signatures before the implementation); the Tested tier does not run overloaded functions yet (line 2, column 1). The translator refuses it too (syntax outside the subset)."
+    },
+    {
+      "file": "src/generic.ts",
+      "name": "first",
+      "line": 1,
+      "hasJsDoc": false,
+      "tier": "none",
+      "reason": "Inputs cannot be generated from its signature: first is generic (type parameter T); inputs cannot be generated without knowing the types. The translator refuses it too (generic type parameters)."
+    },
+    {
+      "file": "src/limit.ts",
+      "name": "limit",
+      "line": 5,
+      "hasJsDoc": false,
+      "tier": "none",
+      "reason": "Cannot run on its own: a declaration it uses from its file throws when the file loads (Error: 50 mod of the budget). The translator refuses it too (syntax outside the subset)."
+    },
+    {
+      "file": "src/scaled.ts",
+      "name": "scaled",
+      "line": 2,
+      "hasJsDoc": false,
+      "tier": "none",
+      "reason": "Cannot run on its own: it uses scale, imported from './scale' (line 3, column 14). The translator refuses it too (syntax outside the subset)."
+    }
+  ],
+  "scan": {
+    "state": "done",
+    "filesDone": 7,
+    "filesTotal": 7,
+    "version": 1
+  }
+}

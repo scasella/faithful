@@ -18,11 +18,22 @@ export function shortCommit(c: string | null | undefined): string | null {
   return c ? c.slice(0, 7) : null;
 }
 
+/**
+ * The Lean version number out of `lean --version` text ("Lean (version 4.34.0, arm64-…, commit …, Release)" -> "4.34.0"),
+ * or the text itself when it holds no version number (a bare "4.34.0" passes through unchanged).
+ */
+export function leanVersionNumber(v: string): string {
+  return /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)/.exec(v)?.[1] ?? v;
+}
+
 /** "Lean 4.34.0, Mathlib 5ed2965": the parenthetical that follows a proof claim. Omits what is unknown. */
 export function leanVersions(tc: ToolchainSnapshot | null | undefined): string | null {
   if (!tc) return null;
   const parts: string[] = [];
-  if (tc.lean.version) parts.push(`Lean ${tc.lean.version}`);
+  if (tc.lean.version) {
+    const v = leanVersionNumber(tc.lean.version);
+    parts.push(/^Lean\b/.test(v) ? v : `Lean ${v}`);
+  }
   const m = shortCommit(tc.lean.mathlibCommit);
   if (m) parts.push(`Mathlib ${m}`);
   return parts.length ? parts.join(', ') : null;

@@ -1,7 +1,7 @@
 /**
  * `faithful verify .faithful/<fn>`: re-check a delivered result without trusting it. Recomputes hashes, re-runs Lean on the
  * proof file (axioms included), re-runs the differential test (and the SMT check when available), and prints the evidence
- * line again, comparing it with the recorded one.
+ * line again (rebuilt from these checks; it is not compared with a recorded one).
  */
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';

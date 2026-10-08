@@ -137,7 +137,10 @@ whether these inputs would notice a broken copy; it is informational, wrapped in
 refused. Such a function continues on the Tested tier only through `SessionRuntime.startTestedOnly` (event
 `tested.started`) and `TestedOptimizer` (`packages/cli/src/flow/tested.ts`; `POST /api/tested/start`,
 `faithful optimize --tested`, or the Translate screen's "Optimize with the Tested tier only"). There is no model, spec,
-agreement, proof or SMT check; the original function is the reference. The funnel is compile, purity, the differential
+agreement, proof or SMT check; the original function is the reference. The original runs as an extracted unit: the
+function plus only the module-level declarations it uses, so unrelated imports and top-level code in its file are left
+out (docs/SECURITY.md "Extracted units"; the whole file when extraction refuses but the file loads; which one ran is
+recorded in `tested.started`, the provenance and VERIFY.md). The funnel is compile, purity, the differential
 `jsVsJs` (`packages/engine/src/differential/jsdifferential.ts`) against the ORIGINAL on up to 1,000 inputs generated
 from the TypeScript signature by `generateSignatureInputs` (`signature.ts`; seed `7000 + candidate id`; numbers are
 integers AND non-integer doubles; NaN, Infinity, -Infinity and -0 only when the user opts in), the mutation check, and

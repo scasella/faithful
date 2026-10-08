@@ -170,7 +170,7 @@ function CandidateRow({ li, c }: { li: LiveInputs; c: Source }) {
 export function LivePanel({ li }: { li: LiveInputs }) {
   if (!li.translation) {
     return (
-      <section class="panel" aria-labelledby="live-h">
+      <section id="live" class="panel" aria-labelledby="live-h">
         <h2 id="live-h">Check it in your browser</h2>
         <p class="muted">This recording has no successful translation, so there is no model to compare candidates against.</p>
       </section>
@@ -198,7 +198,7 @@ export function LivePanel({ li }: { li: LiveInputs }) {
     source: li.translation.plainTs ?? li.translation.source.text,
   };
   return (
-    <section class="panel" aria-labelledby="live-h" data-testid="live-panel">
+    <section id="live" class="panel" aria-labelledby="live-h" data-testid="live-panel">
       <h2 id="live-h">Check it in your browser</h2>
       <p>
         These checks run on this page, now, against the recorded original: the translator, the strict TypeScript compile gate,

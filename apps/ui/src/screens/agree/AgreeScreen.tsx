@@ -31,6 +31,8 @@ import {
   agreeView,
   canRevise,
   carveRuling,
+  coverageView,
+  isSpecFault,
   fixOriginal,
   leanSpan,
   recordedExamples,
@@ -128,6 +130,8 @@ export function AgreeScreen() {
         )}
       </section>
 
+      {v.specHash && <Coverage s={s} v={v} />}
+
       {s.agreement ? null : (
         <section class="ag-bar" aria-label="Agree">
           <div class="row">
@@ -214,6 +218,8 @@ function RunLine({ v }: { v: AgreeView }) {
   const what = `Challenge run ${r.id} against spec ${v.specHash}, seed ${r.seed}`;
   const filtered = r.inputsTried - r.inputsCompared;
   const tried = <Num what={`${what}: inputs generated before precondition filtering`}>{formatCount(r.inputsTried)}</Num>;
+  const faults = r.disagreements.filter(isSpecFault).length;
+  const real = r.disagreements.length - faults;
   return (
     <p class="ag-run">
       Run {r.id}: <Num what={`${what}: inputs that met the preconditions and were run on both the spec and your function`}>{formatCount(r.inputsCompared)}</Num> inputs
@@ -227,13 +233,22 @@ function RunLine({ v }: { v: AgreeView }) {
         <>(every one of the {tried} generated inputs met the preconditions)</>
       )}
       , in <Num what={`${what}: wall-clock time`}>{msText(r.ms)}</Num>.{' '}
-      {r.disagreements.length === 0 ? (
+      {real === 0 && faults === 0 ? (
         <b>No disagreement.</b>
-      ) : (
+      ) : real > 0 ? (
         <b>
-          They disagree on <Num what={`${what}: inputs where the spec and your function gave different outcomes`}>{formatCount(r.disagreements.length)}</Num>{' '}
-          {r.disagreements.length === 1 ? 'input' : 'inputs'}.
+          They disagree on <Num what={`${what}: inputs where the spec and your function gave different outcomes`}>{formatCount(real)}</Num>{' '}
+          {real === 1 ? 'input' : 'inputs'}.
         </b>
+      ) : (
+        <b>No input where the spec gave a value disagrees with your function.</b>
+      )}
+      {faults > 0 && (
+        <>
+          {' '}
+          On <Num what={`${what}: listed inputs where Lean produced no value for the spec`}>{formatCount(faults)}</Num> listed{' '}
+          {faults === 1 ? 'input' : 'inputs'} Lean produced no value for the spec: an evaluation fault of the spec, not a disagreement.
+        </>
       )}
     </p>
   );
@@ -277,6 +292,12 @@ function ChallengeRow(props: {
           </span>
         </div>
       </div>
+      {isSpecFault(c) && (
+        <p class="ag-fault">
+          <b>Evaluation fault of the spec.</b> Lean produced no value for the spec on this input. That is not evidence that the spec and your function
+          disagree, nor that your function is wrong.
+        </p>
+      )}
       {r ? (
         <p class="ag-ruling">
           <span class="label">Ruled</span> {rulingWords(r)}
@@ -326,6 +347,12 @@ function RulingControls({ c, step, setStep, state }: { c: Challenge; step: Rulin
           </ActionButton>
           <BackButton onBack={() => setStep('idle')} />
         </div>
+        {isSpecFault(c) && (
+          <p class="ag-caution" role="note">
+            Caution: on this input Lean produced no value for the spec, so nothing here shows that your function is wrong. Carving it out removes the
+            whole class of inputs from every claim.
+          </p>
+        )}
         <p class="ag-fine">Fixing stops this session: you edit your file and open the function again. A carve-out is shown on every screen, permanently.</p>
       </div>
     );
@@ -397,6 +424,59 @@ function CarvePicker({ c, state, onBack }: { c: Challenge; state: SessionState; 
   );
 }
 
+/** What any proof will cover: the preconditions (always on), each carve-out verbatim, and the latest run's counts. */
+function Coverage({ s, v }: { s: SessionState; v: AgreeView }) {
+  const carves = carveOutsOf(s);
+  const pre = preconditionView(s);
+  const cov = coverageView(v.lastRun, carves.length);
+  const what = v.lastRun ? `Challenge run ${v.lastRun.id}, seed ${v.lastRun.seed}` : '';
+  return (
+    <section class={`ag-cover${cov.minority ? ' minority' : ''}`} aria-labelledby="ag-cover-h">
+      <h3 class="label" id="ag-cover-h">
+        What any proof will cover
+      </h3>
+      <div>
+        <p class="ag-cover-sub">Preconditions, always on</p>
+        <ul class="ag-cover-list">
+          {pre.items.map((p) => (
+            <li key={p.id}>{p.words}</li>
+          ))}
+          {pre.throwNote && <li>{pre.throwNote}</li>}
+          {!pre.items.length && !pre.throwNote && <li>None: every input of the declared types is in scope.</li>}
+        </ul>
+      </div>
+      <div>
+        <p class="ag-cover-sub">{carves.length === 1 ? 'Carve-out' : 'Carve-outs'}</p>
+        {carves.length ? (
+          <ul class="ag-cover-list ag-cover-carves">
+            {carves.map((c) => (
+              <li key={c.id}>{c.words}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>None: a proof would cover every input that meets the preconditions.</p>
+        )}
+      </div>
+      {cov.carvedLine && (
+        <p>
+          {v.lastRun?.excluded?.generatedBeforeCarveOuts ? <Num what={`${what}: generated inputs that fell in a carve-out, of all generated`}>{cov.carvedLine}</Num> : cov.carvedLine}
+        </p>
+      )}
+      {cov.minority && (
+        <p class="ag-cover-warn" role="note">
+          The carve-outs exclude at least half of the generated inputs: any proof will cover at most half of what the challenge generated.{' '}
+          {s.agreement ? 'Every label shown later is limited by these carve-outs.' : 'You can still agree, and every label shown later is limited by these carve-outs.'}
+        </p>
+      )}
+      {cov.specFaultLine && (
+        <p class="ag-fine">
+          <Num what={`${what}: inputs where Lean produced no value for the spec`}>{cov.specFaultLine}</Num> They are not counted as disagreements.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function ValidationErrors({ errors }: { errors: string[] }) {
   return (
     <div class="ag-invalid">
@@ -417,6 +497,7 @@ function SpecAndExamples({ s, v, p }: { s: SessionState; v: AgreeView; p: SpecPr
     <div class="ag-cols">
       <section class="ag-spec stack" aria-labelledby="ag-spec-h">
         <h3 id="ag-spec-h">{p.kind === 'revision' ? 'The spec (revised)' : 'The spec'}</h3>
+        <p class="ag-fine">Line by line, Lean beside its words. You agree to the words; Lean checks the proof against the Lean.</p>
         <ol class="ag-lines" aria-label="The spec, line by line">
           {p.lines.map((l, i) => (
             <li
@@ -428,12 +509,12 @@ function SpecAndExamples({ s, v, p }: { s: SessionState; v: AgreeView; p: SpecPr
               onFocus={() => setHover(i)}
               onBlur={() => setHover(null)}
             >
-              <span>{l.english}</span>
-              {spans[i] === null && <code class="ag-line-lean">{l.lean}</code>}
+              <code class="ag-line-lean">{l.lean}</code>
+              <span class="ag-line-en">{l.english}</span>
             </li>
           ))}
         </ol>
-        <p class="ag-fine">Hover or focus a line to mark its Lean below.</p>
+        <p class="ag-fine">Hover or focus a line to mark its Lean in the whole spec below.</p>
         <Code text={p.lean} lang="lean" mark={hover !== null ? spans[hover] : null} label="The spec in Lean" />
         <h3 class="ag-sub">Preconditions</h3>
         <p class="ag-fine">The spec is agreed only for inputs that meet these. They are the sentences the Translate screen showed.</p>
@@ -484,6 +565,7 @@ function SpecAndExamples({ s, v, p }: { s: SessionState; v: AgreeView; p: SpecPr
                     </td>
                     <td data-label="The spec">
                       <OutcomeView o={c.spec} />
+                      {isSpecFault(c) && <span class="ag-fault-cell">evaluation fault of the spec, not a disagreement</span>}
                     </td>
                     <td data-label="Your function">
                       <OutcomeView o={c.original} />

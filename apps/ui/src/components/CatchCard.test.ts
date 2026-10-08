@@ -25,7 +25,11 @@ describe('CatchCard', () => {
     expect(text).toContain('For n = 2 the candidate returns 2, the original returns 1');
     expect(text).toMatch(/Input\s*n = 2/);
     expect(text).toMatch(/Original returns\s*1/);
-    expect(text).toMatch(/Candidate returns\s*2/);
+    expect(text).toMatch(/Candidate 1 returns\s*2/);
+    // what Z3 searched (the SMT stage's bounds) and that a sat input is replayed before the rejection
+    expect(text).toContain('What Z3 searched');
+    expect(text).toMatch(/integers\s*\[-64, 64\]/);
+    expect(text).toContain('replayed on both functions in the sandbox');
     // rejected at the SMT stage, before the benchmark: no speedup is invented
     expect(html).not.toContain('<del');
     expect(text).toContain('Not benchmarked: rejected at the SMT stage, before the benchmark.');

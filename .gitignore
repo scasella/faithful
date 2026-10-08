@@ -7,6 +7,16 @@ lean/.lake
 coverage
 apps/*/dist
 
+# Faithful's own output when it is run inside a checkout (including this one): session logs with full model
+# prompts and responses. Deliveries belong to the repository they were produced for, not to this one.
+.faithful/
+
+# local editor / agent configuration
+.claude/
+
+# screenshots written by apps/ui/scripts/shoot*.mjs and drive.mjs (regenerate with those scripts)
+docs/media/gui/
+
 # bulky per-session logs from measurement runs (results.jsonl, notes, splits and rules ARE tracked)
 docs/measurements/**/sessions/
 docs/measurements/**/collect-sessions/

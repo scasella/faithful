@@ -29,6 +29,10 @@ export interface AppProps {
   fixtureTitle?: string;
   /** Called once after the adapter is attached (e.g. to seek a replay). */
   onAttached?(): void;
+  /** Local UI only: shows the landing page again ("About Faithful" in the top bar). Absent in replays and the showcase. */
+  onAbout?(): void;
+  /** Local UI and dev fixtures only: switches to the Simple view ("Simple view" in the top bar). Absent in the showcase. */
+  onSimple?(): void;
 }
 
 export function FixtureBanner({ title }: { title?: string }) {
@@ -40,7 +44,7 @@ export function FixtureBanner({ title }: { title?: string }) {
   );
 }
 
-export function Shell({ store, adapter, replay, fixtureTitle }: Omit<AppProps, 'onAttached'>) {
+export function Shell({ store, adapter, replay, fixtureTitle, onAbout, onSimple }: Omit<AppProps, 'onAttached'>) {
   const s = store.state.value;
   const shown = store.shown.value;
   const Screen = SCREENS[shown];
@@ -77,6 +81,16 @@ export function Shell({ store, adapter, replay, fixtureTitle }: Omit<AppProps, '
               </span>
             )}
             <span class="topbar-tools">
+              {onSimple && (
+                <button type="button" class="btn" data-simple onClick={onSimple}>
+                  Simple view
+                </button>
+              )}{' '}
+              {onAbout && (
+                <button type="button" class="btn" data-about onClick={onAbout}>
+                  About Faithful
+                </button>
+              )}{' '}
               <button type="button" class="btn" aria-keyshortcuts="T" aria-pressed={store.toolchainOpen.value} onClick={() => (store.toolchainOpen.value = !store.toolchainOpen.value)}>
                 Toolchain <KeyHint keys="T" />
               </button>

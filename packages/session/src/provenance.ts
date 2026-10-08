@@ -92,5 +92,12 @@ export interface Provenance {
     generator: { kind: 'signature'; seed: number; n: number; specials: boolean };
     /** The equality the differential used, in words. */
     equality: string;
+    /**
+     * What ran as the original (absent in deliveries made before extraction: the whole `originalFileSource`).
+     * `'extracted'`: the function plus only the declarations listed in `included`, cut from `originalFileSource` by
+     * `extractUnit` (packages/engine/src/sandbox/extract.ts); `unitHash` is the SHA-256 of that unit, so `faithful
+     * verify` can re-extract it and confirm it is the same text.
+     */
+    original?: { scope: 'extracted' | 'file'; included: Array<{ kind: string; name: string; line: number }>; unitHash?: string };
   };
 }

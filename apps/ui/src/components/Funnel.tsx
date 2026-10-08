@@ -1,41 +1,42 @@
-/** The candidate funnel: compile, purity, differential, smt, proof, benchmark, each with its status and time. */
-import { STAGE_ORDER, type StageResult } from '@faithful/session';
-import { STAGE_LABEL } from '../lib/catch';
+/**
+ * The candidate's gates as a grid of chips, one per stage in the order a candidate meets them: compile, purity,
+ * differential, bounded Z3, benchmark, Lean proof. Each chip has its status word and the stage summary the server wrote
+ * (cut to its first clause when long; see gates.ts), with its time.
+ */
+import type { StageResult } from '@faithful/session';
 import { msText } from '../lib/format';
 import { stageSummaryText } from '../lib/tierText';
+import { GATE_LABEL, GATE_ORDER, gateNote, gateStatusWord } from './gates';
 import { Num } from './Provenance';
-
-const STATUS_WORD: Record<StageResult['status'], string> = {
-  pending: 'pending',
-  running: 'running',
-  pass: 'passed',
-  fail: 'failed',
-  skipped: 'skipped',
-};
-const GLYPH: Record<StageResult['status'], string> = { pending: '·', running: '…', pass: '✓', fail: '✕', skipped: '–' };
 
 /** `decided`: the candidate was decided, so a stage with no result was never run (not "pending"). */
 export function Funnel({ stages, label = 'Checks', decided = false }: { stages: StageResult[]; label?: string; decided?: boolean }) {
   return (
     <ol class="funnel" aria-label={label}>
-      {STAGE_ORDER.map((id) => {
-        const r = stages.find((s) => s.stage === id);
-        const status = r?.status ?? 'pending';
-        const word = !r && decided ? 'not run' : STATUS_WORD[status];
+      {GATE_ORDER.map((id) => {
+        const r = stages.find((s) => s.stage === id) ?? null;
+        const status = r?.status ?? (decided ? 'not-run' : 'pending');
+        const word = gateStatusWord(r, decided);
+        const note = r && r.status !== 'pending' ? gateNote(r) : '';
         return (
-          <li key={id} class={status} title={r ? stageSummaryText(r.summary) : undefined}>
-            <span class="st">
-              <span aria-hidden="true">{GLYPH[status]} </span>
-              {STAGE_LABEL[id]}
-              <span class="sr-only">: {word}</span>
+          <li key={id} class={`gate gate-${id} ${status}`}>
+            <span class="gate-head">
+              <span class="st">{GATE_LABEL[id]}</span>
+              <span class="gate-word">
+                <span class="sr-only">: </span>
+                {word}
+              </span>
             </span>
-            <span class="ms">
-              {r && r.status !== 'pending' && r.status !== 'skipped' ? (
-                <Num what={`${STAGE_LABEL[id]} stage: ${stageSummaryText(r.summary)}`}>{msText(r.ms)}</Num>
-              ) : (
-                word
-              )}
-            </span>
+            {note && (
+              <span class="gate-note">
+                <Num what={`${GATE_LABEL[id]} stage, as the server recorded it: ${stageSummaryText(r!.summary)}`}>{note}</Num>
+              </span>
+            )}
+            {r && r.status !== 'pending' && r.status !== 'skipped' && (
+              <span class="ms">
+                <Num what={`${GATE_LABEL[id]} stage: ${stageSummaryText(r.summary)}`}>{msText(r.ms)}</Num>
+              </span>
+            )}
           </li>
         );
       })}

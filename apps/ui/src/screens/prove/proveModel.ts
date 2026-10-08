@@ -117,10 +117,14 @@ export function proofElapsedMs(p: ProofView, events: readonly StampedEvent[]): n
   return t0 === null || !last ? 0 : Math.max(0, last.t - t0);
 }
 
-/** The proof of the original: the latest one pinned to the current agreement, else the latest one. */
+/**
+ * The proof of the original: the latest one pinned to the current agreement, else the latest one. Candidate proofs
+ * (theorem ids `candidate_<id>_…`, recorded in the same list during optimizing) are not the original's.
+ */
 export function originalProof(s: SessionState): ProofView | null {
-  const pinned = s.agreement ? s.proofs.filter((p) => p.pinnedTo === s.agreement!.hash) : [];
-  return pinned.at(-1) ?? s.proofs.at(-1) ?? null;
+  const own = s.proofs.filter((p) => !p.theoremId.startsWith('candidate_'));
+  const pinned = s.agreement ? own.filter((p) => p.pinnedTo === s.agreement!.hash) : [];
+  return pinned.at(-1) ?? own.at(-1) ?? null;
 }
 
 /** "1.7" minutes, rounded down, so a running clock never shows the budget as spent before it is. */

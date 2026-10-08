@@ -85,6 +85,23 @@ describe('agreeGate', () => {
     expect(!g.ok && g.reason).toBe('The latest challenge run still found 5 disagreements (4 not listed). Agreeing needs a run with none: carve out, revise the spec, or re-run.');
   });
 
+  it('spec faults at least as many as the compared inputs block Agree, as the server does (none listed, so: a new spec)', () => {
+    const runWith = (id: number, inputsCompared: number, specFaults: number): SessionEvent => ({
+      kind: 'challenge.run',
+      run: {
+        id, specHash: SPEC_HASH, inputsTried: 400, inputsCompared, ms: 5, seed: 1, carveOutIds: [CARVE.id], totalDisagreements: 0, disagreements: [],
+        excluded: { range: 0, throwPrecondition: 0, faults: 0, carvedOut: 0, specFaults, generatedBeforeCarveOuts: 400 },
+      },
+    });
+    const gate = (run: SessionEvent) => agreeGate(storeWith(withExtra(upTo(idx('challenge.run', 1)), [run])).state.value);
+    const none = gate(runWith(3, 0, 400));
+    expect(!none.ok && none.next).toBe('propose');
+    expect(!none.ok && none.reason).toMatch(/^Lean could not evaluate the spec on any compared input; 400 inputs produced no value/);
+    const most = gate(runWith(4, 10, 390));
+    expect(!most.ok && most.reason).toMatch(/^Lean could not evaluate the spec on 390 inputs \(timeout or crash\), at least as many as the 10 it compared/);
+    expect(gate(runWith(5, 390, 10))).toEqual({ ok: true, specHash: SPEC_HASH });
+  });
+
   it('"the spec is wrong" means revise first', () => {
     const s = storeWith(withExtra(upTo(idx('challenge.run')), [rule('ch-1', { ruling: 'spec-wrong' }), rule('ch-2', { ruling: 'function-wrong', then: 'carve-out', carveOut: CARVE })])).state.value;
     expect(agreeGate(s)).toEqual({ ok: false, reason: 'You ruled the spec wrong on n = -1. Revise the spec, then rule the new challenge run.', next: 'revise' });

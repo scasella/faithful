@@ -14,6 +14,7 @@ const WORDS: Record<string, string> = {
   agree: 'Recording the agreement',
   'prove-original': 'Proving the original (the model writes attempts, Lean checks each)',
   optimize: 'Optimizing',
+  tested: 'Optimizing on the Tested tier only',
   accept: 'Accepting the candidate',
   deliver: 'Writing the delivery',
 };

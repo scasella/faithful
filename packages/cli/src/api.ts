@@ -3,8 +3,6 @@
  * results arrive only as session events on the SSE stream, so the UI never shows something that is not an event.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { readdir, readFile, stat } from 'node:fs/promises';
-import { join, relative } from 'node:path';
 import { listExportedFunctions } from '@faithful/translate';
 import { captureToolchain } from '@faithful/core';
 import { openZ3, type Z3Driver } from '@faithful/smt';
@@ -12,35 +10,15 @@ import type { StampedEvent } from '@faithful/session';
 import { smtChecker } from './smtChecker.js';
 import { Optimizer, SessionRuntime, TestedOptimizer, deliver, deliverTested, type RulingInput } from './flow/index.js';
 import type { ApiRoutes } from './server.js';
+import { classifyFile, classifyFiles } from './flow/triage.js';
+import { createTriagePool, type TriagePool } from './flow/triagePool.js';
+import { RepoScanner } from './flow/scan.js';
+import { listFiles } from './flow/files.js';
 
-const SKIP_DIRS = new Set(['node_modules', '.git', '.faithful', 'dist', 'build', 'coverage', '.next', 'out']);
+export { listFiles };
 
-export async function listFiles(repoRoot: string, max = 2000): Promise<Array<{ path: string; functions: Array<{ name: string; line: number; hasJsDoc: boolean }> }>> {
-  const out: Array<{ path: string; functions: Array<{ name: string; line: number; hasJsDoc: boolean }> }> = [];
-  async function walk(dir: string): Promise<void> {
-    if (out.length >= max) return;
-    let entries;
-    try {
-      entries = await readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const e of entries) {
-      if (out.length >= max) return;
-      const p = join(dir, e.name);
-      if (e.isDirectory()) {
-        if (!SKIP_DIRS.has(e.name) && !e.name.startsWith('.')) await walk(p);
-      } else if (/\.(ts|mts)$/.test(e.name) && !/\.d\.ts$/.test(e.name) && !/\.(test|spec)\.ts$/.test(e.name)) {
-        const st = await stat(p);
-        if (st.size > 300_000) continue;
-        const fns = listExportedFunctions(await readFile(p, 'utf8')).filter((f) => f.exported).map((f) => ({ name: f.name, line: f.line, hasJsDoc: f.hasJsDoc }));
-        if (fns.length) out.push({ path: relative(repoRoot, p), functions: fns });
-      }
-    }
-  }
-  await walk(repoRoot);
-  return out.sort((a, b) => a.path.localeCompare(b.path));
-}
+/** At most this many files per `POST /api/functions/status`. */
+export const STATUS_MAX_FILES = 20;
 
 export interface Api {
   routes: ApiRoutes;
@@ -61,6 +39,23 @@ export async function createApi(repoRoot: string): Promise<Api> {
   if (z3) rt.smt = smtChecker(z3);
   let optimizer: Optimizer | null = null;
   let abort: AbortController | null = null;
+  // Triage (which functions can run at all) runs in a small pool of worker threads (flow/triagePool.ts), started on first
+  // use, each with a sandbox of its own: the server's thread never does the translating, compiling or loading, and the
+  // loads never queue behind (or perturb the timings of) a session's job.
+  let pool: TriagePool | null = null;
+  const triagePool = (): TriagePool => (pool ??= createTriagePool());
+  const triage = { get backend() { return triagePool(); } };
+  // The background scan of the repository (flow/scan.ts), one per repository root; it waits while a session job runs.
+  const scanners = new Map<string, RepoScanner>();
+  const scannerFor = (root: string): RepoScanner => {
+    let sc = scanners.get(root);
+    if (!sc) {
+      const p = triagePool();
+      sc = new RepoScanner({ repoRoot: root, backend: p, capMs: p.capMs, concurrency: p.size, isBusy: () => rt.state.job.running !== null });
+      scanners.set(root, sc);
+    }
+    return sc;
+  };
 
   /** Queue a job; 423 when another is running. Failures become `job.failed` events, never silence. */
   const job = (name: string, fn: () => Promise<unknown>): { ok: true } => {
@@ -84,6 +79,30 @@ export async function createApi(repoRoot: string): Promise<Api> {
 
   const routes: ApiRoutes = {
     'GET /api/files': async ({ repoRoot: r }) => listFiles(r),
+    /** Which exported functions of one file can Faithful run (packages/cli/src/flow/triage.ts). Read-only, not a job. */
+    'GET /api/functions/status': async ({ repoRoot: r, url }) => classifyFile(r, need(url.searchParams.get('file') ?? undefined, 'file'), triage),
+    /** The same for up to STATUS_MAX_FILES files: { [file]: { [fn]: FunctionStatus } | null } (null: not readable). */
+    'POST /api/functions/status': async ({ repoRoot: r, body }) => {
+      const files = b(body).files;
+      if (!Array.isArray(files) || !files.every((f) => typeof f === 'string' && f !== '')) throw Object.assign(new Error('files must be a list of paths'), { status: 400 });
+      if (files.length > STATUS_MAX_FILES) throw Object.assign(new Error(`at most ${STATUS_MAX_FILES} files per request`), { status: 400 });
+      return classifyFiles(r, files as string[], triage);
+    },
+    /**
+     * The Pick list, ranked server-side over every exported function the background scan knows (flow/scan.ts): provable,
+     * then testable, then not decided; never a function Faithful cannot run in `rows`. Starts the scan if none ran.
+     */
+    'POST /api/functions/pick': async ({ repoRoot: r, body }) => {
+      const x = b(body);
+      if (x.query !== undefined && typeof x.query !== 'string') throw Object.assign(new Error('query must be a string'), { status: 400 });
+      if (x.limit !== undefined && (typeof x.limit !== 'number' || !Number.isFinite(x.limit))) throw Object.assign(new Error('limit must be a number'), { status: 400 });
+      if (x.includeUnrunnable !== undefined && typeof x.includeUnrunnable !== 'boolean') throw Object.assign(new Error('includeUnrunnable must be true or false'), { status: 400 });
+      return scannerFor(r).pick(((x.query as string | undefined) ?? '').slice(0, 200), { limit: x.limit as number | undefined, includeUnrunnable: x.includeUnrunnable === true });
+    },
+    /** Progress of the background scan: { state: 'idle' | 'running' | 'done', filesDone, filesTotal, version }. Cheap. */
+    'GET /api/functions/scan': async ({ repoRoot: r }) => scannerFor(r).status(),
+    /** Start a scan pass (idempotent: nothing while one runs or one finished a moment ago); answers the progress. */
+    'POST /api/functions/scan/start': async ({ repoRoot: r }) => scannerFor(r).start(),
     'GET /api/session': async () => rt.state,
     'POST /api/session/open': async ({ body }) => {
       const x = b(body);
@@ -140,6 +159,15 @@ export async function createApi(repoRoot: string): Promise<Api> {
       abort?.abort();
       return { ok: true };
     },
+    /**
+     * Can the Tested path run the open function (inputs from its signature, its file loaded in the sandbox for real)? Read-only,
+     * not a job. The UI asks before offering the Tested tier for a refused function.
+     */
+    'GET /api/tested/check': async () => {
+      if (!rt.state.fn) throw Object.assign(new Error('open a function first'), { status: 409 });
+      const reason = await rt.testedBlocker();
+      return reason === null ? { ok: true } : { ok: false, reason };
+    },
     /** A refused function, continued on the Tested tier only (packages/cli/src/flow/tested.ts). */
     'POST /api/tested/start': async ({ body }) => {
       const x = b(body);
@@ -150,6 +178,11 @@ export async function createApi(repoRoot: string): Promise<Api> {
         abort = new AbortController();
         // a retry after a failed run keeps the recorded choice (tested.started is in the log once)
         if (!rt.state.tested) await rt.startTestedOnly({ specials: x.specials === true });
+        else {
+          // a retry runs the same preflight, so a file that cannot load fails with the plain reason, before any work
+          const why = await rt.testedBlocker();
+          if (why) throw new Error(why);
+        }
         await new TestedOptimizer(rt, { threshold, signal: abort.signal }).run();
       });
     },
@@ -159,6 +192,8 @@ export async function createApi(repoRoot: string): Promise<Api> {
 
   const clients = new Set<ServerResponse>();
   rt.subscribe((e: StampedEvent) => {
+    // a job that ended lets a waiting scan carry on
+    for (const sc of scanners.values()) sc.poke();
     const msg = `id: ${e.seq}\nevent: session\ndata: ${JSON.stringify(e)}\n\n`;
     for (const c of clients) c.write(msg);
   });
@@ -170,6 +205,9 @@ export async function createApi(repoRoot: string): Promise<Api> {
       if (url.pathname !== '/api/session/events' || req.method !== 'GET') return false;
       const since = Number(url.searchParams.get('since') ?? 0) || 0;
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-content-type-options': 'nosniff' });
+      // send the headers now: with no session yet there is nothing to write, and the page would say "Connecting…" until
+      // the first keep-alive (15 s)
+      res.flushHeaders();
       for (const e of rt.events) if (e.seq > since) res.write(`id: ${e.seq}\nevent: session\ndata: ${JSON.stringify(e)}\n\n`);
       clients.add(res);
       const ka = setInterval(() => res.write(': keep-alive\n\n'), 15_000);
@@ -181,6 +219,9 @@ export async function createApi(repoRoot: string): Promise<Api> {
     },
     async close() {
       abort?.abort();
+      for (const sc of scanners.values()) sc.close();
+      await pool?.close().catch(() => undefined);
+      pool = null;
       for (const c of clients) c.end();
       await rt.close();
     },

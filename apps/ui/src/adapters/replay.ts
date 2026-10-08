@@ -5,7 +5,7 @@
  * Playback state is exposed through `subscribe` so a control bar can render it. The clock is injectable for tests.
  */
 import type { StampedEvent } from '@faithful/session';
-import { ReadOnlyError, type Adapter, type CarveOption, type ConnectionStatus, type DoctorCheck, type FileEntry } from '../actions';
+import { ReadOnlyError, type Adapter, type CarveOption, type ConnectionStatus, type DoctorCheck, type FileEntry, type FunctionStatuses, type PickOptions, type PickResult, type ScanStatus, type TestedCheck } from '../actions';
 
 export interface Clock {
   setTimeout(f: () => void, ms: number): unknown;
@@ -176,6 +176,22 @@ export class ReplayAdapter implements Adapter {
   listFiles(): Promise<FileEntry[]> {
     return this.refuse('Listing files');
   }
+  /** Unknown: nothing is checked in a replay. */
+  functionStatus(_files?: string[]): Promise<FunctionStatuses | null> {
+    return Promise.resolve(null);
+  }
+
+  /** Unknown: nothing is checked in a replay (the pick lists list the functions locally, without a status). */
+  pickFunctions(_query?: string, _o?: PickOptions): Promise<PickResult | null> {
+    return Promise.resolve(null);
+  }
+  scanStatus(): Promise<ScanStatus | null> {
+    return Promise.resolve(null);
+  }
+  startScan(): Promise<ScanStatus | null> {
+    return Promise.resolve(null);
+  }
+
   openFunction() {
     return this.refuse('Opening a function');
   }
@@ -211,6 +227,10 @@ export class ReplayAdapter implements Adapter {
   }
   startTestedOnly() {
     return this.refuse('Optimizing with the Tested tier only');
+  }
+  /** Unknown: nothing runs in a replay, so nothing is checked (the screens keep their recorded behaviour). */
+  testedCheck(): Promise<TestedCheck> {
+    return Promise.resolve(null);
   }
   acceptFasterNotProved() {
     return this.refuse('Accepting a candidate');

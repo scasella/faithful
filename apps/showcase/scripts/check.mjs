@@ -5,10 +5,13 @@
 //   node scripts/check.mjs --url http://127.0.0.1:8742/   # use an already running static server instead
 //   node scripts/check.mjs --no-coi        # block the service worker: checks that the page degrades (SMT not available)
 //
-// Asserts: the page loads without errors; the opener shows the function and the one line; the dev sample replays to
+// Asserts: the page loads without errors; the landing page is in front (its calls to action reach the replay and the
+// live checks); the opener shows the function and the one line; the dev sample waits until scrolled into view, then replays to
 // its last event (the replay bar reaches "event N of N"); every replayed figure is labelled; the live checks run for
 // the hand-written pair: the correct candidate passes compile/purity/differential(/smt), the wrong one is rejected
 // with a counterexample shown live (differential), and, when isolated, Z3 also finds one when asked directly.
+// The default recording (clamp) runs its recorded candidates live; aliquotSum shows its carve-outs and spec-fault note;
+// at 375px no real recording widens the page at any replayed event.
 // Prints timings (JSON) for the report.
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
@@ -79,9 +82,13 @@ try {
   check(((await page.textContent('[data-testid="replay-label"]')) ?? '').includes('replayed'), 'replay panel labelled replayed');
   check(await page.isVisible('[data-testid="dev-sample-banner"]'), 'dev sample banner shown');
 
-  // Replay: it starts playing by itself (8x); wait for the first events, then seek to the end with the keyboard ("e").
+  // Replay: it waits below the landing page, then starts playing by itself (8x) once scrolled into view; wait for the
+  // first events, then seek to the end with the keyboard ("e").
+  await page.waitForTimeout(1500);
+  check(/event 0 of 13/.test((await page.textContent('.replay')) ?? ''), 'replay does not play while out of view');
+  await page.evaluate(() => document.getElementById('replay')?.scrollIntoView());
   await page.waitForFunction(() => /event ([1-9]\d*) of 13/.test(document.querySelector('.replay')?.textContent ?? ''), null, { timeout: 15000 });
-  check(true, 'replay plays on load (events delivered by the timed playback)');
+  check(true, 'replay plays once scrolled into view (events delivered by the timed playback)');
   await page.keyboard.press('e');
   await page.waitForFunction(() => /event (\d+) of \1\b/.test(document.querySelector('.replay')?.textContent ?? ''), null, { timeout: 15000 });
   const bar = await page.textContent('.replay');
@@ -224,7 +231,9 @@ try {
   await ctx2.close();
 
 
-  // REAL recording with candidates (aliquotSum): the default recording of the shipped site. Its three recorded candidates run live.
+  // REAL recording with candidates (clamp): the default recording of the shipped site, behind the landing page. Candidate 1
+  // is correct; candidate 2 drops the lo > hi check, which only Z3 finds ([-2, -1, -3]), so the live verdict on it depends
+  // on cross-origin isolation.
   const ctx3 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const p3 = await ctx3.newPage();
   p3.on('pageerror', (e) => {
@@ -233,11 +242,17 @@ try {
   });
   await p3.goto(`${url}?paused`, { waitUntil: 'load' });
   await p3.waitForFunction(() => self.crossOriginIsolated === true, null, { timeout: 15000 }).catch(() => undefined);
-  await p3.waitForSelector('[data-testid="run-rec-3"]', { timeout: 30000 });
-  const body3 = (await p3.textContent('body')) ?? '';
+  const iso3 = await p3.evaluate(() => self.crossOriginIsolated === true);
+  await p3.waitForSelector('[data-testid="run-rec-2"]', { timeout: 30000 });
+  check(await p3.isVisible('[data-testid="landing"]'), 'landing page shown in front');
+  check((await p3.$('#replay')) !== null && (await p3.$('#live')) !== null, 'landing calls to action have targets (#replay, #live)');
   check(!(await p3.isVisible('[data-testid="dev-sample-banner"]')), 'the default recording is a real recording, not the dev sample');
-  check(/aliquotSum/.test(body3), 'default recording is aliquotSum');
-  for (const id of [1, 3]) {
+  const current = (await p3.textContent('.site-head nav a[aria-current="page"]')) ?? '';
+  check(current === 'clamp', `default recording is clamp (${current})`);
+  const order = await p3.$$eval('.site-head nav a', (els) => els.map((e) => e.textContent));
+  check(order.slice(0, 3).join(',') === 'clamp,fibRecursive,aliquotSum', `recording order (${order.join(', ')})`);
+  check(/carve-out/.test((await p3.textContent('[data-testid="nav-caution-aliquotSum"]')) ?? ''), 'aliquotSum carries its caution in the menu');
+  for (const id of [1, 2]) {
     await p3.click(`[data-testid="run-rec-${id}"]`);
     await p3.waitForFunction((n) => {
       const el = document.querySelector(`[data-testid="live-cand-rec-${n}"] [data-testid="live-run"]`);
@@ -245,12 +260,60 @@ try {
     }, id, { timeout: 180000 });
   }
   const st1 = await p3.getAttribute('[data-testid="live-cand-rec-1"] [data-testid="live-run"]', 'data-state');
-  const st3 = await p3.getAttribute('[data-testid="live-cand-rec-3"] [data-testid="live-run"]', 'data-state');
-  check(st3 === 'passed', `recorded candidate 3 (the proved one) passes the live stages (${st3})`);
-  check(st1 === 'passed' || st1 === 'stopped' || st1 === 'rejected', `recorded candidate 1 ran live (${st1})`);
-  const t3 = (await p3.textContent('[data-testid="live-cand-rec-3"]')) ?? '';
-  check(/ran in your browser just now/.test(t3) && /from the recording/.test(t3), 'live results labelled as live and the candidate as from the recording');
+  const st2 = await p3.getAttribute('[data-testid="live-cand-rec-2"] [data-testid="live-run"]', 'data-state');
+  check(st1 === 'passed', `recorded candidate 1 (correct) passes the live stages (${st1})`);
+  if (iso3) {
+    check(st2 === 'rejected' && (await p3.isVisible('[data-testid="live-cand-rec-2"] [data-testid="live-counterexample"]')), `recorded candidate 2 caught live by Z3 (${st2})`);
+  } else {
+    const smt2 = (await p3.textContent('[data-testid="live-cand-rec-2"] [data-stage="smt"]')) ?? '';
+    check(/replayed/.test(smt2), `not isolated: candidate 2's SMT result shown as replayed (${st2})`);
+  }
+  const t2 = (await p3.textContent('[data-testid="live-cand-rec-2"]')) ?? '';
+  check(/ran in your browser just now/.test(t2) && /from the recording/.test(t2), 'live results labelled as live and the candidate as from the recording');
+
+  // aliquotSum: its two carve-outs, verbatim, above its replay, and the note that it predates the spec-fault fix.
+  await p3.goto(`${url}?paused&r=aliquotSum`, { waitUntil: 'load' });
+  await p3.waitForSelector('[data-testid="recording-caution"]', { timeout: 30000 });
+  const caution = (await p3.textContent('[data-testid="recording-caution"]')) ?? '';
+  check(/inputs where n is 0 are excluded/.test(caution) && /inputs where n is positive are excluded/.test(caution), 'aliquotSum carve-outs shown verbatim');
+  check(/n < 0/.test(caution), 'aliquotSum: what the carve-outs leave (n < 0) is said');
+  check(/Faithful no longer treats spec faults as disagreements/.test(caution), 'aliquotSum: spec-fault note shown');
+  check(/so that speedup describes no input the proof covers/.test(caution), 'aliquotSum: the speedup measured outside the proof is said');
   await ctx3.close();
+
+  // The menu's links (?r=<name>#replay) land on the replay: the page renders after the recordings load, so it jumps there itself.
+  {
+    const ctx5 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const p5 = await ctx5.newPage();
+    await p5.goto(`${url}?paused&r=fibRecursive#replay`, { waitUntil: 'load' });
+    await p5.waitForSelector('.replay', { timeout: 30000 });
+    await p5.waitForTimeout(500);
+    const y = await p5.evaluate(() => Math.round(document.getElementById('replay').getBoundingClientRect().top));
+    check(Math.abs(y) < 10, `a #replay link lands on the replay (its top at ${y}px)`);
+    await ctx5.close();
+  }
+
+  // Phone width, while each real recording plays: step through every event (".") and check the page never scrolls
+  // sideways at any stage (a ?paused load alone only sees event 0).
+  const ctx4 = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const p4 = await ctx4.newPage();
+  for (const name of ['clamp', 'fibRecursive', 'aliquotSum']) {
+    await p4.goto(`${url}?paused&r=${name}`, { waitUntil: 'load' });
+    await p4.waitForFunction(() => /event \d+ of \d+/.test(document.querySelector('.replay')?.textContent ?? ''), null, { timeout: 30000 });
+    let widest = 0;
+    let at = '';
+    for (let i = 0; i < 3000; i++) {
+      const st = await p4.evaluate(() => ({ w: document.scrollingElement.scrollWidth, bar: document.querySelector('.replay')?.textContent?.match(/event (\d+) of (\d+)/) }));
+      if (st.w > widest) {
+        widest = st.w;
+        at = st.bar?.[0] ?? '';
+      }
+      if (!st.bar || st.bar[1] === st.bar[2]) break;
+      await p4.keyboard.press('.');
+    }
+    check(widest <= 375, `${name} at 375px: no horizontal scroll at any replayed event (widest ${widest}px${widest > 375 ? ` at ${at}` : ''})`);
+  }
+  await ctx4.close();
 
   check(errors.length === 0, `no page errors${errors.length ? `: ${errors.slice(0, 5).join(' | ')}` : ''}`);
 } catch (e) {

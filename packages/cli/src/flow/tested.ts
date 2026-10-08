@@ -19,6 +19,7 @@
  */
 import { speedupText } from './format.js';
 import { createTwoFilesPatch } from 'diff';
+import ts from 'typescript';
 import { hashText, stampFrom, TIER_LABEL, type Tier } from '@faithful/core';
 import type { Val } from '@faithful/translate';
 import {
@@ -47,10 +48,11 @@ import {
   type Sandbox,
 } from '@faithful/engine';
 import type { BenchSummary, CandidateRecord, Claim, Provenance, Rejection, Speedup, StageId, StageResult, Threshold } from '@faithful/session';
-import { isDifferentialDetail } from '@faithful/session';
+import { ORIGINAL_DID_NOT_LOAD, isDifferentialDetail } from '@faithful/session';
 import { CANDIDATE_SCHEMA, findFunction, normalizeSource } from './candidate.js';
 import { extractCandidateFunction } from './deliver.js';
 import type { SessionRuntime } from './runtime.js';
+import { testedOriginalFor, type TestedOriginal } from './testedOriginal.js';
 
 /** The equality the Tested-only differential uses, in words (recorded in provenance and VERIFY.md). */
 export const TESTED_EQUALITY =
@@ -66,6 +68,11 @@ export interface TestedPromptInput {
   fn: string;
   /** The original function with its JSDoc. */
   original: string;
+  /**
+   * The module-level declarations the original ran with (extracted unit, verbatim, without the function), so the model
+   * knows the constants it reads. Absent or empty when it uses none, or when the whole file ran.
+   */
+  context?: string;
   refusal: { code: string; reason: string };
   signature: string;
   specials: boolean;
@@ -99,6 +106,9 @@ export function buildTestedPrompt(p: TestedPromptInput): string {
     '```ts',
     p.original.trim(),
     '```',
+    ...(p.context?.trim()
+      ? ['', 'DECLARATIONS FROM THE SAME FILE THAT THE ORIGINAL USES (they ran together with it; only your function is delivered into the file, so do not copy them or add any other top-level declaration; your function must not refer to them):', '```ts', p.context.trim(), '```']
+      : []),
     '',
     `CURRENT BEST (the incumbent) and its timing on the declared distribution (${p.distribution}): ${p.incumbent.timing}`,
     '```ts',
@@ -130,7 +140,7 @@ export async function calibrateSignatureDistribution(sig: FunctionSignature, ori
   const gen = (size: number, rng: BenchRng): Val[] => sig.params.map((p) => sizedValue(p.ty, size, rng));
   const id = `calib-tested:${Math.random().toString(36).slice(2)}`;
   const loaded = await sb.load(id, original.source, original.fnName, { values: 'js' });
-  if (!loaded.ok) throw new Error(`calibration: the original did not load: ${loaded.error}`);
+  if (!loaded.ok) throw new Error(`calibration: ${ORIGINAL_DID_NOT_LOAD}${loaded.error}`);
   let best = 1;
   let note = 'sizes chosen by running the original';
   try {
@@ -191,6 +201,52 @@ function stage(id: StageId, status: StageResult['status'], ms: number, summary: 
 }
 
 /** The words every skipped SMT / proof stage carries. */
+/** The extracted unit without the function itself: the declarations it ran with (for the prompt). */
+export function unitContext(unit: string, fn: string): string {
+  const span = findFunction(unit, fn);
+  return (span ? unit.slice(0, span.start) + unit.slice(span.end) : '').trim();
+}
+
+/** The sentence VERIFY.md, provenance and the UI use for what ran as the original. */
+export function testedOriginalSentence(o: { scope: 'extracted' | 'file'; included: Array<{ name: string; line: number }> }): string {
+  if (o.scope === 'file') return 'The original ran with its whole file loaded.';
+  if (o.included.length === 0) return 'The original ran by itself: it uses no other declarations from its file; the rest of the file (imports and other code) was not loaded.';
+  return `The original ran together with these declarations from the same file: ${o.included.map((d) => `${d.name} (line ${d.line})`).join(', ')}; the rest of the file (imports and other code) was not loaded.`;
+}
+
+/**
+ * Top-level statements of a candidate other than the function itself: only the function is delivered (spliced into the
+ * user's file), so anything else would be tested but not shipped. A type or interface is allowed when the original
+ * (the unit or file the candidate was compiled next to) declares one of the same name, since the user's file has it.
+ */
+export function candidateExtras(candidate: string, fn: string, original: string): string[] {
+  const names = (src: string): Set<string> => {
+    const sf = ts.createSourceFile('o.ts', src, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
+    const out = new Set<string>();
+    for (const st of sf.statements) if ((ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st)) && st.name) out.add(st.name.text);
+    return out;
+  };
+  const sf = ts.createSourceFile('c.ts', candidate, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
+  let types: Set<string> | null = null;
+  const extras: string[] = [];
+  for (const st of sf.statements) {
+    if (ts.isEmptyStatement(st)) continue;
+    if (ts.isFunctionDeclaration(st) && st.name?.text === fn) continue;
+    if (ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st)) {
+      types ??= names(original);
+      if (types.has(st.name.text)) continue;
+    }
+    const named = (st as { name?: ts.Node }).name;
+    const vars = ts.isVariableStatement(st) ? st.declarationList.declarations.map((d) => d.name.getText(sf)) : [];
+    extras.push(vars.length ? vars.join(', ') : named && ts.isIdentifier(named) ? named.text : `a top-level statement (line ${sf.getLineAndCharacterOfPosition(st.getStart(sf)).line + 1})`);
+  }
+  return extras;
+}
+
+export function candidateExtrasWords(extras: string[]): string {
+  return `it declares ${extras.join(', ')} outside the function; only the function is delivered into your file, so it must not rely on other top-level code`;
+}
+
 export function outsideSubsetWords(reason: string): string {
   return `outside the verifiable subset: ${reason}`;
 }
@@ -202,6 +258,7 @@ export class TestedOptimizer {
   private sig: FunctionSignature;
   private original: JsProgram;
   private originalText: string;
+  private unit: TestedOriginal;
   private dist!: Distribution;
   private candId = 0;
   private incumbentSource: string;
@@ -212,12 +269,15 @@ export class TestedOptimizer {
   constructor(rt: SessionRuntime, opts: TestedOptions) {
     const tested = rt.state.tested;
     if (!tested) throw new Error('start the Tested-only path first (runtime.startTestedOnly)');
-    const sig = inferSignature(rt.fileText, rt.state.fn);
+    // what runs as the original: the extracted unit (or the whole file), the same source the preflight loaded
+    const unit = rt.testedOriginal();
+    const sig = inferSignature(unit.source, rt.state.fn);
     if (!sig.ok) throw new Error(`inputs cannot be generated from the signature: ${sig.reason}`);
     this.rt = rt;
     this.opts = opts;
     this.sig = sig.sig;
-    this.original = { source: rt.fileText, fnName: rt.state.fn };
+    this.unit = unit;
+    this.original = { source: unit.source, fnName: rt.state.fn };
     this.originalText = findFunction(rt.fileText, rt.state.fn)?.text ?? rt.fileText;
     this.incumbentSource = this.originalText;
   }
@@ -253,6 +313,7 @@ export class TestedOptimizer {
       const prompt = buildTestedPrompt({
         fn,
         original: this.originalText,
+        context: this.unit.scope === 'extracted' ? unitContext(this.unit.source, this.rt.state.fn) : undefined,
         refusal: this.refusal,
         signature: signatureWords(this.sig),
         specials: this.specials,
@@ -310,8 +371,15 @@ export class TestedOptimizer {
       return { ...cand, outcome: 'rejected', rejection: rej };
     };
 
-    // 1. compile (same signature as the original)
-    const c = await compileGate({ candidate: source, fnName: fn, original: rt.fileText });
+    // 1. compile (same signature as the original). Delivery splices ONLY the function into the user's file, so a
+    // candidate with other top-level code (a copied constant, a helper) would be tested with that code and shipped
+    // without it: refused here, as a compile-stage rejection.
+    const outside = candidateExtras(source, fn, this.original.source);
+    if (outside.length > 0) {
+      await done(stage('compile', 'fail', 0, `declares ${outside.join(', ')} outside the function`));
+      return reject({ stage: 'compile', kind: 'compile-error', reason: candidateExtrasWords(outside) });
+    }
+    const c = await compileGate({ candidate: source, fnName: fn, original: this.original.source });
     await done(stage('compile', c.ok ? 'pass' : 'fail', c.ms, c.ok ? 'compiles under strict TypeScript; signature matches' : `${c.diagnostics.filter((d) => d.category === 'error').length} error(s)`));
     if (!c.ok) {
       const d = c.diagnostics.find((x) => x.category === 'error');
@@ -333,6 +401,12 @@ export class TestedOptimizer {
     // 3. differential against the original + the mutation check of the original on the same inputs
     const td0 = performance.now();
     const rep = await jsVsJs(this.original, { source, fnName: fn }, screen.fast, { sandbox: sb, perCallMs: 500 });
+    if (rep.compared === 0 && !rep.loadError) {
+      // nothing was compared: passing here would claim a match on zero inputs
+      const why = `the original failed or took longer than 100 ms on all ${gen.inputs.length} generated inputs, so nothing could be compared`;
+      await done(stage('differential', 'fail', performance.now() - td0, why));
+      return reject({ stage: 'differential', kind: 'other', reason: why });
+    }
     if (rep.differences.length || rep.loadError) {
       const d = rep.differences[0];
       await done(stage('differential', 'fail', performance.now() - td0, `differs from the original on ${rep.differences.length} of ${rep.compared} inputs`));
@@ -425,7 +499,11 @@ export class TestedOptimizer {
 
 // ───────────── delivery ─────────────
 
-export function testedVerifyMarkdown(fn: string, dir: string, p: { refusalCode: string; refusalReason: string; inputs: number | null; seed: number | null; specials: boolean; changed: boolean }): string {
+export function testedVerifyMarkdown(
+  fn: string,
+  dir: string,
+  p: { refusalCode: string; refusalReason: string; inputs: number | null; seed: number | null; specials: boolean; changed: boolean; original?: { scope: 'extracted' | 'file'; included: Array<{ name: string; line: number }>; caveats?: string[] } },
+): string {
   return [
     `# Re-checking ${fn} (${TIER_LABEL.tested} tier only)`,
     '',
@@ -433,6 +511,7 @@ export function testedVerifyMarkdown(fn: string, dir: string, p: { refusalCode: 
     '',
     'So there is no Lean model, no agreed spec, no proof and no SMT check for it, and nothing here re-checks one. The only claim is the Tested one: the optimized function behaved like the original on generated inputs.',
     '',
+    ...(p.original ? [testedOriginalSentence(p.original), ...(p.original.caveats ?? []).map((c) => `Caveat: ${c}.`), ''] : []),
     '```',
     `faithful verify ${dir}`,
     '```',
@@ -455,6 +534,8 @@ export async function deliverTested(rt: SessionRuntime): Promise<{ dir: string; 
   const stamp = stampFrom(s.toolchain ?? (await (await import('@faithful/core')).captureToolchain()));
   const originalText = findFunction(rt.fileText, fn)?.text ?? rt.fileText;
   const optimizedSource = inc ? inc.source : originalText;
+  const unit = rt.testedOriginal();
+  const ran = { scope: unit.scope, included: unit.included.map((d) => ({ kind: d.kind, name: d.name, line: d.line })) };
   const dd = inc?.stages.find((x) => x.stage === 'differential')?.detail;
   const detail = isDifferentialDetail(dd) ? (dd as typeof dd & { requested?: number }) : null;
   const claims: Claim[] = [];
@@ -512,6 +593,8 @@ export async function deliverTested(rt: SessionRuntime): Promise<{ dir: string; 
       `Inputs were generated from the signature ${tested.signature}: integers and non-integer doubles${tested.specials ? ', and NaN, Infinity, -Infinity and -0 (opted in)' : '; NaN, Infinity, -Infinity and -0 were not generated as inputs'}.`,
       `Outcomes were compared as follows: ${TESTED_EQUALITY}.`,
       `${TESTED_EXCLUSIONS}.`,
+      testedOriginalSentence(ran),
+      ...unit.caveats.map((c) => `${c[0]!.toUpperCase()}${c.slice(1)}.`),
       ...(deliveredTier === 'not-proved' ? ['No optimized function was delivered; nothing is claimed.'] : []),
     ],
     testedOnly: {
@@ -519,13 +602,22 @@ export async function deliverTested(rt: SessionRuntime): Promise<{ dir: string; 
       signature: tested.signature,
       generator: { kind: 'signature', seed: detail?.seed ?? 0, n: detail?.requested ?? detail?.compared ?? 0, specials: tested.specials },
       equality: TESTED_EQUALITY,
+      original: { ...ran, unitHash: hashText(unit.source) },
     },
   };
   await write('patch.diff', patch || '# no optimized function was delivered (no incumbent)\n');
   await write(`${fn}.provenance.json`, JSON.stringify(prov, null, 2) + '\n');
   await write(
     'VERIFY.md',
-    testedVerifyMarkdown(fn, dir, { refusalCode: tested.refusal.code, refusalReason: tested.refusal.reason, inputs: detail?.compared ?? null, seed: detail?.seed ?? null, specials: tested.specials, changed: !!inc }),
+    testedVerifyMarkdown(fn, dir, {
+      refusalCode: tested.refusal.code,
+      refusalReason: tested.refusal.reason,
+      inputs: detail?.compared ?? null,
+      seed: detail?.seed ?? null,
+      specials: tested.specials,
+      changed: !!inc,
+      original: { ...ran, caveats: unit.caveats },
+    }),
   );
   await rt.emit({ kind: 'deliver.done', dir, files, at: new Date().toISOString() });
   return { dir, files, evidence: evidence.text };
@@ -552,13 +644,30 @@ export async function verifyTestedOnly(prov: Provenance, add: (name: string, ok:
   add('claims', onlyTested, onlyTested ? 'the provenance makes no proof or SMT claim (Tested tier only)' : 'the provenance of a refused function claims more than the Tested tier');
   const dc = prov.claims.find((c) => c.kind === 'candidate-vs-original-differential');
   if (!dc || prov.optimizedSource === prov.originalSource) return { evidence: null };
-  const sig = inferSignature(prov.originalFileSource, prov.fn);
+  // the original that ran: the extracted unit (re-cut from the recorded file and hash-checked) or, for deliveries made
+  // before extraction, the whole file
+  const scope = t.original?.scope ?? 'file';
+  let originalSource = prov.originalFileSource;
+  if (scope === 'extracted') {
+    let unit: TestedOriginal;
+    try {
+      unit = testedOriginalFor(prov.originalFileSource, prov.fn, 'extracted');
+    } catch (e) {
+      add('original', false, `the recorded file no longer extracts: ${(e as Error).message}`);
+      return { evidence: null };
+    }
+    const same = !t.original!.unitHash || hashText(unit.source) === t.original!.unitHash;
+    add('original', same, same ? testedOriginalSentence(unit) : 'the function re-extracted from the recorded file differs from the one that ran (unit hash mismatch)');
+    if (!same) return { evidence: null };
+    originalSource = unit.source;
+  }
+  const sig = inferSignature(originalSource, prov.fn);
   if (!sig.ok) {
     add('signature', false, `inputs can no longer be generated from the signature: ${sig.reason}`);
     return { evidence: null };
   }
   add('signature', signatureWords(sig.sig) === t.signature, `${signatureWords(sig.sig)}${signatureWords(sig.sig) === t.signature ? '' : ` (recorded: ${t.signature})`}`);
-  const original = { source: prov.originalFileSource, fnName: prov.fn };
+  const original = { source: originalSource, fnName: prov.fn };
   const gen = generateSignatureInputs(sig.sig, { n: t.generator.n, seed: t.generator.seed, specials: t.generator.specials });
   const screen = await screenOriginal(sb, original, gen.inputs, 100);
   const rep = await jsVsJs(original, { source: prov.optimizedSource, fnName: prov.fn }, screen.fast, { sandbox: sb, perCallMs: 500 });

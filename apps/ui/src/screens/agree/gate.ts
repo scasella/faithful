@@ -109,6 +109,24 @@ export function agreeGate(s: SessionState, v: AgreeView = agreeView(s)): Gate {
       next: 'rerun',
     };
   }
+  // Inputs on which Lean produced no value for the spec were never compared; the server refuses a run where they are
+  // at least as many as the compared ones (same wording as its agreeBlocker).
+  const sf = v.lastRun.excluded?.specFaults ?? 0;
+  const compared = v.lastRun.inputsCompared;
+  if (sf > 0 && compared === 0) {
+    return {
+      ok: false,
+      reason: `Lean could not evaluate the spec on any compared input; ${sf} input${sf === 1 ? '' : 's'} produced no value (timeout or crash), so nothing was checked. Revise the spec so it evaluates (for example, without unbounded recursion).`,
+      next: 'propose',
+    };
+  }
+  if (sf > 0 && sf >= compared) {
+    return {
+      ok: false,
+      reason: `Lean could not evaluate the spec on ${sf} input${sf === 1 ? '' : 's'} (timeout or crash), at least as many as the ${compared} it compared, so most of the search checked nothing. Revise the spec so it evaluates faster (for example, without unbounded recursion).`,
+      next: 'propose',
+    };
+  }
   return { ok: true, specHash: v.specHash };
 }
 
@@ -165,4 +183,50 @@ export function leanSpan(full: string, line: string): { start: number; end: numb
 /** The server revises only from "the spec is wrong" rulings on the current spec: are there any? */
 export function canRevise(s: SessionState, v: AgreeView = agreeView(s)): boolean {
   return !!v.specHash && s.rulings.some((r) => r.specHash === v.specHash && r.ruling === 'spec-wrong');
+}
+
+// ───────────── what any proof will cover ─────────────
+
+/** A count in words: "one input", "two inputs", … "1,277 inputs" (no percentages, ever). */
+export function countWords(n: number, one: string, many: string): string {
+  const w = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] ?? n.toLocaleString('en-US');
+  return `${w} ${n === 1 ? one : many}`;
+}
+
+export interface CoverageView {
+  /** "carve-outs exclude X of Y generated inputs", or why the count is unknown; null when there are no carve-outs. */
+  carvedLine: string | null;
+  /** True when the carve-outs exclude at least half of the generated inputs that met the preconditions (the autopilot's blocking threshold). */
+  minority: boolean;
+  /** "N inputs not compared: Lean produced no value for the spec on them", when the run counted any. */
+  specFaultLine: string | null;
+}
+
+/**
+ * From the latest challenge run (ChallengeRun.excluded): how much of the generated input the carve-outs take away, and
+ * the inputs Lean produced no value for. `generatedBeforeCarveOuts` absent or 0 means the count was not taken (older
+ * recordings): the page says so instead of guessing.
+ */
+export function coverageView(run: ChallengeRun | null, carveOuts: number): CoverageView {
+  const ex = run?.excluded;
+  let carvedLine: string | null = null;
+  let minority = false;
+  if (carveOuts > 0) {
+    const of = ex?.generatedBeforeCarveOuts ?? 0;
+    if (!run) carvedLine = 'The challenge has not run yet, so how many inputs the carve-outs exclude is not known.';
+    else if (!ex || of <= 0) carvedLine = `How many generated inputs the carve-outs exclude was not recorded in run ${run.id}.`;
+    else {
+      const x = ex.carvedOut;
+      carvedLine = `In run ${run.id}, the carve-outs exclude ${x.toLocaleString('en-US')} of ${of.toLocaleString('en-US')} generated inputs.`;
+      minority = x * 2 >= of;
+    }
+  }
+  const sf = ex?.specFaults ?? 0;
+  const specFaultLine = sf > 0 ? `${countWords(sf, 'input', 'inputs').replace(/^./, (c) => c.toUpperCase())} not compared: Lean produced no value for the spec on ${sf === 1 ? 'it' : 'them'}.` : null;
+  return { carvedLine, minority, specFaultLine };
+}
+
+/** Old recordings listed an input where Lean produced no value for the spec as a disagreement: it is an evaluation fault. */
+export function isSpecFault(c: Challenge): boolean {
+  return c.spec.tag === 'fault';
 }

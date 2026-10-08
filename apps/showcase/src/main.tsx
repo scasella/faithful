@@ -1,7 +1,8 @@
 /**
- * Showcase entry. ?r=<name> picks a recording from recordings/index.json (default: the first one). With no recording
- * at all, the UI's development fixture is shown instead, labelled as a development fixture (never as evidence).
- * ?paused: do not start playing on load.
+ * Showcase entry. The landing page (apps/ui/src/landing) comes first, then the recorded sessions. ?r=<name> picks a
+ * recording from recordings/index.json (default: the first in RECORDING_ORDER, clamp). With no recording at all, the
+ * UI's development fixture is shown instead, labelled as a development fixture (never as evidence).
+ * The replay starts playing when it scrolls into view (site/Site.tsx); ?paused: never start it by itself.
  */
 import '@ui/styles.css';
 import './site/site.css';
@@ -10,8 +11,9 @@ import { App } from '@ui/app/App';
 import { ReplayAdapter } from '@ui/adapters/replay';
 import { FIXTURES } from '@ui/fixtures';
 import { createStore } from '@ui/store';
+import { Landing } from '@ui/landing/Landing';
 import { RecordingSite } from './site/Site';
-import { loadIndex, loadRecording, type RecordingHead } from './site/recording';
+import { loadIndex, loadRecording, orderHeads, type RecordingHead } from './site/recording';
 
 const root = document.getElementById('app')!;
 const q = new URLSearchParams(location.search);
@@ -21,12 +23,15 @@ function fixtureFallback(why: string) {
   const store = createStore();
   const replay = new ReplayAdapter(fx.events, { label: fx.title, fixture: true, speed: 8 });
   render(
-    <div class="site">
-      <p class="err-inline" role="status">
-        No recording could be loaded ({why}). Showing the UI’s development fixture instead; nothing below ran.
-      </p>
-      <App store={store} adapter={replay} replay={replay} fixtureTitle={fx.title} onAttached={() => replay.toEnd()} />
-    </div>,
+    <>
+      <Landing variant="showcase" />
+      <div class="site" id="replay">
+        <p class="err-inline" role="status">
+          No recording could be loaded ({why}). Showing the UI’s development fixture instead; nothing below ran.
+        </p>
+        <App store={store} adapter={replay} replay={replay} fixtureTitle={fx.title} onAttached={() => replay.toEnd()} />
+      </div>
+    </>,
     root,
   );
 }
@@ -34,7 +39,7 @@ function fixtureFallback(why: string) {
 async function main() {
   let heads: RecordingHead[];
   try {
-    heads = await loadIndex();
+    heads = orderHeads(await loadIndex());
   } catch (e) {
     return fixtureFallback((e as Error).message);
   }

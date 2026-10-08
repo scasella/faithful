@@ -87,8 +87,11 @@ optimized on the Tested tier only. Full description: [docs/TRANSLATOR.md](docs/T
 
 ## Showcase
 
-A static site replays recorded sessions and re-runs the funnel (translate, compile, purity, differential, Z3) live in
-the browser.
+A static site opens on a landing page, then replays recorded sessions and re-runs the funnel (translate, compile,
+purity, differential, Z3) live in the browser. The default recording is `clamp`: a rewrite that passed 1000
+differential inputs is rejected because Z3 found the input [-2,-1,-3], on which the original throws and the rewrite
+returns -1. The local UI shows the same landing page as its start screen when you tick "Show this page when Faithful
+opens" (kept in a session cookie).
 
 showcase: build with `pnpm --filter @faithful/showcase build`
 
@@ -101,7 +104,7 @@ Safari are untested.
 
 The demo media is produced by `node scripts/make-media.mjs <recording>` from a real recorded session under
 `apps/showcase/public/recordings/` (the script refuses fixtures and the development sample). If the files below are
-missing, they have not been generated yet.
+missing, they have not been generated yet. The current files come from `apps/showcase/public/recordings/clamp.json`.
 
 ![Faithful replaying a recorded session](docs/media/faithful-demo.gif)
 

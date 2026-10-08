@@ -75,8 +75,14 @@ export interface ChallengeRun {
   totalDisagreements?: number;
   /** Ids of the carve-outs this search ran under (the search is only current for the current carve-outs). */
   carveOutIds?: string[];
-  /** Inputs not compared, by reason. */
-  excluded?: { range: number; throwPrecondition: number; faults: number; carvedOut: number };
+  /**
+   * Inputs not compared, by reason. `faults`: the ORIGINAL faulted. `specFaults`: Lean produced no value for the spec
+   * (timeout, crash); such an input is evidence about neither side, so it is counted here and never listed as a
+   * disagreement (absent in recordings made before this field existed). `carvedOut`: generated inputs that satisfied the
+   * preconditions but fell in a carve-out; `generatedBeforeCarveOuts` is what that count is out of (both absent or 0 in
+   * older recordings, where the count was not taken).
+   */
+  excluded?: { range: number; throwPrecondition: number; faults: number; carvedOut: number; specFaults?: number; generatedBeforeCarveOuts?: number };
   ms: number;
   seed: number;
 }
@@ -248,6 +254,19 @@ export interface TestedOnly {
   /** The user opted in to NaN, Infinity, -Infinity and -0 as generated inputs. */
   specials: boolean;
   at: string;
+  /**
+   * What ran as the original: `'extracted'` = the function plus only the module-level declarations it uses
+   * (packages/engine/src/sandbox/extract.ts), `'file'` = the whole file. Absent in recordings made before extraction
+   * (they loaded the whole file).
+   */
+  original?: 'extracted' | 'file';
+  /** The module-level declarations an extracted original ran with (names, in file order); absent for the whole file. */
+  included?: string[];
+  /**
+   * Disclosures that qualify the Tested claim for an extracted original: included state that other code in the file can
+   * change, which did not run (the comparison saw only its starting value). Absent when there are none.
+   */
+  caveats?: string[];
 }
 
 // ───────────── the state ─────────────
@@ -311,7 +330,7 @@ export type SessionEvent =
   | { kind: 'job.failed'; job: string; message: string }
   | { kind: 'deliver.done'; dir: string; files: string[]; at: string }
   /** The user continues a refused function on the Tested tier only (then `optimize.started` etc. as usual). */
-  | { kind: 'tested.started'; refusal: Refusal; signature: string; specials: boolean; at: string };
+  | { kind: 'tested.started'; refusal: Refusal; signature: string; specials: boolean; at: string; original?: 'extracted' | 'file'; included?: string[]; caveats?: string[] };
 
 /** An event as stored/streamed: monotonically numbered, timestamped (ms since session start). */
 export interface StampedEvent {

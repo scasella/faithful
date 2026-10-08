@@ -113,7 +113,18 @@ export function reduce(s: SessionState, e: SessionEvent): SessionState {
       return { ...s, delivery: { dir: e.dir, files: e.files, at: e.at }, stage: 'deliver' };
     case 'tested.started':
       // the stage moves to 'optimize' with the following `optimize.started` (after the baseline benchmark)
-      return { ...s, tested: { refusal: e.refusal, signature: e.signature, specials: e.specials, at: e.at } };
+      return {
+        ...s,
+        tested: {
+          refusal: e.refusal,
+          signature: e.signature,
+          specials: e.specials,
+          at: e.at,
+          ...(e.original ? { original: e.original } : {}),
+          ...(e.included ? { included: [...e.included] } : {}),
+          ...(e.caveats?.length ? { caveats: [...e.caveats] } : {}),
+        },
+      };
     default:
       return s;
   }

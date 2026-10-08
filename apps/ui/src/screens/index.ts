@@ -24,6 +24,7 @@ export const SCREEN_KEYS: Record<StageName, KeyDoc[]> = {
     { keys: ['1', '2'], what: 'A refused function: choose when optimizing on the Tested tier stops (time budget, target speedup)' },
     { keys: ['i'], what: 'A refused function: also generate NaN, Infinity, -Infinity and -0 as inputs' },
     { keys: ['t'], what: 'A refused function: optimize with the Tested tier only (no spec, proof or SMT check exists)' },
+    { keys: ['f'], what: 'A refused function the Tested tier cannot run (its file is not self-contained): choose another function' },
   ],
   agree: [
     { keys: ['j', 'k'], what: 'Next / previous unruled challenge' },

@@ -18,6 +18,7 @@ export {
   type ViolationKind,
 } from './sandbox/mask.js';
 export { prepareSource, type PreparedSource, type SourceProblem } from './sandbox/source.js';
+export { extractUnit, type ExtractResult, type IncludedDecl, type IncludedKind } from './sandbox/extract.js';
 export {
   compileGate,
   canonicalType,

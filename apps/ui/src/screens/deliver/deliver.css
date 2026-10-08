@@ -16,3 +16,31 @@
 .dl-diff .dl-d-sign { display: inline-block; width: 1.5ch; user-select: none; color: var(--muted); }
 .dl-diff .dl-d-del .dl-d-sign { color: var(--catch); }
 .dl-diff .dl-d-add .dl-d-sign { color: var(--ok); }
+
+/* the receipt */
+.dl-kicker { font-size: 0.8125rem; color: var(--muted); letter-spacing: 0.02em; overflow-wrap: anywhere; }
+.dl-title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s4); }
+.dl-receipt h3#dl-title { font-size: 1.5rem; font-weight: 680; letter-spacing: -0.015em; }
+.dl-carve-count { font-size: 0.875rem; font-weight: 650; color: var(--warn); }
+.dl-speed-x { font-family: var(--mono); font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dl-speed-ci { font-family: var(--mono); font-size: 0.875rem; }
+.dl-speed-carve { font-size: 0.875rem; border-left: 3px solid var(--warn); padding-left: var(--s3); max-width: 40rem; }
+.dl-claim { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: var(--s4) var(--s5); }
+.dl-claim h4, .dl-gates h4 { margin: 0; }
+.dl-sub { font-size: 0.8125rem; color: var(--muted); margin-bottom: var(--s1); }
+.dl-theorem { margin: 0; background: var(--sunk); border-radius: var(--r-s); padding: var(--s3) var(--s4); font-size: 0.8125rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dl-gates dl { margin: var(--s2) 0 0; }
+.dl-gates dl > div { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--line); font-size: 0.9375rem; }
+.dl-gates dt { color: var(--muted); }
+.dl-gates dd { margin: 0; overflow-wrap: anywhere; }
+.dl-weak { max-width: 42rem; }
+.dl-left-list { list-style: none; margin: 0; padding: 0; }
+.dl-left-list li { padding: var(--s3) 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--s2); }
+.dl-left-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s3); }
+.dl-left-speed { font-family: var(--mono); font-size: 0.875rem; }
+.dl-left-why { font-size: 0.875rem; color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .dl-claim { padding: var(--s4); }
+  .dl-gates dl > div { grid-template-columns: 1fr; gap: 2px; }
+  .dl-speed-x { font-size: 1.6rem; }
+}

@@ -20,7 +20,10 @@ body {
 .site {
   max-width: 76rem;
   margin: 0 auto;
-  padding: var(--s5) var(--s4) var(--s8);
+  padding: var(--s7) var(--s4) var(--s8);
+}
+.landing + .site {
+  border-top: 1px solid var(--line);
 }
 .site-head {
   display: flex;
@@ -31,15 +34,61 @@ body {
 }
 .site-head .kicker {
   margin: 0;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 650;
 }
 .site-head nav {
   display: flex;
-  gap: var(--s3);
+  flex-wrap: wrap;
+  gap: 0 var(--s4);
+}
+.site-head > a,
+.site-head nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 .site-head nav a[aria-current='page'] {
   font-weight: 600;
   text-decoration: none;
+}
+.rec-pick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--s2);
+}
+.rec-pick-caution {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--warn);
+}
+/* A recording's limits (carve-outs, spec-fault note): above its replay, never folded away. */
+.rec-caution {
+  max-width: var(--measure);
+  margin: 0 auto var(--s5);
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--warn);
+  border-radius: var(--r-s);
+  background: var(--surface);
+}
+.rec-caution p {
+  margin: 0;
+}
+.rec-caution p + p,
+.rec-caution ul + p {
+  margin-top: var(--s2);
+}
+.rec-caution ul {
+  margin: var(--s2) 0 0;
+  padding-left: var(--s5);
+}
+.rec-caution code {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .opener {
   max-width: var(--measure);

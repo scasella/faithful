@@ -1,10 +1,13 @@
 /**
- * Select: pick an exported function (typeahead over Actions.listFiles()) or paste one. Nothing else is on this screen.
+ * Select: pick an exported function (a typeahead the server ranks, see ./pickView.ts) or paste one. Nothing else is on this screen.
  * Keys: '/' focuses the search, ↑/↓ move through matches, Enter opens, 'p' switches to pasting (Mod+Enter submits a paste).
+ * Matches are ranked by the server by what Faithful can attempt (Actions.pickFunctions, from its background scan of the
+ * whole repository; the list re-ranks in place as the scan advances); the ones it can't run are listed apart, with the
+ * reason, and cannot be opened. ↑/↓/Enter move only through the runnable list. A replay or fixture lists the functions
+ * locally (Actions.listFiles), without statuses.
  */
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { useApp } from '../../app/AppContext';
-import type { FileEntry } from '../../actions';
 import { Code } from '../../components/Code';
 import { ActionButton } from '../../components/ActionButton';
 import { KeyHint } from '../../components/KeyHint';
@@ -12,10 +15,15 @@ import { act, type Store } from '../../store';
 import { blockingJob } from '../../components/ActionButton';
 import { jobWords } from '../../lib/job';
 import { useKeys } from '../../lib/keys';
-import { matchFunctions, pastedName, type FnHit } from './match';
+import { pastedName, type FnHit } from './match';
+import { usePickView } from './pickView';
+import { openable, rowKey, useSelection } from './runnable';
+import { CannotRun, RowStatus, ScanAnnouncer, ScanLine } from './CannotRun';
 import './select.css';
 
 export const CLI_FORM = 'faithful optimize <file> --fn <name>';
+/** Rows listed at most. */
+export const SELECT_LIMIT = 50;
 
 function Name({ hit }: { hit: FnHit }) {
   if (!hit.nameHits.length) return <>{hit.name}</>;
@@ -61,11 +69,8 @@ export function SelectScreen() {
 
 function Picker({ current }: { current: { fn: string; file: string } | null }) {
   const { store, adapter } = useApp();
-  const [files, setFiles] = useState<FileEntry[] | null>(null);
-  const [listErr, setListErr] = useState<string | null>(null);
   const [mode, setMode] = useState<'find' | 'paste'>('find');
   const [query, setQuery] = useState('');
-  const [active, setActive] = useState(0);
   const [paste, setPaste] = useState('');
   const [pasteFn, setPasteFn] = useState('');
   const [opening, setOpening] = useState<{ what: string; from: number } | null>(null);
@@ -73,22 +78,24 @@ function Picker({ current }: { current: { fn: string; file: string } | null }) {
   const area = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    adapter.listFiles().then(
-      (f) => (setFiles(f), setListErr(null)),
-      (e: Error) => setListErr(e.message || String(e)),
-    );
-  }, [adapter]);
-  useEffect(() => {
     // Autofocus only when choosing is the task. Revisiting Select during a session must not capture the stage keys
     // ([ ] ← →) in the search field; '/' focuses it on demand.
     if (current && mode === 'find') return;
     (mode === 'find' ? input.current : area.current)?.focus();
   }, [mode]);
 
-  const { hits, total } = useMemo(() => matchFunctions(files ?? [], query), [files, query]);
-  const act_ = Math.min(active, Math.max(0, hits.length - 1));
+  const view = usePickView(adapter, query, SELECT_LIMIT);
+  // the highlight is the row's identity: when the server re-ranks the list as the scan advances, it stays on the same function
+  const { shown, cannot } = view;
+  const sel = useSelection(shown);
+  const hits = shown.map((r) => r.hit);
+  const act_ = sel.cur;
 
+  const rowOpenable = (i: number) => !!shown[i] && openable(shown[i]!);
   const open = (h: FnHit) => {
+    if (view.stale) return; // the rows answer an older query: wait for the answer to this one
+    // a row still being checked is not a choice yet (the list is about to be re-ranked under the pointer)
+    if (!rowOpenable(hits.indexOf(h))) return;
     if (refuseWhileBusy(store)) return;
     setOpening({ what: `${h.name} in ${h.path}`, from: store.events.value.length });
     void act(store, () => adapter.openFunction(h.path, h.name)).then(() => {
@@ -112,13 +119,18 @@ function Picker({ current }: { current: { fn: string; file: string } | null }) {
 
   useKeys({ '/': mode === 'find' ? () => input.current?.focus() : undefined });
 
+  // the page scrolls to the highlighted row only after the person moved it with the arrow keys: never because a re-rank
+  // changed which row is the best one (nothing is focused or scrolled by an update)
+  const moved = useRef(false);
   const onSearchKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActive(Math.min(act_ + 1, hits.length - 1));
+      moved.current = true;
+      sel.step(1);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActive(Math.max(act_ - 1, 0));
+      moved.current = true;
+      sel.step(-1);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const h = hits[act_];
@@ -127,13 +139,16 @@ function Picker({ current }: { current: { fn: string; file: string } | null }) {
       if (query) {
         e.preventDefault();
         setQuery('');
-        setActive(0);
+        sel.clear();
       } else (e.target as HTMLInputElement).blur();
     }
   };
+  // keyed on the highlighted function, not its position, and only after an arrow key moved it
   useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
     document.getElementById(`sel-opt-${act_}`)?.scrollIntoView?.({ block: 'nearest' });
-  }, [act_]);
+  }, [sel.curKey]);
 
   const guessed = pastedName(paste);
 
@@ -168,41 +183,48 @@ function Picker({ current }: { current: { fn: string; file: string } | null }) {
             aria-autocomplete="list"
             aria-expanded={hits.length > 0}
             aria-controls="sel-list"
-            aria-activedescendant={hits.length ? `sel-opt-${act_}` : undefined}
+            aria-activedescendant={act_ >= 0 ? `sel-opt-${act_}` : undefined}
             aria-describedby="sel-help"
             value={query}
             onInput={(e) => {
               setQuery((e.target as HTMLInputElement).value);
-              setActive(0);
+              sel.clear();
             }}
             onKeyDown={onSearchKey}
           />
           <p id="sel-help" class="sel-help">
             <KeyHint keys={['↑', '↓']} /> move · <KeyHint keys="Enter" /> open · <KeyHint keys="Esc" /> clear
           </p>
-          {listErr !== null ? (
+          {view.phase === 'failed' ? (
             <p class="err-inline" role="alert">
-              Could not list the repository's functions: {listErr}. You can paste a function instead.
+              Could not list the repository's functions: {view.failure}. You can paste a function instead.
             </p>
-          ) : files === null ? (
+          ) : view.phase === 'listing' ? (
             <p class="muted" role="status">
               Listing exported functions…
             </p>
           ) : hits.length === 0 ? (
-            <p class="muted" role="status">
-              {files.length === 0 ? 'No exported functions were found in this repository.' : 'No exported function matches.'} You can paste one instead.
-            </p>
+            <>
+              {view.cannotTotal === 0 && (
+                <p class="muted" role="status">
+                  {view.emptyRepo ? 'No exported functions were found in this repository.' : 'No exported function matches.'} You can paste one instead.
+                </p>
+              )}
+              <ScanLine line={view.scanLine} />
+              <CannotRun rows={cannot} total={view.cannotTotal} only available={view.statuses} id="sel-cannot" />
+            </>
           ) : (
             <>
-              <ul id="sel-list" role="listbox" class="sel-list" aria-label="Matching functions">
-                {hits.map((h, i) => (
+              <ul id="sel-list" role="listbox" class={`sel-list${view.stale ? ' stale' : ''}`} aria-label="Matching functions" aria-busy={view.stale}>
+                {shown.map(({ hit: h, state }, i) => (
                   <li
-                    key={`${h.path}:${h.name}:${h.line}`}
+                    key={rowKey(h)}
                     id={`sel-opt-${i}`}
                     role="option"
                     aria-selected={i === act_}
-                    class={i === act_ ? 'on' : undefined}
-                    onMouseEnter={() => setActive(i)}
+                    aria-disabled={openable({ state }) ? undefined : true}
+                    class={`${i === act_ ? 'on' : ''}${openable({ state }) ? '' : ' wait'}`.trim() || undefined}
+                    onMouseMove={() => sel.select(i)}
                     onClick={() => open(h)}
                   >
                     <span class="sel-name">
@@ -211,15 +233,23 @@ function Picker({ current }: { current: { fn: string; file: string } | null }) {
                     <span class="sel-path">
                       {h.path}:{h.line}
                     </span>
+                    <RowStatus state={state} />
                   </li>
                 ))}
               </ul>
-              {total > hits.length && (
-                <p class="sel-help">
-                  {total.toLocaleString('en-US')} functions match; the first {hits.length} are listed. Keep typing to narrow.
-                </p>
-              )}
+              {view.note && <p class="sel-help">{view.note}</p>}
+              <ScanLine line={view.scanLine} />
+              <CannotRun rows={cannot} total={view.cannotTotal} only={false} available={view.statuses} id="sel-cannot" />
             </>
+          )}
+          <ScanAnnouncer text={view.announce} active={view.statuses} />
+          {view.askError && (
+            <p class="err-inline" role="alert">
+              Could not refresh the list: {view.askError}. The rows shown may be out of date.
+            </p>
+          )}
+          {view.degraded && view.phase === 'ready' && (
+            <p class="sel-help">Could not ask which functions Faithful can run ({view.degraded}); every function is listed, without a status.</p>
           )}
           <div class="row">
             <ActionButton local keyName="p" run={() => setMode('paste')}>

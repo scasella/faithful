@@ -119,7 +119,8 @@ describe('Select screen', () => {
     const adapter = fakeAdapter();
     adapter.listFiles.mockRejectedValueOnce(new Error('HTTP 404'));
     act(() => render(h(AppContext.Provider, { value: { store: storeWith([]), adapter } }, h(SelectScreen, {})), root));
-    await flush();
+    // the adapter first answers "unknown" to the ranked ask (a fixture), then the page lists the files itself
+    for (let i = 0; i < 4; i++) await flush();
     expect(root.textContent).toContain("Could not list the repository's functions: HTTP 404.");
     expect(root.textContent).toContain('Paste a function instead');
   });

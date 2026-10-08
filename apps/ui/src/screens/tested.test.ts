@@ -47,6 +47,24 @@ describe('Translate: a refused function offers the Tested tier only', () => {
   });
 });
 
+describe('What ran as the original (tested.started.original / included)', () => {
+  const withIncluded = testedFixture.events.map((e) =>
+    e.event.kind === 'tested.started' ? { ...e, event: { ...e.event, original: 'extracted' as const, included: ['WEIGHTS', 'scale'], caveats: ['other code in this file (line 9) can change WEIGHTS; that code did not run, so the comparison saw only the starting value of WEIGHTS'] } } : e,
+  );
+  it('the full Optimize screen names the declarations the extracted original ran with', () => {
+    const text = visibleText(renderScreen(OptimizeScreen, storeWith(withIncluded), ro(withIncluded)));
+    expect(text).toContain('Ran the function together with: WEIGHTS, scale from the same file; the rest of the file (imports and other code) was not loaded.');
+    expect(text).toContain('Caveat: other code in this file (line 9) can change WEIGHTS; that code did not run, so the comparison saw only the starting value of WEIGHTS.');
+    assertClaimsExact(text);
+  });
+  it('a recording from before extraction (no field) says nothing about it; a whole-file run says so', () => {
+    const old = visibleText(renderScreen(OptimizeScreen, storeWith(testedFixture.events), ro(testedFixture.events)));
+    expect(old).not.toContain('Ran the function');
+    const whole = testedFixture.events.map((e) => (e.event.kind === 'tested.started' ? { ...e, event: { ...e.event, original: 'file' as const } } : e));
+    expect(visibleText(renderScreen(OptimizeScreen, storeWith(whole), ro(whole)))).toContain('Ran the function with its whole file loaded.');
+  });
+});
+
 describe('Optimize: the funnel and the tier of a Tested-only session', () => {
   const store = storeWith(testedFixture.events);
   const text = visibleText(renderScreen(OptimizeScreen, store, ro(testedFixture.events)));

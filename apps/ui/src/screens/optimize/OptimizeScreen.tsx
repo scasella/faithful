@@ -1,18 +1,24 @@
 /**
- * Optimize: the chosen threshold, the incumbent, the candidates (each with its funnel strip and timings, benchmark
- * readout with the 95% CI, and "What the model saw"), rejected candidates as CatchCards, and the accept-at-Verified-to-k
- * action for "faster, not proved" candidates. Once stopped: the final readout and the delivery action.
+ * Optimize: the chosen threshold and baseline, then the candidate workspace: selectable candidate cards (label, speedup
+ * with its 95% CI, outcome) with the incumbent under them, and the selected candidate's detail (headline speedup, one
+ * chip per gate, why it has this label and not a stronger one, original and candidate side by side, the benchmark
+ * readout, evidence and "What the model saw"). A rejected candidate's detail is its CatchCard. Below: the
+ * accept-at-Verified-to-k action for "faster, not proved" candidates. Once stopped: the final readout and the delivery.
  *
- * Live stream without jumping: candidates keep their order (by id) and are only appended; every panel above the list
- * keeps a constant structure; nothing auto-scrolls (browser scroll anchoring keeps the reader's place).
+ * Every candidate's detail is rendered (tab panels; the unselected ones `hidden`), so nothing is lost from the page
+ * and a streamed candidate only appends. Live stream without jumping: cards keep their order (by id) and are only
+ * appended; every panel above the list keeps a constant structure; nothing auto-scrolls. Until you pick a card, the
+ * detail follows the newest candidate while optimizing runs, and shows the incumbent once it has stopped.
  */
-import { useState } from 'preact/hooks';
-import type { BenchSummary, CandidateRecord } from '@faithful/session';
+import { useId, useState } from 'preact/hooks';
+import type { BenchSummary, CandidateRecord, SessionState } from '@faithful/session';
+import { testedCaveatWords, testedIncludedWords } from '@faithful/session';
 import { TIER_LABEL, formatCount } from '@faithful/core/tiers';
 import { useApp } from '../../app/AppContext';
 import { ActionButton } from '../../components/ActionButton';
+import { CarveOutBand } from '../../components/CarveOutBand';
 import { CatchCard } from '../../components/CatchCard';
-import { Code } from '../../components/Code';
+import { CodePair } from '../../components/Code';
 import { Evidence } from '../../components/Evidence';
 import { Funnel } from '../../components/Funnel';
 import { InlineText } from '../../components/InlineText';
@@ -20,11 +26,13 @@ import { KeyHint } from '../../components/KeyHint';
 import { ModelSaw } from '../../components/ModelSaw';
 import { Num, ProvText } from '../../components/Provenance';
 import { TierBadge } from '../../components/TierBadge';
-import { callById, candidateModelCheck, candidateProofCalls, differentialDetail, incumbent, nForCandidate, paramNames, smtK, stageOf } from '../../lib/facts';
+import { callById, candidateModelCheck, candidateProofCalls, differentialDetail, incumbent, nForCandidate, nForOriginal, originalModelCheck, paramNames, smtK, stageOf } from '../../lib/facts';
 import { ciText, nsText, ratioText, speedupCiText } from '../../lib/format';
 import { ThresholdChoice } from './ThresholdChoice';
 import { thresholdWords } from './threshold';
 import { STAGE_LABEL } from '../../lib/catch';
+import { originalProof } from '../prove/proveModel';
+import { whyNotStronger } from './why';
 import { acceptBlocker, acceptConsequence, finalReadout, verdictText, verifiedLabel } from './speed';
 import './optimize.css';
 
@@ -57,23 +65,12 @@ export function OptimizeScreen() {
   }
   return (
     <div class="stack-l op-screen">
+      {/* Every label on this screen is limited by the carve-outs: they stay in view (sticky), verbatim. */}
+      <CarveOutBand state={s} />
       {s.tested && <TestedOnlyPanel />}
       <Header />
       <Final />
-      {o.stoppedBy === null && <IncumbentPanel />}
-      <section class="stack" aria-labelledby="cands-title">
-        <h3 id="cands-title">
-          Candidates <span class="muted">· in the order proposed</span>
-        </h3>
-        {o.candidates.length === 0 && <p class="muted">No candidate yet. The first one appears here as soon as the model proposes it.</p>}
-        <ol class="op-cands">
-          {o.candidates.map((c) => (
-            <li key={c.id}>
-              <Candidate c={c} />
-            </li>
-          ))}
-        </ol>
-      </section>
+      <Workspace />
       {/* After the list, so it appends like the candidates and never pushes what the reader is looking at. */}
       <AcceptPanel />
     </div>
@@ -85,6 +82,7 @@ function TestedOnlyPanel() {
   const { store } = useApp();
   const s = store.state.value;
   const t = s.tested!;
+  const ranWith = testedIncludedWords(t);
   return (
     <section class="panel quiet stack op-tested" aria-labelledby="tested-title">
       <p class="label" id="tested-title">
@@ -100,6 +98,10 @@ function TestedOnlyPanel() {
         {t.specials ? '; NaN, Infinity, -Infinity and -0 included, as you chose' : '; NaN, Infinity and -0 not generated'}). NaN counts as equal to NaN; -0 and 0
         count as different. The highest tier a candidate can reach is {TIER_LABEL.tested}.
       </p>
+      {ranWith && <p class="op-tested-ran">{ranWith}</p>}
+      {testedCaveatWords(t).map((c) => (
+        <p class="op-tested-ran">{c}</p>
+      ))}
     </section>
   );
 }
@@ -156,7 +158,7 @@ function Header() {
             {formatCount(o.candidates.length)} candidate{o.candidates.length === 1 ? '' : 's'}
           </Num>{' '}
           so far. New candidates are added at the end of the list.
-          {o.incumbentId === null && ' No current best yet: until a candidate passes every check, the original stands.'}
+          {o.incumbentId === null && ' No current best yet: the original stands.'}
         </p>
       )}
     </section>
@@ -214,37 +216,132 @@ export function BenchReadout({ c }: { c: CandidateRecord }) {
   );
 }
 
-function IncumbentPanel() {
+/** The candidate workspace: the cards (with the incumbent under them) and every candidate's detail as a tab panel. */
+function Workspace() {
+  const { store } = useApp();
+  const s = store.state.value;
+  const o = s.optimize;
+  const [picked, setPicked] = useState<number | null>(null);
+  const base = useId();
+  const panelId = (id: number) => `${base}-cand-${id}`;
+  const last = o.candidates.at(-1) ?? null;
+  const fallback = o.stoppedBy === null ? last : (incumbent(s) ?? last);
+  const selected = o.candidates.find((c) => c.id === picked) ?? fallback;
+  return (
+    <section class="op-work" aria-labelledby="cands-title">
+      <div class="op-list stack">
+        <h3 id="cands-title">
+          Candidates <span class="muted">· in the order proposed</span>
+        </h3>
+        {o.candidates.length === 0 ? (
+          <p class="muted">No candidate yet. The first one appears here as soon as the model proposes it.</p>
+        ) : (
+          <ol class="op-cards">
+            {o.candidates.map((c) => (
+              <li key={c.id}>
+                <CandidateCard c={c} s={s} on={c.id === selected?.id} controls={panelId(c.id)} onPick={() => setPicked(c.id)} />
+              </li>
+            ))}
+          </ol>
+        )}
+        <IncumbentBox />
+      </div>
+      {o.candidates.length > 0 && (
+        <div class="op-details">
+          {o.candidates.map((c) => (
+            <div key={c.id} id={panelId(c.id)} class="op-detail" role="region" aria-label={`Candidate ${c.id}, detail`} hidden={c.id !== selected?.id}>
+              <Candidate c={c} />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** "4.2× (95% CI 3.9–4.6)", the speedup vs the original as measured (rounded the safe way), or why there is none. */
+function speedText(c: CandidateRecord): string {
+  if (c.speedup) return `${ratioText(c.speedup)} (${speedupCiText(c.speedup)})`;
+  const st = stageOf(c, 'benchmark');
+  return st?.status === 'running' ? 'benchmark running' : c.outcome === 'running' ? 'not benchmarked yet' : 'not benchmarked';
+}
+
+/**
+ * One selectable card. The candidate's name is the button (keyboard and screen readers select with it); a click anywhere
+ * on the card selects too. Numbers keep their provenance; a proved label carries provedSentence(N) (TierBadge).
+ */
+function CandidateCard({ c, s, on, controls, onPick }: { c: CandidateRecord; s: SessionState; on: boolean; controls: string; onPick(): void }) {
+  const n = nForCandidate(s, c);
+  const mc = candidateModelCheck(s, c.id);
+  return (
+    <div class={`op-card${on ? ' on' : ''}`} onClick={onPick}>
+      <div class="op-card-head">
+        <button type="button" class="op-card-pick" aria-pressed={on} aria-controls={controls}>
+          Candidate {c.id} <span class="muted">· round {c.round}</span>
+        </button>
+        {s.tested && c.tier === 'tested' ? (
+          <span class="tier tier-tested">
+            <span class="tier-label">{TIER_LABEL.tested}</span>
+          </span>
+        ) : (
+          c.tier && <TierBadge tier={c.tier} n={n} mismatches={mc?.disagreements} k={smtK(c)} />
+        )}
+      </div>
+      <p class="op-card-speed">
+        {c.speedup ? (
+          <>
+            <Num what="Original median divided by candidate median, on the declared distribution">{ratioText(c.speedup)}</Num>{' '}
+            (<Num what="Bootstrap interval of the speedup ratio vs the original">{speedupCiText(c.speedup)}</Num>)
+          </>
+        ) : (
+          speedText(c)
+        )}
+      </p>
+      <p class="op-card-outcome">{OUTCOME_WORDS[c.outcome]}</p>
+    </div>
+  );
+}
+
+/** What delivery would keep right now: the incumbent candidate, or the original with its own label. */
+function IncumbentBox() {
   const { store } = useApp();
   const s = store.state.value;
   const inc = incumbent(s);
-  const mc = inc ? candidateModelCheck(s, inc.id) : null;
-  // No incumbent: one quiet line, so the first candidates (and a catch) are not pushed below the fold by an empty panel.
-  if (!inc) return null; // said in the header's status line instead
+  if (inc) {
+    const mc = candidateModelCheck(s, inc.id);
+    return (
+      <div class="op-incumbent stack" aria-labelledby="inc-title">
+        <p class="label" id="inc-title">
+          Current best
+        </p>
+        <p>
+          <b>Candidate {inc.id}</b> <span class="muted">· round {inc.round}</span>
+        </p>
+        {s.tested && inc.tier === 'tested' ? <TestedTierLine c={inc} /> : inc.tier && <TierBadge tier={inc.tier} n={mc?.inputs ?? null} mismatches={mc?.disagreements} k={smtK(inc)} />}
+        {inc.outcome === 'accepted-at-verified' && (
+          <p class="op-accepted-note">
+            <ProvText text={`Accepted by you at ${verifiedLabel(smtK(inc))}. Not proved.`} tokens={kTokens(inc)} />
+          </p>
+        )}
+      </div>
+    );
+  }
+  const p = originalProof(s);
+  const mc = originalModelCheck(s);
+  const proved = p && (p.result === 'proved' || p.result === 'proved-trusting-compiler');
   return (
-    <section class="panel stack op-incumbent" aria-labelledby="inc-title">
+    <div class="op-incumbent stack" aria-labelledby="inc-title">
       <p class="label" id="inc-title">
         Current best
       </p>
-      {inc ? (
-        <>
-          <div class="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <h3>
-              Candidate {inc.id} <span class="muted">· round {inc.round}</span>
-            </h3>
-            {s.tested && inc.tier === 'tested' ? <TestedTierLine c={inc} /> : inc.tier && <TierBadge tier={inc.tier} n={mc?.inputs ?? null} mismatches={mc?.disagreements} k={smtK(inc)} />}
-          </div>
-          {inc.outcome === 'accepted-at-verified' && (
-            <p class="op-accepted-note">
-              <ProvText text={`Accepted by you at ${verifiedLabel(smtK(inc))}. Not proved.`} tokens={kTokens(inc)} />
-            </p>
-          )}
-          <BenchReadout c={inc} />
-        </>
-      ) : (
-        <p class="muted">None yet. Until a candidate passes every check, the original stands.</p>
-      )}
-    </section>
+      <p>
+        <b>The original.</b>{' '}
+        {s.tested
+          ? 'It is the reference every candidate is compared with; no claim is made about it.'
+          : `Until a candidate is proved and significantly faster (or you accept one at ${TIER_LABEL['verified-to-k']}), the original stands.`}
+      </p>
+      {proved && <TierBadge tier={p.result as 'proved' | 'proved-trusting-compiler'} n={nForOriginal(s)} mismatches={mc?.disagreements} />}
+    </div>
   );
 }
 
@@ -400,7 +497,7 @@ function Candidate({ c }: { c: CandidateRecord }) {
   if (c.outcome === 'rejected' && c.rejection) {
     return (
       <div class="stack op-cand-rejected">
-        <CatchCard candidate={c} params={paramNames(s)} modelChecked={n} call={callById(s, c.callId)}>
+        <CatchCard candidate={c} params={paramNames(s)} modelChecked={n} call={callById(s, c.callId)} original={s.source}>
           <Funnel stages={c.stages} label={`Checks for candidate ${c.id}`} decided />
         </CatchCard>
         {proofs.length > 0 && <div>{proofs}</div>}
@@ -408,13 +505,30 @@ function Candidate({ c }: { c: CandidateRecord }) {
     );
   }
   const k = smtK(c);
+  const why = whyNotStronger(c);
   return (
-    <section class={`panel stack op-cand op-cand-${c.outcome}`} aria-label={`Candidate ${c.id}`}>
-      <div class="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <h4>
-          Candidate {c.id} <span class="muted">· round {c.round} · {OUTCOME_WORDS[c.outcome]}</span>
-        </h4>
-        {s.tested && c.tier === 'tested' ? <TestedTierLine c={c} /> : c.tier && <TierBadge tier={c.tier} n={n} mismatches={mc?.disagreements} k={k} />}
+    <section class={`stack op-cand op-cand-${c.outcome}`} aria-label={`Candidate ${c.id}`}>
+      <div class="op-cand-head">
+        <div class="op-cand-title">
+          <p class="op-kicker">
+            Candidate {c.id} · round {c.round}
+          </p>
+          <h4>{OUTCOME_WORDS[c.outcome]}</h4>
+        </div>
+        <p class="op-big">
+          {c.speedup ? (
+            <>
+              <span class="op-big-x">
+                <Num what="Original median divided by candidate median, on the declared distribution">{ratioText(c.speedup)}</Num>
+              </span>{' '}
+              <span class="muted op-big-ci">
+                (<Num what="Bootstrap interval of the speedup ratio vs the original">{speedupCiText(c.speedup)}</Num>)
+              </span>
+            </>
+          ) : (
+            <span class="muted op-big-ci">{speedText(c)}</span>
+          )}
+        </p>
       </div>
       <Funnel stages={c.stages} label={`Checks for candidate ${c.id}`} decided={c.outcome !== 'running'} />
       {s.tested && <SkippedStages c={c} />}
@@ -437,18 +551,30 @@ function Candidate({ c }: { c: CandidateRecord }) {
           <ProvText text={`Accepted by you at ${verifiedLabel(k)}. Not proved; delivery marks it.`} tokens={kTokens(c)} />
         </p>
       )}
-      {c.outcome === 'not-faster' && c.rejection?.reason && (
-        <p>
-          <InlineText text={c.rejection.reason} />
-        </p>
+      <div class="op-claim stack">
+        {s.tested && c.tier === 'tested' ? <TestedTierLine c={c} /> : c.tier && <TierBadge tier={c.tier} n={n} mismatches={mc?.disagreements} k={k} />}
+        {/* The badge prints provedSentence(N); the evidence note would repeat it word for word. */}
+        {c.outcome !== 'running' && <Evidence state={s} candidate={c} provedNote={!(c.tier && n !== null)} />}
+      </div>
+      {why && (
+        <section class="op-why" aria-label="Why this label and not a stronger one">
+          <h5 class="label">Why this label and not a stronger one</h5>
+          {why.lines.map((l) => (
+            <p key={l} class="op-why-reason">
+              <Num what={`Recorded by the server for candidate ${c.id}`}>
+                <InlineText text={l} />
+              </Num>
+            </p>
+          ))}
+          {why.narrowed && (
+            <p class="op-why-narrowed">
+              <ProvText text={why.narrowed} tokens={kTokens(c)} />
+            </p>
+          )}
+        </section>
       )}
       <BenchReadout c={c} />
-      {/* The tier badge above already prints provedSentence(N); the evidence note would repeat it word for word. */}
-      {c.outcome !== 'running' && <Evidence state={s} candidate={c} provedNote={!(c.tier && n !== null)} />}
-      <details class="saw">
-        <summary>Candidate source</summary>
-        <Code text={c.source} lang="ts" label={`Source of candidate ${c.id}`} />
-      </details>
+      <CodePair original={s.source} candidate={c} />
       <ModelSaw call={callById(s, c.callId)} what={`candidate ${c.id}`} />
       {proofs}
     </section>

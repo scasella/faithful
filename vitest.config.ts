@@ -14,6 +14,8 @@ export default defineConfig({
       '@faithful/smt': r('./packages/smt/src/index.ts'),
       '@faithful/session': r('./packages/session/src/index.ts'),
       '@faithful/prover': r('./packages/prover/src/index.ts'),
+      // the showcase imports the UI's sources as @ui/... (apps/showcase/vite.config.ts)
+      '@ui': r('./apps/ui/src'),
     },
   },
   test: {

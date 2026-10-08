@@ -24,6 +24,9 @@ which is what the carve-out band shows. A carve-out ruling makes the server re-r
 - It is unavailable while a ruling in that run is "spec-wrong" (revise first) or "fix-original".
 - It is unavailable when the latest run did not run under the current carve-outs (`carveOutIds`).
 - It is unavailable while the latest run found any disagreement (`totalDisagreements`), even ruled ones.
+- It is unavailable when Lean produced no value for the spec (`excluded.specFaults`) on at least as many inputs as the
+  run compared, including a run that compared none: those inputs were never checked, so a disagreement could hide among
+  them. The way out is a new spec (`next: 'propose'`).
 - A spec the server did not accept (`validation.ok === false`, e.g. one that merely calls the Lean model) cannot be
   agreed; its errors are shown verbatim and `n` asks for a new one.
 

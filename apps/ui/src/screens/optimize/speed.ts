@@ -80,6 +80,26 @@ export const STOPPED_WORDS: Record<NonNullable<SessionState['optimize']['stopped
   user: 'you stopped it',
 };
 
+/**
+ * Why optimization stopped, in plain words. "No new candidate" is the model's doing only when the model answered: when
+ * every candidate call since the last candidate came back with an error, the model was never reached, and that is said
+ * instead, with the first error as recorded (session events only).
+ */
+export function stoppedWordsOf(s: SessionState): string | null {
+  const by = s.optimize.stoppedBy;
+  if (by === null) return null;
+  if (by === 'no-new-candidate') {
+    const lastCallId = s.optimize.candidates.reduce((m, c) => Math.max(m, c.callId ?? 0), 0);
+    const since = s.calls.filter((c) => c.purpose === 'candidate' && c.id > lastCallId);
+    if (since.length > 0 && since.every((c) => !!c.error)) {
+      const err = since[0]!.error!.trim().replace(/\.$/, '');
+      const n = since.length;
+      return `the model could not be reached (${n === 1 ? 'the last call' : `each of the last ${n} calls`} failed: ${err.length > 160 ? `${err.slice(0, 157)}…` : err})`;
+    }
+  }
+  return STOPPED_WORDS[by];
+}
+
 export interface ReadoutRow {
   id: number;
   outcome: CandidateRecord['outcome'];
@@ -124,5 +144,5 @@ export function finalReadout(s: SessionState, params: string[] | null): FinalRea
     }
     rows.push({ id: c.id, outcome: c.outcome, text });
   }
-  return { stoppedWords: STOPPED_WORDS[o.stoppedBy], incumbent: inc, tried: o.candidates.length, rows };
+  return { stoppedWords: stoppedWordsOf(s) ?? STOPPED_WORDS[o.stoppedBy], incumbent: inc, tried: o.candidates.length, rows };
 }

@@ -107,13 +107,18 @@ export interface InstrumentInput {
 }
 
 /** Every identifier text in the file (for choosing a runtime alias that no user binding can shadow). */
+const identifierCache = new WeakMap<ts.SourceFile, Set<string>>();
 function identifierTexts(sf: ts.SourceFile): Set<string> {
+  // asked once per translated function, and a walk of the whole file each time made translating a file's N functions quadratic
+  const hit = identifierCache.get(sf);
+  if (hit) return hit;
   const out = new Set<string>();
   const visit = (n: ts.Node): void => {
     if (ts.isIdentifier(n) || ts.isPrivateIdentifier(n)) out.add(n.text);
     ts.forEachChild(n, visit);
   };
   visit(sf);
+  identifierCache.set(sf, out);
   return out;
 }
 

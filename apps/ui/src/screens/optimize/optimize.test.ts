@@ -4,7 +4,7 @@ import { replay } from '@faithful/session';
 import { assertClaimsExact } from '../../test/text';
 import { CATCH, indexOf, render } from '../prove/testutil';
 import { DECLARED_BY_SERVER, DEFAULT_DRAFT, draftReducer, parseThreshold, thresholdWords } from './threshold';
-import { acceptBlocker, acceptConsequence, finalReadout, verdictText } from './speed';
+import { acceptBlocker, acceptConsequence, finalReadout, stoppedWordsOf, verdictText } from './speed';
 
 const bench = (lo: number, hi: number, median = (lo + hi) / 2): BenchSummary => ({ median, lo, hi, unit: 'ns/pass', trials: 30, distribution: 'd', sizes: [] });
 
@@ -117,6 +117,24 @@ describe('accept at Verified to k', () => {
     expect(text).toContain('If you accept');
     expect(text).toContain('Accept candidate 3 without a proof');
     expect((html.match(/aria-keyshortcuts="a"/g) ?? []).length).toBe(1);
+  });
+});
+
+describe('why optimization stopped', () => {
+  const upToStart = CATCH.slice(0, indexOf('optimize.started') + 1).map((e) => e.event as SessionEvent);
+  const call = (id: number, error: string | null): SessionEvent => ({
+    kind: 'call.recorded',
+    call: { id, purpose: 'candidate', prompt: 'p', response: error ? null : '{}', model: 'm', effort: 'high', ms: 1, inputTokens: null, outputTokens: null, error, startedAt: '2026-10-06T00:00:00Z' },
+  });
+  const stop: SessionEvent = { kind: 'optimize.stopped', reason: 'no-new-candidate' };
+  it('every candidate call failed: the model could not be reached (not "proposed no new candidate")', () => {
+    const s = replay([...upToStart, call(901, 'codex_failed: codex exec failed (exit 1)'), call(902, 'codex_failed: codex exec failed (exit 1)'), call(903, 'codex_failed: codex exec failed (exit 1)'), stop]);
+    expect(stoppedWordsOf(s)).toBe('the model could not be reached (each of the last 3 calls failed: codex_failed: codex exec failed (exit 1))');
+    expect(finalReadout(s, null)!.stoppedWords).toBe(stoppedWordsOf(s));
+  });
+  it('the model answered (repeats or empty answers): the model proposed no new candidate', () => {
+    const s = replay([...upToStart, call(901, 'codex_failed: x'), call(902, null), call(903, null), stop]);
+    expect(stoppedWordsOf(s)).toBe('the model proposed no new candidate');
   });
 });
 

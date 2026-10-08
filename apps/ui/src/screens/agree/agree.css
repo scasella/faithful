@@ -101,3 +101,29 @@ dialog.ag-dialog .ag-dlg-body { overflow-y: auto; min-height: 0; flex: 1 1 auto;
 .ag-dlg-actions { margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--line); justify-content: flex-end; flex: none; }
 
 .ag-sub { font-size: 0.9375rem; padding-top: var(--s3); }
+
+/* spec lines: Lean beside its words */
+.ag-lines { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.ag-lines li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; padding: 0; border-radius: 0; border-left-width: 3px; }
+.ag-lines li + li { margin-top: 0; border-top: 1px solid var(--line); }
+.ag-lines li > * { padding: var(--s2) var(--s3); }
+.ag-lines .ag-line-lean { display: block; margin-top: 0; background: var(--sunk); color: var(--fg); font-size: 0.8125rem; }
+.ag-lines li.on .ag-line-lean, .ag-lines li:hover .ag-line-lean { background: color-mix(in srgb, var(--mark-bg) 30%, var(--sunk)); }
+.ag-line-en { font-size: 0.9375rem; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .ag-lines li { grid-template-columns: 1fr; } }
+
+/* an old recording's spec fault, listed as a disagreement */
+.ag-fault { margin-top: var(--s3); font-size: 0.875rem; color: var(--warn); }
+.ag-fault b { font-weight: 650; }
+.ag-caution { margin-top: var(--s3); font-size: 0.875rem; border-left: 3px solid var(--warn); padding-left: var(--s3); }
+
+/* what any proof will cover */
+.ag-cover { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: var(--s4) var(--s5); display: flex; flex-direction: column; gap: var(--s3); }
+.ag-cover.minority { border-color: var(--catch-line); }
+.ag-cover-sub { font-size: 0.8125rem; font-weight: 620; }
+.ag-cover-list { margin: var(--s1) 0 0; padding-left: 1.2em; font-size: 0.9375rem; }
+.ag-cover-list li + li { margin-top: var(--s1); }
+.ag-cover-carves li { overflow-wrap: anywhere; }
+.ag-cover-warn { background: var(--catch-bg); color: var(--catch); border: 1px solid var(--catch-line); border-left: 6px solid var(--catch); border-radius: var(--r-s); padding: var(--s3) var(--s4); font-weight: 620; }
+@media (max-width: 560px) { .ag-cover { padding: var(--s4); } }
+.ag-fault-cell { display: block; font-size: 0.75rem; color: var(--warn); }

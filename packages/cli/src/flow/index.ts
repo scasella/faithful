@@ -10,3 +10,4 @@ export * from './verify.js';
 export * from './autopilot.js';
 export * from './candidateProof.js';
 export * from './tested.js';
+export * from './testedOriginal.js';

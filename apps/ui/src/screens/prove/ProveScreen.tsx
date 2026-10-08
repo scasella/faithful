@@ -239,7 +239,7 @@ function Verdict({ proof }: { proof: ProofView }) {
         {proof.accepted && proof.accepted.axioms.length ? (
           <>
             Lean reports the axioms <code>{proof.accepted.axioms.join(', ')}</code>
-            {ax.other.length === 0 && ax.compiler.length === 0 ? ': the three standard ones, nothing else.' : '.'}
+            {ax.other.length === 0 && ax.compiler.length === 0 ? ': standard axioms only, nothing else.' : '.'}
           </>
         ) : (
           'Lean reports no axioms for this proof.'

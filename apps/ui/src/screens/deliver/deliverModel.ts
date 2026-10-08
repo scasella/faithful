@@ -118,15 +118,18 @@ export interface Command {
 /**
  * The commands to check and apply the delivery, exactly as VERIFY.md gives them. `git apply` only when a change was
  * delivered. `testedOnly`: a refused function (packages/cli/src/flow/tested.ts `testedVerifyMarkdown`): verify re-runs
- * the differential only, because no proof or SMT claim exists.
+ * the differential only, because no proof or SMT claim exists, and only when an optimized function was delivered
+ * (`optimized`: a candidate was kept, file or paste; VERIFY.md keys on the same).
  */
-export function deliveryCommands(delivery: { dir: string; files: string[] }, changeDelivered: boolean, testedOnly = false): Command[] {
+export function deliveryCommands(delivery: { dir: string; files: string[] }, changeDelivered: boolean, testedOnly = false, optimized = changeDelivered): Command[] {
   const out: Command[] = [
     {
       cmd: `faithful verify ${delivery.dir}`,
       what: testedOnly
-        ? 'Re-check the delivery: recompute the hashes in the provenance file and re-run the differential test against your original on the same generated inputs. There is no proof or SMT claim to re-check.'
-        : 'Re-check the delivery: recompute every hash in the provenance file, re-run Lean on the proof file, re-run the differential test and the bounded SMT check, and print the evidence line again.',
+        ? optimized
+          ? 'Re-check the delivery: recompute the hashes in the provenance file and re-run the differential test against your original on the same generated inputs. There is no proof or SMT claim to re-check.'
+          : 'Re-check the delivery: recompute the hashes in the provenance file. No optimized function was delivered, so there is no differential to re-run.'
+        : 'Re-check the delivery without trusting this page: recompute every hash in the provenance file, re-run Lean on the proof file (its axioms included), re-run the differential test and, when Z3 is available, the bounded SMT check, and print the evidence line again.',
     },
   ];
   const patch = delivery.files.find((f) => /\.(diff|patch)$/.test(f));
@@ -136,8 +139,9 @@ export function deliveryCommands(delivery: { dir: string; files: string[] }, cha
   return out;
 }
 
-/** The sentence that the user's code was not modified. */
-export function notModifiedSentence(file: string): string {
+/** The sentence that the user's code was not modified (`changed: false`: nothing was delivered to apply, so no patch is mentioned). */
+export function notModifiedSentence(file: string, changed = true): string {
+  if (!changed) return file ? `Your file ${file} was not modified.` : 'Your pasted code was not modified.';
   return file
     ? `Your file ${file} was not modified. The change is a patch; you apply it yourself.`
     : 'Your pasted code was not modified. The change is a patch; you apply it yourself.';

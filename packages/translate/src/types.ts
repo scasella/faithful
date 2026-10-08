@@ -57,6 +57,19 @@ function triviaComments(text: string, pos: number): ts.CommentRange[] {
  * never a missed directive.
  */
 export function findCommentMatching(sf: ts.SourceFile, node: ts.Node, re: RegExp): { start: number; end: number } | null {
+  // the whole-file search is asked once per translated function and costs the whole file: remember it per tree
+  if (node === sf) {
+    let byRe = wholeFileComments.get(sf);
+    if (!byRe) wholeFileComments.set(sf, (byRe = new Map()));
+    const key = `${re.source}/${re.flags}`;
+    if (!byRe.has(key)) byRe.set(key, searchComments(sf, node, re));
+    return byRe.get(key) ?? null;
+  }
+  return searchComments(sf, node, re);
+}
+const wholeFileComments = new WeakMap<ts.SourceFile, Map<string, { start: number; end: number } | null>>();
+
+function searchComments(sf: ts.SourceFile, node: ts.Node, re: RegExp): { start: number; end: number } | null {
   const text = sf.text;
   let found: { start: number; end: number } | null = null;
   const visit = (n: ts.Node): void => {
@@ -88,25 +101,35 @@ export function findLineDirectiveFor(sf: ts.SourceFile, node: ts.Node): { start:
   if (inside) return inside;
   const first = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line;
   const last = sf.getLineAndCharacterOfPosition(node.getEnd()).line;
-  let found: { start: number; end: number } | null = null;
+  for (const d of lineDirectives(sf)) if (d.next >= first && d.next <= last) return { start: d.start, end: d.end };
+  return null;
+}
+
+/**
+ * Every `@ts-ignore` / `@ts-expect-error` comment of the file in token order, with the line it applies to, computed once
+ * per tree (a file with N functions is asked N times; walking every token each time made the whole translation of a
+ * file quadratic).
+ */
+const lineDirectiveCache = new WeakMap<ts.SourceFile, Array<{ start: number; end: number; next: number }>>();
+function lineDirectives(sf: ts.SourceFile): Array<{ start: number; end: number; next: number }> {
+  const hit = lineDirectiveCache.get(sf);
+  if (hit) return hit;
+  const out: Array<{ start: number; end: number; next: number }> = [];
   const text = sf.text;
   const visit = (n: ts.Node): void => {
-    if (found || (n.kind >= ts.SyntaxKind.FirstJSDocNode && n.kind <= ts.SyntaxKind.LastJSDocNode)) return;
+    if (n.kind >= ts.SyntaxKind.FirstJSDocNode && n.kind <= ts.SyntaxKind.LastJSDocNode) return;
     const kids = n.getChildren(sf);
     if (kids.length === 0) {
       for (const c of triviaComments(text, n.pos)) {
-        const next = sf.getLineAndCharacterOfPosition(c.end).line + 1;
-        if (next >= first && next <= last && TS_LINE_DIRECTIVE.test(text.slice(c.pos, c.end))) {
-          found = { start: c.pos, end: c.end };
-          return;
-        }
+        if (TS_LINE_DIRECTIVE.test(text.slice(c.pos, c.end))) out.push({ start: c.pos, end: c.end, next: sf.getLineAndCharacterOfPosition(c.end).line + 1 });
       }
       return;
     }
     for (const k of kids) visit(k);
   };
   visit(sf);
-  return found;
+  lineDirectiveCache.set(sf, out);
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------------------------

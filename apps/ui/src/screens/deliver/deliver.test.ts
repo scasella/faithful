@@ -33,6 +33,12 @@ describe('files and commands', () => {
     expect(deliveryCommands(d, true).map((c) => c.cmd)).toEqual(['faithful verify .faithful/fib', 'git apply .faithful/fib/patch.diff']);
     // the server always writes patch.diff; without a delivered change it is a placeholder, so nothing to apply
     expect(deliveryCommands(d, false).map((c) => c.cmd)).toEqual(['faithful verify .faithful/fib']);
+    // Tested-only: the differential is promised only when an optimized function was delivered (as VERIFY.md says)
+    expect(deliveryCommands(d, true, true, true)[0]!.what).toContain('re-run the differential test against your original');
+    expect(deliveryCommands(d, false, true, false)[0]!.what).toBe('Re-check the delivery: recompute the hashes in the provenance file. No optimized function was delivered, so there is no differential to re-run.');
+    // a pasted function with a kept candidate: no patch, but the differential is re-run
+    expect(deliveryCommands(d, false, true, true).map((c) => c.cmd)).toEqual(['faithful verify .faithful/fib']);
+    expect(deliveryCommands(d, false, true, true)[0]!.what).toContain('re-run the differential test');
     expect(describeFile('patch.diff', 'fib', false)).toMatch(/placeholder/);
     expect(joinPath('.faithful/fib/', 'a.lean')).toBe('.faithful/fib/a.lean');
     expect(joinPath('.faithful/fib', '.faithful/fib/a.lean')).toBe('.faithful/fib/a.lean');
@@ -41,6 +47,8 @@ describe('files and commands', () => {
   it('says the file was not modified', () => {
     expect(notModifiedSentence('src/math/fib.ts')).toBe('Your file src/math/fib.ts was not modified. The change is a patch; you apply it yourself.');
     expect(notModifiedSentence('')).toMatch(/^Your pasted code was not modified/);
+    // nothing delivered to apply: no patch is mentioned
+    expect(notModifiedSentence('src/math/fib.ts', false)).toBe('Your file src/math/fib.ts was not modified.');
   });
 });
 
@@ -58,6 +66,8 @@ describe('Deliver screen', () => {
     expect(text).not.toContain('--check');
     expect((html.match(/class="copyblock"/g) ?? []).length).toBe(2);
     expect(html).toContain('aria-keyshortcuts="1"');
+    // the catch fixture agreed with a carve-out: the speedup says its inputs were not restricted to what the label covers
+    expect(text).toContain('without applying the carve-outs, so the speedup may have been measured on inputs the label does not cover');
     assertClaimsExact(text);
   });
 

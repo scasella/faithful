@@ -168,6 +168,8 @@ export class Sandbox {
   private tail: Promise<unknown> = Promise.resolve();
   private seq = 1;
   private closed = false;
+  /** `abort()` was called: nothing may start a worker again. */
+  private aborted = false;
   /** Workers spawned over this sandbox's lifetime (1 + respawns). */
   spawned = 0;
 
@@ -271,6 +273,29 @@ export class Sandbox {
     });
   }
 
+  /**
+   * Stop NOW: terminate the worker thread without waiting for queued or running work, and never start another. Work that
+   * is running (a batch of calls, a load) ends with an error, and every later operation rejects like after `close()`.
+   * For a computation nobody waits for any more (an abandoned preflight of a function that loops): `close()` would wait
+   * for it to finish first. Idempotent.
+   */
+  abort(): void {
+    this.aborted = true;
+    this.closed = true;
+    const h = this.handle;
+    if (h) {
+      // whoever waits on the worker (a load, a batch) hears that it is gone at once, instead of at its own timeout
+      const crashed = h.crash;
+      void this.kill(h);
+      crashed?.('the sandbox was aborted');
+    }
+  }
+
+  /** `abort()` was called. */
+  get isAborted(): boolean {
+    return this.aborted;
+  }
+
   /** Terminate the worker. Idempotent; later operations reject. */
   async close(): Promise<void> {
     if (this.closed) return this.tail.then(() => undefined, () => undefined);
@@ -354,8 +379,13 @@ export class Sandbox {
 
   /** The live worker, spawning one and replaying every load if there is none. */
   private async ensure(): Promise<Handle> {
+    if (this.aborted) throw new Error('sandbox was aborted');
     if (this.handle) return this.handle;
     const h = await this.spawn();
+    if (this.aborted) {
+      void this.kill(h);
+      throw new Error('sandbox was aborted');
+    }
     this.handle = h;
     for (const [id, rec] of this.loads) {
       const r = await this.loadInWorker(id, rec);

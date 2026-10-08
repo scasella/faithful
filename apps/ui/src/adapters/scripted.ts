@@ -17,13 +17,15 @@
 import type { SessionEvent, SessionState, StampedEvent, Threshold } from '@faithful/session';
 import { replay as replayEvents } from '@faithful/session';
 import type { Precondition, Val } from '@faithful/translate';
-import type { Adapter, CarveClass, CarveOption, ConnectionStatus, DoctorCheck, FileEntry, ProveBudget, RulingInput } from '../actions';
+import type { Adapter, CarveClass, CarveOption, ConnectionStatus, DoctorCheck, FileEntry, FunctionStatuses, PickOptions, PickResult, ProveBudget, RulingInput, ScanStatus, TestedCheck } from '../actions';
 
 export interface ScriptedOptions {
   label: string;
   /** Delay between streamed events, ms (default 120). Use 0 in tests. */
   stepMs?: number;
   setTimeout?(f: () => void, ms: number): unknown;
+  /** What `testedCheck()` answers (default null: unknown, as for a replay). */
+  testedCheck?: TestedCheck;
 }
 
 type Kind = SessionEvent['kind'];
@@ -45,7 +47,9 @@ export class ScriptedAdapter implements Adapter {
     this.label = opts.label;
     this.stepMs = opts.stepMs ?? 120;
     this.later = opts.setTimeout ?? ((f, ms) => setTimeout(f, ms));
+    this.check = opts.testedCheck ?? null;
   }
+  private check: TestedCheck;
 
   connect(onEvent: (e: StampedEvent) => void, onStatus: (s: ConnectionStatus) => void = () => {}): () => void {
     this.onEvent = onEvent;
@@ -116,6 +120,22 @@ export class ScriptedAdapter implements Adapter {
     if (!start || start.kind !== 'session.started') return [];
     const line = start.source.split('\n').findIndex((l) => l.includes(`function ${start.fn}`)) + 1;
     return [{ path: start.file, functions: [{ name: start.fn, line: Math.max(1, line), hasJsDoc: start.source.includes('/**') }] }];
+  }
+
+  /** Unknown: a fixture invents nothing about what could run (the pick lists show every function, without a status). */
+  functionStatus(_files?: string[]): Promise<FunctionStatuses | null> {
+    return Promise.resolve(null);
+  }
+
+  /** Unknown: a fixture invents nothing about what could run (the pick lists list the functions locally, without a status). */
+  pickFunctions(_query?: string, _o?: PickOptions): Promise<PickResult | null> {
+    return Promise.resolve(null);
+  }
+  scanStatus(): Promise<ScanStatus | null> {
+    return Promise.resolve(null);
+  }
+  startScan(): Promise<ScanStatus | null> {
+    return Promise.resolve(null);
   }
 
   async openFunction(file: string, fn: string): Promise<void> {
@@ -218,6 +238,10 @@ export class ScriptedAdapter implements Adapter {
       job: 'tested',
       map: (e) => (e.kind === 'optimize.started' ? { ...e, threshold } : e.kind === 'tested.started' ? { ...e, specials: opts.specials === true } : e),
     });
+  }
+
+  testedCheck(): Promise<TestedCheck> {
+    return Promise.resolve(this.check);
   }
 
   async acceptFasterNotProved(candidateId: number): Promise<void> {

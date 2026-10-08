@@ -6,7 +6,7 @@
  * cannot send the token header. Reconnects replay the whole stream and de-duplicate it (see `connect`).
  */
 import type { StampedEvent, Threshold } from '@faithful/session';
-import type { Adapter, CarveOption, ConnectionStatus, DoctorCheck, FileEntry, ProveBudget, RulingInput } from '../actions';
+import { PICK_MAX_LIMIT, type Adapter, type CarveOption, type ConnectionStatus, type DoctorCheck, type FileEntry, type FunctionStatuses, type PickOptions, type PickResult, type ProveBudget, type RulingInput, type ScanStatus, type TestedCheck } from '../actions';
 import { SseParser } from '../lib/sse';
 
 export function readToken(doc: Pick<Document, 'querySelector'> = document): string {
@@ -65,6 +65,21 @@ export class LiveAdapter implements Adapter {
   listFiles(): Promise<FileEntry[]> {
     return this.call<FileEntry[]>('GET', '/api/files');
   }
+  functionStatus(files: string[]): Promise<FunctionStatuses | null> {
+    return this.call<FunctionStatuses>('POST', '/api/functions/status', { files });
+  }
+  pickFunctions(query: string, o: PickOptions = {}): Promise<PickResult | null> {
+    const body: { query: string; limit?: number; includeUnrunnable?: boolean } = { query };
+    if (o.limit !== undefined) body.limit = Math.max(1, Math.min(PICK_MAX_LIMIT, Math.floor(o.limit)));
+    if (o.includeUnrunnable !== undefined) body.includeUnrunnable = o.includeUnrunnable;
+    return this.call<PickResult>('POST', '/api/functions/pick', body);
+  }
+  scanStatus(): Promise<ScanStatus | null> {
+    return this.call<ScanStatus>('GET', '/api/functions/scan');
+  }
+  startScan(): Promise<ScanStatus | null> {
+    return this.call<ScanStatus>('POST', '/api/functions/scan/start', {});
+  }
   openFunction(file: string, fn: string) {
     return this.post('/api/session/open', { file, fn });
   }
@@ -113,6 +128,9 @@ export class LiveAdapter implements Adapter {
   }
   doctor(): Promise<DoctorCheck[]> {
     return this.call<DoctorCheck[]>('GET', '/api/doctor');
+  }
+  testedCheck(): Promise<TestedCheck> {
+    return this.call<TestedCheck>('GET', '/api/tested/check');
   }
 
   /**

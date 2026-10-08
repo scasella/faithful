@@ -3,7 +3,9 @@
  *   translated: preconditions in plain words (the same list the Agree screen shows), translator notes, the throw sites
  *               with the choice "precondition" vs "spec case", and the Lean model (collapsed).
  *   refused:    the translator's reason, the refusal code, the exact source span marked, what still runs, and the offer
- *               to optimize with the Tested tier only (threshold, opt-in special values, key 't').
+ *               to optimize with the Tested tier only (threshold, opt-in special values, key 't'); when the server's
+ *               preflight says the Tested tier can never run it (its file imports another module, say), that reason and
+ *               only the way back to choosing another function.
  * Keys: 'p' / 'c' throw choice, 'n' propose a spec; refused: '1' / '2' threshold kind, 'i' special values, 't' start.
  */
 import { useState } from 'preact/hooks';
@@ -19,6 +21,7 @@ import { KeyHint } from '../../components/KeyHint';
 import { useKeys } from '../../lib/keys';
 import { ThresholdChoice } from '../optimize/ThresholdChoice';
 import { REFUSAL_TITLE, lineExcerpt, tyWords } from './refusal';
+import { testedLoadFailed, useTestedBlock } from './testedCheck';
 import './translate.css';
 
 export function TranslateScreen() {
@@ -161,6 +164,10 @@ function Translated({ s, v }: { s: SessionState; v: Translation }) {
 }
 
 function Refused({ s, r }: { s: SessionState; r: Refusal }) {
+  const failed = s.job.lastError?.job === 'tested' && !s.job.running;
+  const preflight = useTestedBlock(!s.tested || failed, s);
+  // never: the Tested tier cannot run this function at all (the preflight says so, or a run failed loading the original)
+  const never = (s.tested && failed ? testedLoadFailed(s) : null) ?? preflight;
   return (
     <div class="stack-l tr">
       <section class="stack">
@@ -182,17 +189,21 @@ function Refused({ s, r }: { s: SessionState; r: Refusal }) {
       />
       <section class="tr-still panel quiet stack">
         <h3>What still runs</h3>
-        <p>
-          The {TIER_LABEL.tested} tier: differential testing of a candidate against your original on generated inputs, and mutation testing (broken
-          copies the inputs must catch).
-        </p>
+        {never ? (
+          <p>Nothing here: the {TIER_LABEL.tested} tier runs a function in an isolated sandbox, and this one cannot run there (below).</p>
+        ) : (
+          <p>
+            The {TIER_LABEL.tested} tier: differential testing of a candidate against your original on generated inputs, and mutation testing (broken
+            copies the inputs must catch).
+          </p>
+        )}
         <p>
           The proof tier is not available for this function. There is no Lean model of it, so no spec can be agreed against a model and nothing can be
           checked by Lean or Z3. No claim stronger than {TIER_LABEL.tested} will be made.
         </p>
         <p class="muted">A refusal is a finding, not a failure. The subset is not widened to admit a function.</p>
       </section>
-      <TestedStart s={s} />
+      <TestedStart s={s} never={never} />
     </div>
   );
 }
@@ -211,11 +222,26 @@ export function testedBlocker(s: SessionState): string | null {
 }
 
 /** The offer to continue a refused function on the Tested tier only. */
-function TestedStart({ s }: { s: SessionState }) {
-  const { adapter } = useApp();
+function TestedStart({ s, never }: { s: SessionState; never: string | null }) {
+  const { adapter, store } = useApp();
   const [specials, setSpecials] = useState(false);
   const blocker = testedBlocker(s);
-  useKeys({ i: !s.tested && (() => setSpecials((v) => !v)) });
+  useKeys({ i: !s.tested && !never && (() => setSpecials((v) => !v)) });
+  if (never) {
+    return (
+      <section class="stack tr-tested panel" aria-labelledby="tr-tested-title">
+        <h3 id="tr-tested-title">The {TIER_LABEL.tested} tier cannot run this function</h3>
+        <p class="tr-why">
+          <InlineText text={never} />
+        </p>
+        <div>
+          <ActionButton primary local keyName="f" run={() => store.go('select')}>
+            Choose another function
+          </ActionButton>
+        </div>
+      </section>
+    );
+  }
   return (
     <section class="stack tr-tested panel" aria-labelledby="tr-tested-title">
       <ThresholdChoice

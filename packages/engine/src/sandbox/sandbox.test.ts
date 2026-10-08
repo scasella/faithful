@@ -247,3 +247,46 @@ describe('Sandbox: lifecycle', () => {
     await sb.close(); // idempotent
   });
 });
+
+describe('Sandbox: abort', () => {
+  it('stops a running batch at once, never starts another worker, and rejects later work', async () => {
+    const before = liveSandboxWorkers();
+    const sb = await Sandbox.open();
+    expect(await sb.load('spin', 'export function spin(n: number): number { for (;;) {} }', 'spin')).toMatchObject({ ok: true });
+    // 50 inputs of a loop, 100 ms each, would keep a core busy for 5 s: what an abandoned preflight does
+    const inputs = Array.from({ length: 50 }, (_, i) => [i]);
+    const running = sb.callBatch('spin', inputs, { perCallMs: 100 }).then(
+      () => 'finished' as const,
+      (e: unknown) => String(e),
+    );
+    await new Promise((r) => setTimeout(r, 150));
+    const t0 = Date.now();
+    const spawnedAtAbort = sb.spawned; // the first input timed out and was respawned, as a batch does
+    sb.abort();
+    expect(sb.isAborted).toBe(true);
+    const outcome = await running;
+    // it did not run the remaining ~45 inputs (4.5 s): the batch ended within a moment of the abort, with an error
+    expect(Date.now() - t0).toBeLessThan(1500);
+    expect(outcome).toMatch(/abort/);
+    for (let i = 0; i < 100 && liveSandboxWorkers() !== before; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(liveSandboxWorkers()).toBe(before);
+    expect(sb.spawned).toBe(spawnedAtAbort); // no worker was started after the abort
+    await expect(sb.call('spin', [1])).rejects.toThrow(/closed/);
+    await expect(sb.load('x', SUM, 'sum')).rejects.toThrow(/closed/);
+    expect(sb.spawned).toBe(spawnedAtAbort);
+    sb.abort(); // idempotent
+    await sb.close();
+  });
+
+  it('abort during a load that never finishes ends the worker (no more CPU) and reports an error', async () => {
+    const before = liveSandboxWorkers();
+    const sb = await Sandbox.open();
+    const loading = sb.load('loop', 'for (;;) {}\nexport function f(): number { return 1; }', 'f');
+    await new Promise((r) => setTimeout(r, 100));
+    sb.abort();
+    const r = await loading;
+    expect(r.ok).toBe(false);
+    for (let i = 0; i < 100 && liveSandboxWorkers() !== before; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(liveSandboxWorkers()).toBe(before);
+  });
+});

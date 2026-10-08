@@ -47,8 +47,23 @@ export interface Loaded {
   sf: ts.SourceFile;
 }
 
-/** Build a program whose only user file is `source`. */
+/**
+ * The program of the last source asked for. `translate` is asked once per exported function, and a program is
+ * parsed, bound and type-checked per source (`getSemanticDiagnostics` covers the whole file), so a file with N functions
+ * cost N times the file: 127 s for 2,400 one-line exports, 27 s for 1,500 in a 290 KB file. The same source gets the
+ * same program: nothing translate does changes the syntax tree or the checker's answers (it only reads them).
+ */
+let lastLoaded: { source: string; loaded: Loaded } | undefined;
+
+/** Build a program whose only user file is `source` (the last one built is reused for the same text). */
 export function loadProgram(source: string): Loaded {
+  if (lastLoaded?.source === source) return lastLoaded.loaded;
+  const loaded = buildProgram(source);
+  lastLoaded = { source, loaded };
+  return loaded;
+}
+
+function buildProgram(source: string): Loaded {
   const userSf = ts.createSourceFile(USER_FILE, source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
   const host: ts.CompilerHost = {
     getSourceFile: (fileName) => (fileName === USER_FILE ? userSf : libFile(fileName)),

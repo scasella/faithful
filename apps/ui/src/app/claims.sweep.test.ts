@@ -18,11 +18,14 @@ import { renderToString } from 'preact-render-to-string';
 import { provedSentence } from '@faithful/core/tiers';
 import { Shell } from './App';
 import { Gallery } from '../dev/Gallery';
+import { Landing } from '../landing/Landing';
 import { ReplayAdapter } from '../adapters/replay';
 import { ScriptedAdapter } from '../adapters/scripted';
-import type { Adapter } from '../actions';
+import type { Adapter, PickOptions, PickResult, ScanStatus } from '../actions';
+import pickFixture from '../../../../packages/cli/src/flow/fixtures/pick-response.json';
 import { FIXTURES } from '../fixtures';
 import { STAGES, attach, createStore, type Store } from '../store';
+import { SimpleShell } from '../simple/SimpleApp';
 
 const HEAD = provedSentence(0).split(' The model')[0]!; // "Proved for the Lean model of this function."
 const CONTAINERS = '.catch, .panel, section, article, li, dialog, .tier, .evidence-wrap, .ag-agreed, .pv-verdict, main';
@@ -146,6 +149,10 @@ describe('claim sweep: every screen of every fixture, after every event', () => 
   it('the dev gallery', () => {
     expect(sweep(renderToString(h(Gallery, {})), 'gallery')).toEqual([]);
   });
+
+  it('the landing page, both variants', () => {
+    for (const variant of ['showcase', 'local'] as const) expect(sweep(renderToString(h(Landing, { variant })), `landing (${variant})`)).toEqual([]);
+  });
 });
 
 describe('claim sweep: jobs running and failed', () => {
@@ -210,5 +217,190 @@ describe('claim sweep: the catch fixture driven through the Actions', () => {
     expect(store.state.value.stage).toBe('deliver');
     check('delivered');
     expect(out).toEqual([]);
+  });
+});
+
+describe('claim sweep: the Simple view', () => {
+  for (const fx of Object.values(FIXTURES)) {
+    it(`fixture "${fx.name}", after every event, replayed and live-looking`, () => {
+      const out: Violation[] = [];
+      for (let i = 0; i <= fx.events.length; i++) {
+        const store = createStore();
+        store.reset(fx.events.slice(0, i));
+        const replay = new ReplayAdapter(fx.events, { label: fx.title, fixture: true });
+        const scripted = new ScriptedAdapter(fx.events, { label: fx.title, stepMs: 0 });
+        const where = `simple: ${fx.name} after event ${i}${i ? ` (${fx.events[i - 1]!.event.kind})` : ''}`;
+        for (const [html, how] of [
+          [renderToString(h(SimpleShell, { store, adapter: replay, fixtureTitle: fx.title })), 'replay'],
+          [renderToString(h(SimpleShell, { store, adapter: scripted, onFull: () => undefined })), 'live'],
+        ] as const) {
+          out.push(...sweep(html, `${where}, ${how}`));
+          // no keyboard-shortcut chips and no stepper, on any step
+          if (html.includes('<kbd') || html.includes('class="stepper')) out.push({ rule: 'kbd chip or stepper in the Simple view', where, context: how });
+        }
+      }
+      expect(out).toEqual([]);
+    });
+  }
+});
+
+describe('claim sweep: the pick lists over the server\'s ranking (what Faithful can attempt, the can\'t-run list and its reasons, the scan line)', () => {
+  /**
+   * The text the SERVER supplies (reasons quote compiler and extractor output) goes through the sweep too: the fixture is
+   * what the real server answers for a small repository (packages/cli/src/flow/fixtures/pick-response.json, kept equal to
+   * the real answer by a test there), including a reason that quotes "50 mod of the budget" where the source had a percent sign.
+   */
+  type Row = PickResult['rows'][number];
+  const rowOf = (file: string, name: string, tier: Row['tier'], reason: string | null = null): Row => ({ file, name, line: 1, hasJsDoc: false, tier, reason });
+  const undecided: Row[] = [
+    rowOf('u/pending.ts', 'pendingOne', 'unknown', 'Not checked yet: the scan has not reached it.'),
+    rowOf('u/slow.ts', 'slowOne', 'unknown', 'Checking took longer than 3 seconds; not run.'),
+    rowOf('u/failed.ts', 'failedOne', 'unknown', 'The check itself failed; not run.'),
+  ];
+  const fx = pickFixture as unknown as PickResult;
+
+  /** A server that answers from a table by name/path match, ranked provable, tested, unknown, as the real one does. */
+  function serverFor(table: Row[], scan: ScanStatus) {
+    const order = { provable: 0, tested: 1, unknown: 2, none: 3 } as const;
+    return async (query: string, o: PickOptions = {}): Promise<PickResult> => {
+      const q = query.trim().toLowerCase();
+      const all = table.filter((r) => !q || r.name.toLowerCase().includes(q) || r.file.toLowerCase().includes(q)).sort((a, b) => order[a.tier] - order[b.tier]);
+      const counts = { provable: 0, tested: 0, unknown: 0, none: 0 };
+      for (const r of all) counts[r.tier]++;
+      return {
+        rows: all.filter((r) => r.tier !== 'none').slice(0, o.limit ?? 8),
+        totalMatches: all.length,
+        counts,
+        cannotRun: o.includeUnrunnable ? all.filter((r) => r.tier === 'none') : [],
+        scan,
+      };
+    };
+  }
+
+  it('the fixture itself carries no percent sign, and every reason of it reads as a claim-free sentence', () => {
+    for (const r of [...fx.rows, ...fx.cannotRun]) expect(sweep(`<li><p>${r.reason ?? ''}</p></li>`, `fixture reason of ${r.name}`)).toEqual([]);
+    expect(JSON.stringify(fx)).not.toContain('%');
+  });
+
+  it('Select and the Simple Pick step: the fixture answer, a running scan with every kind of undecided function, the can\'t-run list opened, a search that finds only functions that can\'t run', async () => {
+    const { render } = await import('preact');
+    const { act } = await import('preact/test-utils');
+    const { AppContext } = await import('./AppContext');
+    const { SelectScreen } = await import('../screens/select/SelectScreen');
+    const { PickStep } = await import('../simple/PickStep');
+    const { fakeAdapter, storeWith } = await import('../screens/agree/testkit');
+    const { PICK_TIMING } = await import('../screens/select/pickView');
+    const saved = { ...PICK_TIMING };
+    Object.assign(PICK_TIMING, { debounceMs: 20, pollMs: 40, focusMs: 0 });
+    const table: Row[] = [...fx.rows, ...fx.cannotRun, ...undecided];
+    const sleep = (ms: number) => act(async () => await new Promise((r) => setTimeout(r, ms)));
+    const out: Violation[] = [];
+    try {
+      for (const [name, Screen] of [['select', SelectScreen], ['simple pick', PickStep]] as const) {
+        for (const [state, scan] of [
+          ['scan done', { state: 'done', filesDone: 10, filesTotal: 10, version: 4 }],
+          ['scan running', { state: 'running', filesDone: 3, filesTotal: 10, version: 4 }],
+        ] as const) {
+          const root = document.createElement('div');
+          document.body.append(root);
+          const adapter = fakeAdapter([]);
+          adapter.pickFunctions.mockImplementation(serverFor(table, scan));
+          adapter.scanStatus.mockImplementation(async () => ({ ...scan }));
+          act(() => render(h(AppContext.Provider, { value: { store: storeWith([]), adapter } }, h(Screen as never, {})), root));
+          for (let i = 0; i < 100 && !root.querySelector('.run-toggle'); i++) await sleep(10);
+          const toggle = root.querySelector<HTMLButtonElement>('.run-toggle');
+          expect(toggle, `${name}, ${state}`).not.toBeNull();
+          expect(root.querySelectorAll('[role="option"]').length, `${name}, ${state}`).toBe(fx.rows.length + undecided.length);
+          expect(!!root.querySelector('.run-scan'), `${name}, ${state}`).toBe(state === 'scan running');
+          out.push(...sweep(root.innerHTML, `${name}, ${state}, list`));
+          await act(async () => toggle!.click());
+          expect(root.querySelectorAll('.run-list li').length, `${name}, ${state}`).toBe(fx.cannotRun.length);
+          // every reason of the fixture is on the page, the one that quoted a percent sign included
+          expect(root.textContent, name).toContain('Error: 50 mod of the budget');
+          out.push(...sweep(root.innerHTML, `${name}, ${state}, can't-run list opened`));
+          // a search that matches only functions Faithful can't run: they are listed with their reasons
+          const input = root.querySelector<HTMLInputElement>('input[role="combobox"]')!;
+          act(() => {
+            input.value = 'limit';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+          for (let i = 0; i < 100 && !root.textContent!.includes('No function Faithful can run matches.'); i++) await sleep(10);
+          expect(root.textContent, name).toContain('No function Faithful can run matches.');
+          out.push(...sweep(root.innerHTML, `${name}, ${state}, only unrunnable matches`));
+          act(() => render(null, root));
+          root.remove();
+        }
+        // a replay or fixture: the plain local list, without statuses
+        const root = document.createElement('div');
+        document.body.append(root);
+        const adapter = fakeAdapter([{ path: 'a.ts', functions: [{ name: 'p', line: 1, hasJsDoc: false }] }]);
+        act(() => render(h(AppContext.Provider, { value: { store: storeWith([]), adapter } }, h(Screen as never, {})), root));
+        for (let i = 0; i < 100 && !root.querySelector('[role="option"]'); i++) await sleep(10);
+        expect(root.querySelectorAll('[role="option"]').length, name).toBe(1);
+        out.push(...sweep(root.innerHTML, `${name}, local list`));
+        act(() => render(null, root));
+        root.remove();
+      }
+    } finally {
+      Object.assign(PICK_TIMING, saved);
+    }
+    expect(out).toEqual([]);
+  });
+
+  it('the count notes of every stage of a scan (in file order, best so far, final) and the plain-word reasons the server writes now', async () => {
+    const { render } = await import('preact');
+    const { act } = await import('preact/test-utils');
+    const { AppContext } = await import('./AppContext');
+    const { SelectScreen } = await import('../screens/select/SelectScreen');
+    const { PickStep } = await import('../simple/PickStep');
+    const { fakeAdapter, storeWith } = await import('../screens/agree/testkit');
+    const { PICK_TIMING } = await import('../screens/select/pickView');
+    const saved = { ...PICK_TIMING };
+    Object.assign(PICK_TIMING, { debounceMs: 20, pollMs: 40, focusMs: 0 });
+    const sleep = (ms: number) => act(async () => await new Promise((r) => setTimeout(r, ms)));
+    const out: Violation[] = [];
+    // reasons as `pickReason` writes them for a name the file does not define, a compiler diagnostic, and the translator clause
+    const plain: Row[] = [
+      rowOf('p/doc.ts', 'readTitle', 'none', 'Cannot run on its own: it uses `document`, which the file does not define and a plain function run does not provide (line 2, column 10). The translator refuses it too (input or output).'),
+      rowOf('p/ret.ts', 'noReturn', 'none', "Cannot run on its own: it and the declarations it uses do not compile by themselves (line 5, column 3: Function lacks ending return statement and return type does not include 'undefined'). The translator refuses it too (syntax outside the subset)."),
+      rowOf('p/slowfile.ts', 'hugeFile', 'unknown', 'Checking took longer than 30 seconds; not run.'),
+    ];
+    for (const r of plain) out.push(...sweep(`<li><p>${r.reason}</p></li>`, `reason of ${r.name}`));
+    try {
+      for (const [name, Screen] of [['select', SelectScreen], ['simple pick', PickStep]] as const) {
+        const many = Array.from({ length: 60 }, (_, i) => rowOf(`m/f${String(i).padStart(2, '0')}.ts`, `f${String(i).padStart(2, '0')}`, 'unknown', 'Not checked yet: the scan has not reached it.'));
+        const stages: Array<[string, Row[], ScanStatus, RegExp]> = [
+          ['nothing decided yet', [...many, ...plain], { state: 'running', filesDone: 0, filesTotal: 60, version: 1 }, /in file order, not ranked yet/],
+          ['some decided', [rowOf('m/g.ts', 'g', 'provable'), ...many.map((r, i) => (i < 3 ? { ...r, tier: 'tested' as const, reason: null } : r)), ...plain], { state: 'running', filesDone: 5, filesTotal: 60, version: 2 }, /the best so far/],
+          ['final', [rowOf('m/g.ts', 'g', 'provable'), ...many.map((r) => ({ ...r, tier: 'tested' as const, reason: null })), ...plain], { state: 'done', filesDone: 60, filesTotal: 60, version: 3 }, /Showing the best \d+ of \d+: 1 can have a proof attempted, 60 can be tested, 1 not checked/],
+        ];
+        for (const [stage, table, scan, note] of stages) {
+          const root = document.createElement('div');
+          document.body.append(root);
+          const adapter = fakeAdapter([]);
+          adapter.pickFunctions.mockImplementation(serverFor(table, scan));
+          adapter.scanStatus.mockImplementation(async () => ({ ...scan }));
+          act(() => render(h(AppContext.Provider, { value: { store: storeWith([]), adapter } }, h(Screen as never, {})), root));
+          for (let i = 0; i < 100 && !root.querySelector('[role="option"]'); i++) await sleep(10);
+          expect(root.textContent, `${name}, ${stage}`).toMatch(note);
+          out.push(...sweep(root.innerHTML, `${name}, ${stage}`));
+          // the can't-run list with its first page of reasons
+          const toggle = root.querySelector<HTMLButtonElement>('.run-toggle');
+          if (toggle) {
+            await act(async () => toggle.click());
+            out.push(...sweep(root.innerHTML, `${name}, ${stage}, can't-run list opened`));
+          }
+          act(() => render(null, root));
+          root.remove();
+        }
+      }
+    } finally {
+      Object.assign(PICK_TIMING, saved);
+    }
+    expect(out).toEqual([]);
+  });
+
+  it('the sweep does catch a raw percent sign in a server reason (the server writes it as "mod"; the page does not rewrite it)', () => {
+    expect(sweep('<ul><li><span class="run-reason">Error: 50% of the budget</span></li></ul>', 'hostile reason').map((v) => v.rule)).toEqual(['percent other than "95% CI"']);
   });
 });

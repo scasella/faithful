@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { StampedEvent } from '@faithful/session';
 import { ReplayAdapter, type Clock } from './replay';
 import { LiveAdapter } from './live';
+import { ScriptedAdapter } from './scripted';
 import { SseParser } from '../lib/sse';
 import { ReadOnlyError, type Actions } from '../actions';
 import { FIXTURES } from '../fixtures';
@@ -77,6 +78,14 @@ describe('ReplayAdapter', () => {
     await expect(port.agree()).rejects.toBeInstanceOf(ReadOnlyError);
     await expect(port.startOptimize({ kind: 'time-budget', minutes: 1 })).rejects.toBeInstanceOf(ReadOnlyError);
     expect(r.readOnly).toBe(true);
+    // the Tested preflight is a question, not an action: unknown in a replay
+    expect(await port.testedCheck()).toBeNull();
+    // what can be attempted is unknown in a replay too (the pick lists show no status)
+    expect(await port.functionStatus(['a.ts'])).toBeNull();
+    // and so is the server's ranking and its scan: the pick lists list the functions locally, without a status
+    expect(await port.pickFunctions('fib', { limit: 8 })).toBeNull();
+    expect(await port.scanStatus()).toBeNull();
+    expect(await port.startScan()).toBeNull();
   });
 });
 
@@ -106,6 +115,53 @@ describe('LiveAdapter', () => {
     expect(JSON.parse(calls[0]!.init.body as string)).toEqual({ challengeId: 'ch-1', ruling: { ruling: 'spec-wrong' } });
   });
 
+  it('asks what Faithful can attempt for a batch of files with one POST /api/functions/status', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const answer = { 'src/a.ts': { f: { tier: 'tested', reason: null } }, 'gone.ts': null };
+    const f = vi.fn(async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return new Response(JSON.stringify(answer), { status: 200 });
+    });
+    const a = new LiveAdapter({ token: 'tok', fetch: f as unknown as typeof fetch });
+    expect(await a.functionStatus(['src/a.ts', 'gone.ts'])).toEqual(answer);
+    expect(calls.map((c) => `${c.init.method} ${c.url}`)).toEqual(['POST /api/functions/status']);
+    expect(JSON.parse(calls[0]!.init.body as string)).toEqual({ files: ['src/a.ts', 'gone.ts'] });
+    expect((calls[0]!.init.headers as Record<string, string>)['x-faithful-token']).toBe('tok');
+  });
+
+  it('asks for the ranked Pick list with one POST /api/functions/pick, and for the scan with GET scan and POST scan/start', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const scan = { state: 'running', filesDone: 3, filesTotal: 10, version: 2 };
+    const pick = { rows: [], totalMatches: 0, counts: { provable: 0, tested: 0, unknown: 0, none: 0 }, cannotRun: [], scan };
+    const f = vi.fn(async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return new Response(JSON.stringify(url.endsWith('/pick') ? pick : scan), { status: 200 });
+    });
+    const a = new LiveAdapter({ token: 'tok', fetch: f as unknown as typeof fetch });
+    expect(await a.pickFunctions('fib', { limit: 8, includeUnrunnable: true })).toEqual(pick);
+    await a.pickFunctions('');
+    await a.pickFunctions('x', { limit: 500 }); // the server's cap is 50: never ask for more
+    await a.pickFunctions('x', { limit: 0 });
+    expect(await a.scanStatus()).toEqual(scan);
+    expect(await a.startScan()).toEqual(scan);
+    expect(calls.map((c) => `${c.init.method} ${c.url}`)).toEqual([
+      'POST /api/functions/pick',
+      'POST /api/functions/pick',
+      'POST /api/functions/pick',
+      'POST /api/functions/pick',
+      'GET /api/functions/scan',
+      'POST /api/functions/scan/start',
+    ]);
+    const body = (i: number) => JSON.parse(calls[i]!.init.body as string);
+    expect(body(0)).toEqual({ query: 'fib', limit: 8, includeUnrunnable: true });
+    expect(body(1)).toEqual({ query: '' });
+    expect(body(2)).toEqual({ query: 'x', limit: 50 });
+    expect(body(3)).toEqual({ query: 'x', limit: 1 });
+    expect(calls[4]!.init.body).toBeUndefined();
+    expect(body(5)).toEqual({});
+    expect((calls[4]!.init.headers as Record<string, string>)['x-faithful-token']).toBe('tok');
+  });
+
   it('a 401 (the server restarted with a new token) says to reload the page', async () => {
     const f = async () => new Response(JSON.stringify({ error: 'bad token' }), { status: 401 });
     const a = new LiveAdapter({ token: 'old', fetch: f as unknown as typeof fetch });
@@ -127,13 +183,15 @@ describe('LiveAdapter', () => {
     const a = new LiveAdapter({ token: 'tok', fetch: f as unknown as typeof fetch });
     await a.carveOptions('ab cd');
     await a.doctor();
+    await a.testedCheck();
     await a.rule('ch-1', { ruling: 'function-wrong', then: 'carve-out', carve: { param: 0, kind: 'negative' } });
     expect(calls.map((c) => `${c.init.method} ${c.url}`)).toEqual([
       'GET /api/challenge/carve-options?challengeId=ab%20cd',
       'GET /api/doctor',
+      'GET /api/tested/check',
       'POST /api/challenge/rule',
     ]);
-    expect(JSON.parse(calls[2]!.init.body as string)).toEqual({
+    expect(JSON.parse(calls[3]!.init.body as string)).toEqual({
       challengeId: 'ch-1',
       ruling: { ruling: 'function-wrong', then: 'carve-out', carve: { param: 0, kind: 'negative' } },
     });
@@ -228,5 +286,16 @@ describe('LiveAdapter event stream', () => {
     vi.useRealTimers();
     expect(store.state.value.fn).toBe('average');
     expect(store.events.value.length).toBe(other.length);
+  });
+});
+
+describe('ScriptedAdapter', () => {
+  it('answers null for what can be attempted: a fixture invents no statuses', async () => {
+    const fx = FIXTURES.catch!;
+    const a = new ScriptedAdapter(fx.events, { label: fx.title, stepMs: 0 });
+    expect(await a.functionStatus(['src/math/fib.ts'])).toBeNull();
+    expect(await a.pickFunctions('fib')).toBeNull();
+    expect(await a.scanStatus()).toBeNull();
+    expect(await a.startScan()).toBeNull();
   });
 });

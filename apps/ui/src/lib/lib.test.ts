@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { tokenize, toLines } from './highlight';
 import { bindingOf, isTypingTarget } from './keys';
 import { canSayFaster, ceil1, floor1, msText, outcomeVerb, ratioText, speedupCiText, speedupDecimals, valText } from './format';
-import { stampOf, provenanceRows } from './provenance';
+import { leanVersions, stampOf, provenanceRows } from './provenance';
 import { FIXTURE_TOOLCHAIN } from '../fixtures/common';
 import { createStore } from '../store';
 import { FIXTURES } from '../fixtures';
@@ -101,6 +101,11 @@ describe('provenance', () => {
   });
   it('says when nothing is recorded', () => {
     expect(provenanceRows(null)[0]!.value).toContain('not recorded');
+  });
+  it('prints "Lean 4.34.0" from the bare number or from the full `lean --version` text a recording holds', () => {
+    expect(leanVersions(FIXTURE_TOOLCHAIN)).toBe('Lean 4.34.0, Mathlib 5ed2965');
+    const full = { ...FIXTURE_TOOLCHAIN, lean: { ...FIXTURE_TOOLCHAIN.lean, version: 'Lean (version 4.34.0, arm64-apple-darwin24.6.0, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)' } };
+    expect(leanVersions(full)).toBe('Lean 4.34.0, Mathlib 5ed2965');
   });
 });
 

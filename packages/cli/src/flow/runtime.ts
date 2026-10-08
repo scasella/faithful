@@ -3,12 +3,12 @@
  * @faithful/session), persists it under `.faithful/<fn>/`, and exposes the operations the CLI and the UI call. Every model
  * call is recorded verbatim; every claim is derived from a checked result, never from the model's say-so.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
 import { FaithfulStore, captureToolchain, hashText, resolveConfig, resolveLeanDir, stampFrom, type Z3Info } from '@faithful/core';
 import { translate, type Precondition, type Translation } from '@faithful/translate';
-import { Sandbox, inferSignature, signatureWords, tsVsLean } from '@faithful/engine';
+import { Sandbox, signatureWords, tsVsLean } from '@faithful/engine';
 import {
   CodexClient,
   SPEC_SCHEMA,
@@ -41,6 +41,7 @@ import { agreementHash } from '@faithful/session/node';
 import { challengeSearch } from './challenge.js';
 import { carveOptions, makeCarveOut, type CarveClass } from './carveout.js';
 import { noThrowPrecondition, originalMeetsSpec } from './theorem.js';
+import { includedNames, testedOriginalFor, testedPreflight, type TestedOriginal, type TestedPreflight } from './testedOriginal.js';
 
 export type Listener = (e: StampedEvent) => void;
 
@@ -163,7 +164,11 @@ export class SessionRuntime {
     const abs = resolve(this.opts.repoRoot, file);
     const rel = relative(resolve(this.opts.repoRoot), abs);
     if (rel.startsWith('..') || isAbsolute(rel)) throw new Error('the file must be inside the repository');
-    const source = await readFile(abs, 'utf8');
+    // containment on the REAL paths too (as triage's classifyFile): a symlink inside the repository must not reach outside it
+    const [realRoot, realAbs] = await Promise.all([realpath(resolve(this.opts.repoRoot)), realpath(abs)]);
+    const realRel = relative(realRoot, realAbs);
+    if (realRel.startsWith('..') || isAbsolute(realRel)) throw new Error('the file must be inside the repository');
+    const source = await readFile(realAbs, 'utf8');
     await this.start(file, fn, source);
   }
 
@@ -199,18 +204,58 @@ export class SessionRuntime {
   }
 
   /**
+   * Can the Tested path run this function at all, and on which original? `testedPreflight` (testedOriginal.ts): the
+   * function extracted with only the module-level declarations it uses (the whole file when extraction refuses but the
+   * file loads), then the checks the Tested run makes before anything is measured, on exactly the source the run loads:
+   * inputs from the TypeScript signature, the compile gate on the original, the real `Sandbox.load(.., { values: 'js' })`
+   * (the call `calibrateSignatureDistribution` makes), and the original on a first sample of generated inputs. Every
+   * failure is deterministic, so offering the Tested tier for it would only end in a failure that no retry can change.
+   */
+  async testedPreflight(): Promise<TestedPreflight> {
+    const fn = this.state.fn;
+    if (!fn) return { ok: false, reason: 'open a function first' };
+    return testedPreflight(this.fileText, fn, await this.getSandbox());
+  }
+
+  /** Null when the Tested path can run this function; otherwise the reason in plain words (see `testedPreflight`). */
+  async testedBlocker(): Promise<string | null> {
+    const p = await this.testedPreflight();
+    return p.ok ? null : p.reason;
+  }
+
+  /**
+   * The original a started Tested run loads: the scope recorded in `tested.started` (recordings from before extraction
+   * have none and loaded the whole file), re-derived from the file text, which is deterministic.
+   */
+  testedOriginal(): TestedOriginal {
+    const t = this.state.tested;
+    if (!t) throw new Error('start the Tested-only path first (runtime.startTestedOnly)');
+    return testedOriginalFor(this.fileText, this.state.fn, t.original ?? 'file');
+  }
+
+  /**
    * Continue a function the translator REFUSED on the Tested tier only (packages/cli/src/flow/tested.ts runs the loop).
    * Never goes through `need()`: there is no translation. Fails with a plain reason when the function is not refused, the
-   * path already started, or inputs cannot be generated from its TypeScript signature.
+   * path already started, or the preflight fails. `tested.started` records which original runs (`original`) and the
+   * declarations an extracted original includes (`included`).
    */
   async startTestedOnly(o: { specials?: boolean } = {}): Promise<void> {
     const tr = this.state.translation;
     if (!tr) throw new Error('open a function first');
     if (tr.ok) throw new Error('this function is inside the verifiable subset; the Tested-only path is for functions the translator refused');
     if (this.state.tested) throw new Error('the Tested-only path has already started for this function');
-    const sig = inferSignature(this.fileText, this.state.fn);
-    if (!sig.ok) throw new Error(`inputs cannot be generated from the signature of ${this.state.fn}: ${sig.reason}`);
-    await this.emit({ kind: 'tested.started', refusal: tr.refusal, signature: signatureWords(sig.sig), specials: !!o.specials, at: new Date().toISOString() });
+    const p = await this.testedPreflight();
+    if (!p.ok) throw new Error(p.reason);
+    await this.emit({
+      kind: 'tested.started',
+      refusal: tr.refusal,
+      signature: signatureWords(p.sig),
+      specials: !!o.specials,
+      at: new Date().toISOString(),
+      original: p.original.scope,
+      ...(p.original.scope === 'extracted' ? { included: includedNames(p.original) } : {}),
+      ...(p.original.caveats.length ? { caveats: [...p.original.caveats] } : {}),
+    });
   }
 
   async chooseThrow(choice: 'precondition' | 'spec-case'): Promise<void> {
@@ -363,6 +408,15 @@ export class SessionRuntime {
       return fixOrig
         ? `${open} disagreement${open === 1 ? '' : 's'} remain; you ruled that your function is wrong: fix it and open it again, or carve the class out.`
         : `${open} disagreement${open === 1 ? '' : 's'} between the spec and the original remain; rule on each (revise the spec, fix your function, or carve the class out).`;
+    }
+    // a search where Lean evaluated the spec on nothing (or on fewer inputs than it failed on) is not a clean run: a
+    // disagreement could hide among the inputs it never compared
+    const specFaults = run.excluded?.specFaults ?? 0;
+    if (run.inputsCompared === 0 && specFaults > 0) {
+      return `Lean could not evaluate the spec on any compared input; ${specFaults} input${specFaults === 1 ? '' : 's'} produced no value (timeout or crash), so nothing was checked. Revise the spec so it evaluates (for example, without unbounded recursion).`;
+    }
+    if (specFaults > 0 && specFaults >= run.inputsCompared) {
+      return `Lean could not evaluate the spec on ${specFaults} input${specFaults === 1 ? '' : 's'} (timeout or crash), at least as many as the ${run.inputsCompared} it compared, so most of the search checked nothing. Revise the spec so it evaluates faster (for example, without unbounded recursion).`;
     }
     return null;
   }

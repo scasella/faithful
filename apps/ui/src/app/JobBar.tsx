@@ -4,10 +4,14 @@
  */
 import { useApp } from './AppContext';
 import { jobWords } from '../lib/job';
+import { testedLoadFailed } from '../screens/translate/testedCheck';
 
 export function JobBar() {
   const { store } = useApp();
-  const { running, lastError } = store.state.value.job;
+  const s = store.state.value;
+  const { running, lastError } = s.job;
+  // a Tested run that failed loading the original: the plain reason, not the sandbox's internals
+  const plain = testedLoadFailed(s);
   if (!running && !lastError) return null;
   return (
     <div class="jobbar">
@@ -19,7 +23,7 @@ export function JobBar() {
       )}
       {lastError && (
         <p class="err-inline job-failed" role="alert">
-          <b>{jobWords(lastError.job)} failed.</b> {lastError.message}
+          <b>{jobWords(lastError.job)} failed.</b> {plain ?? lastError.message}
         </p>
       )}
     </div>

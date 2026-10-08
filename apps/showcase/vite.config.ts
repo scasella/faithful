@@ -75,6 +75,25 @@ interface RecordingHead {
   recordedAt: string;
   notes: string;
   lean: string | null;
+  carveOuts: string[];
+  specFaults: boolean;
+}
+
+interface RecEvent {
+  kind: string;
+  agreement?: { carveOuts?: { words: string }[] };
+  run?: { disagreements?: { spec?: { tag?: string } }[] };
+}
+
+/** The last agreed spec's carve-out words, and whether a challenge run listed a spec fault (see site/recording.ts). */
+function cautionsOf(events: { event: RecEvent }[]): { carveOuts: string[]; specFaults: boolean } {
+  let carveOuts: string[] = [];
+  let specFaults = false;
+  for (const { event: e } of events) {
+    if (e.kind === 'spec.agreed') carveOuts = (e.agreement?.carveOuts ?? []).map((c) => c.words);
+    if (e.kind === 'challenge.run' && (e.run?.disagreements ?? []).some((d) => d.spec?.tag === 'fault')) specFaults = true;
+  }
+  return { carveOuts, specFaults };
 }
 
 function recordingsIndex(): RecordingHead[] {
@@ -83,10 +102,10 @@ function recordingsIndex(): RecordingHead[] {
   const heads: RecordingHead[] = [];
   for (const f of readdirSync(dir).sort()) {
     if (!f.endsWith('.json') || f === 'index.json') continue;
-    const j = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { schema?: number; fn?: string; recordedAt?: string; notes?: string };
+    const j = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { schema?: number; fn?: string; recordedAt?: string; notes?: string; stampedEvents?: { event: RecEvent }[] };
     if (j.schema !== 1 || typeof j.fn !== 'string') throw new Error(`public/recordings/${f}: not a schema-1 recording`);
     const name = f.slice(0, -5);
-    heads.push({ name, file: `recordings/${f}`, fn: j.fn, recordedAt: j.recordedAt ?? '', notes: j.notes ?? '', lean: existsSync(join(dir, `${name}.lean`)) ? `recordings/${name}.lean` : null });
+    heads.push({ name, file: `recordings/${f}`, fn: j.fn, recordedAt: j.recordedAt ?? '', notes: j.notes ?? '', lean: existsSync(join(dir, `${name}.lean`)) ? `recordings/${name}.lean` : null, ...cautionsOf(j.stampedEvents ?? []) });
   }
   return heads;
 }

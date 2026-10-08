@@ -80,6 +80,8 @@ export async function runOptimize(o: OptimizeCmdOptions): Promise<number> {
       const blocker = rt.agreeBlocker();
       if (!blocker) break;
       const run = rt.state.challengeRuns.at(-1);
+      // only real disagreements are listed: inputs on which Lean could not evaluate the spec are counted, not listed, and a
+      // search with at least as many of them as compared inputs blocks with its own reason (no disagreement to rule on)
       const d = run?.disagreements[0];
       if (!d) {
         log(blocker);
@@ -105,6 +107,9 @@ export async function runOptimize(o: OptimizeCmdOptions): Promise<number> {
           return 4;
         }
         await rt.rule({ challengeId: d.id, ruling: 'function-wrong', then: 'carve-out', carve: opts[k - 1]!.cls });
+        // the user decides, but sees how much the carve-outs took before agreeing
+        const ex = rt.state.challengeRuns.at(-1)?.excluded;
+        if (ex?.generatedBeforeCarveOuts) log(`The carve-outs exclude ${ex.carvedOut} of ${ex.generatedBeforeCarveOuts} generated inputs.`);
       }
     }
     if (rt.agreeBlocker()) {

@@ -32,6 +32,14 @@ function rank(q: string, name: string, path: string): { r: number; hits: number[
   return null;
 }
 
+/**
+ * The character indexes of `name` the query matched, for emphasis (empty when it matched only the path, or nothing).
+ * For rows the server ranked: the server matches with the same rule (packages/cli/src/flow/scan.ts `matchRank`) but sends no indexes.
+ */
+export function nameHitsFor(query: string, name: string, path: string): number[] {
+  return rank(query.trim().toLowerCase(), name, path)?.hits ?? [];
+}
+
 /** Functions matching `query`, best first; ties keep repository order (path, then line). */
 export function matchFunctions(files: FileEntry[], query: string, limit = 50): { hits: FnHit[]; total: number } {
   const q = query.trim().toLowerCase();

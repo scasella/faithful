@@ -52,7 +52,7 @@ export async function runShowcaseRecord(o: RecordOptions): Promise<number> {
     notes:
       `A real session recorded by \`faithful showcase-record\` on ${start.toolchain.capturedAt.slice(0, 10)} (model ${rt.codex.model}). ` +
       `The user's decisions were made by the scripted autopilot policy, not a person: throw sites as ${policy.throwChoice}; ` +
-      `at a disagreement, up to ${policy.maxRevisions} "the spec is wrong" revisions, then the first carve-out class; Agree once none remain; ` +
+      `at a disagreement, up to ${policy.maxRevisions} "the spec is wrong" revisions, then the first carve-out class (blocked instead if the carve-outs exclude at least half of the generated inputs); Agree once none remain; ` +
       `faster-but-not-proved candidates are ${policy.acceptVerified ? '' : 'never '}accepted. ` +
       `Result: ${result.bestTier}${result.bestSpeedup ? `, ${result.bestSpeedup.ratio.toFixed(1)}× vs the original (95% CI ${result.bestSpeedup.lo.toFixed(1)}–${result.bestSpeedup.hi.toFixed(1)})` : ''}; ` +
       `${result.candidates.length} candidate(s); ${result.codex.calls} Codex calls; ${(result.wallMs / 60000).toFixed(1)} minutes.`,
