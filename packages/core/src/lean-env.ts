@@ -41,7 +41,19 @@ export function loadLeanEnv(leanDir: string): Promise<LeanEnv> {
   return p;
 }
 
+/**
+ * True once `faithful setup` (or `lake build`) has built the Faithful library in this Lake project. Before that, any
+ * `lake` command run in the project fetches the missing dependencies (Mathlib, about 1 GB) as a side effect, so nothing
+ * here runs `lake` until this holds: the download is `faithful setup`'s to start, after it has stated its cost.
+ */
+export function leanProjectBuilt(leanDir: string): boolean {
+  return existsSync(join(leanDir, '.lake', 'build', 'lib', 'lean', 'Faithful.olean'));
+}
+
 async function doLoad(leanDir: string): Promise<LeanEnv> {
+  if (!leanProjectBuilt(leanDir)) {
+    throw new Error(`the Lean project in ${leanDir} has not been built yet: run \`faithful setup --yes\` (it states its cost first)`);
+  }
   const lake = await findBinary('lake');
   if (!lake) throw new Error('lake not found: install elan (https://github.com/leanprover/elan) or run `faithful setup`');
   const env = envWithToolDirs();
