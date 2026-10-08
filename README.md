@@ -1,5 +1,37 @@
 # Faithful
 
+**Make one TypeScript function faster, and see exactly how much of "it still does the same thing" was checked.**
+
+![Faithful replaying a recorded session in which Z3 rejects a rewrite of clamp](docs/media/faithful-demo.gif)
+
+A model can rewrite your function so it runs faster. It can also change what the function does without telling you. In
+the recorded session above, the model's rewrite of `clamp` dropped the check that throws when the lower bound is larger
+than the upper bound. It agreed with the original on all 1000 generated test inputs. Z3, a solver that searches for a
+counterexample, found one: `clamp(-2, -1, -3)`. The original throws, the rewrite returns -1. Faithful rejected the
+rewrite and showed that input.
+
+That is the whole idea. Faithful gives a model your function and checks every rewrite it proposes. A rewrite must
+compile, be free of side effects, match the original on generated inputs, survive a bounded solver search for a
+difference, and measurably run faster. One that clears those and is significantly faster is then checked in Lean 4, a
+proof assistant, against a spec you agreed to in plain words before any rewrite was tried. You get a patch, the spec, the
+Lean file, and a `VERIFY.md` with which anyone can re-check the result. Your source files are never modified.
+
+Every result carries exactly one of five labels, and the tool never rounds a claim up: a rewrite that is faster but not
+proved is delivered as exactly that. What a proof covers is stated precisely below: it is about a Lean model of your
+function and the agreed spec, not about the TypeScript on every input.
+
+**Where it stands (0.1.0).** Early. The translator accepts a narrow subset of TypeScript: 39 of the 74 functions in its own
+test corpus and 0 of 20 sampled from three real libraries (measured 2026-10-05). Functions outside the subset can still be
+optimized on the Tested label only. In the 2026-10-05 campaign, 72 of 130 candidate rewrites were faster but not proved,
+and 3 were accepted with a proof. The method, the tables and the caveats are in [docs/LAUNCH.md](docs/LAUNCH.md).
+
+**What you need.** Node 22.12 or later, pnpm, and the Codex CLI signed in: the model calls go through it and nowhere else,
+and nothing leaves your machine except those prompts, which the UI shows verbatim. Proofs need Lean 4 and Mathlib, about
+12 GB of disk. To see it work first, the [examples](examples/demo/README.md) are five small functions and the
+[showcase](#showcase) replays recorded sessions.
+
+## How it works
+
 Faithful takes one TypeScript function and makes it faster without changing what it does. A fixed translator (no model
 involved) turns the function into a Lean 4 model. You and a model agree on a spec in plain words, after a challenge run
 that looks for inputs where spec and code disagree. Lean then checks a proof that the original meets that spec. A model
@@ -124,7 +156,7 @@ The demo media is produced by `node scripts/make-media.mjs <recording>` from a r
 needs Chrome (set `CHROME` if it is not the macOS app path) and ffmpeg, and records the built showcase. The current files
 come from `apps/showcase/public/recordings/clamp.json`.
 
-![Faithful replaying a recorded session](docs/media/faithful-demo.gif)
+The GIF at the top is `docs/media/faithful-demo.gif`.
 
 Video (MP4, 1280x720): [docs/media/faithful-demo.mp4](docs/media/faithful-demo.mp4)
 
