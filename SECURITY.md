@@ -2,10 +2,8 @@
 
 ## Reporting a vulnerability
 
-Please report a vulnerability privately, not in a public issue. Once this repository is published on GitHub, use GitHub's
-private vulnerability reporting: open the repository's "Security" tab, then "Report a vulnerability".
-
-<!-- maintainer: confirm private vulnerability reporting is enabled on the repository -->
+Please report a vulnerability privately, not in a public issue. Use GitHub's private vulnerability reporting: open the
+repository's "Security" tab, then "Report a vulnerability".
 
 Include the version or commit, what you did, what you expected and what happened. Faithful runs on your machine, so
 reports are about that code: the local server, the file writes, the way model output is checked, and the sandbox

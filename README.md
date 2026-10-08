@@ -2,6 +2,9 @@
 
 **Make one TypeScript function faster, and see exactly how much of "it still does the same thing" was checked.**
 
+Try it without installing anything: **[scasella.github.io/faithful](https://scasella.github.io/faithful/)** replays recorded
+sessions and re-runs the checks, Z3 included, in your browser.
+
 ![Faithful replaying a recorded session in which Z3 rejects a rewrite of clamp](docs/media/faithful-demo.gif)
 
 A model can rewrite your function so it runs faster. It can also change what the function does without telling you. In
@@ -27,18 +30,19 @@ and 3 were accepted with a proof. The method, the tables and the caveats are in 
 
 **What you need.** Node 22.12 or later, pnpm, and the Codex CLI signed in: the model calls go through it and nowhere else,
 and nothing leaves your machine except those prompts, which the UI shows verbatim. Proofs need Lean 4 and Mathlib, about
-12 GB of disk. To see it work first, the [examples](examples/demo/README.md) are five small functions and the
-[showcase](#showcase) replays recorded sessions.
+12 GB of disk. To see it work first, use the [live showcase](https://scasella.github.io/faithful/), or the
+[examples](examples/demo/README.md): five small functions to run it on.
 
 ## How it works
 
-Faithful takes one TypeScript function and makes it faster without changing what it does. A fixed translator (no model
-involved) turns the function into a Lean 4 model. You and a model agree on a spec in plain words, after a challenge run
-that looks for inputs where spec and code disagree. Lean then checks a proof that the original meets that spec. A model
-proposes faster rewrites, and each one must pass a compile check, a purity check, a differential test against the
-original, a bounded Z3 check where available, a benchmark with confidence intervals, and a Lean proof against the same
-spec. Only then is it delivered at the strongest label its evidence supports. The point of the tool is in one line:
-provably the same, measurably faster, and the tool never rounds up a claim.
+Faithful takes one TypeScript function and looks for a faster version that does the same thing, and says exactly what
+was checked. A fixed translator (no model involved) turns the function into a Lean 4 model. You and a model agree on a
+spec in plain words, after a challenge run that looks for inputs where spec and code disagree. Lean then checks a proof
+that the original meets that spec. A model proposes faster rewrites, and each one must pass a compile check, a purity
+check, a differential test against the original, a bounded Z3 check where available, a benchmark with confidence
+intervals, and a Lean proof against the same spec. Only then is it delivered at the strongest label its evidence
+supports. The point of the tool is in one line: a faster version, checked as far as the evidence goes, and a label that
+never rounds up a claim.
 
 ## What a result says: the five labels
 
@@ -142,11 +146,11 @@ differential inputs is rejected because Z3 found the input [-2,-1,-3], on which 
 returns -1. The local UI shows the same landing page as its start screen when you tick "Show this page when Faithful
 opens" (kept in a session cookie).
 
-Build it with `pnpm --filter @faithful/showcase build`; the output is `apps/showcase/dist`.
+It is hosted at <https://scasella.github.io/faithful/>. To build it yourself: `pnpm --filter @faithful/showcase build`; the output is `apps/showcase/dist`.
 
 **Z3 in the browser.** `z3-solver` 5.2.0 needs `SharedArrayBuffer`, so it works only with cross-origin isolation. The
 showcase gets it on static hosting from the vendored coi-serviceworker 0.1.7, which reloads the page once on the first
-visit. Without isolation the SMT stage shows "not available here". Tested in headless Chrome 154 only; Firefox and
+visit. Without isolation the SMT stage shows "not available here". Tested in headless Chrome (154, and 155 on the hosted site) only; Firefox and
 Safari are untested.
 
 ## Media
