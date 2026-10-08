@@ -1,6 +1,6 @@
 # Faithful: design contract
 
-This is the document every package is built against. Rationale for deviations from the original brief is at the end.
+This is the document every package is built against. Rationale for deviations from the initial plan is at the end.
 Date of measurements below: 2026-10-04. Toolchain: Node v25.8.1, Lean 4.34.0, Mathlib `5ed2965256430c3649e86755f9576b54eca72435`
 (v4.34.0), Z3 via `z3-solver` 5.2.0 (WASM) or system z3 5.1.0, Codex CLI 0.159.2, model `gpt-6-luna` (effort `low` for spec and candidate calls; proof attempts default to `high`, see docs/PROOFS.md), macOS arm64.
 
@@ -102,11 +102,11 @@ which holds the runtime support (`Faithful.tmod`, `Faithful.getD`, JSON printing
 * vitest at the repo root (`pnpm test`). Lean-dependent tests use `describe.skipIf(!hasLean)`, where `hasLean` is false when
   `FAITHFUL_SKIP_LEAN` is set. Do not weaken an assertion to make a test pass.
 * `pnpm build` (tsc -b, then app builds) must stay green after every phase.
-* Real Codex runs are slow and serialized. Never stub or estimate a number that the brief says to measure; record it from logs.
+* Real Codex runs are slow and serialized. Never stub or estimate a number that the initial plan says to measure; record it from logs.
 
-## Deviations from the brief (kept current)
+## Deviations from the initial plan (kept current)
 
 1. Added `packages/core`: tiers, toolchain snapshot, subprocess runner and store are needed by prover, smt, engine and cli at once;
    putting them in `engine` would make `prover` and `smt` depend on `engine`, and `engine` needs both.
 2. SMT encodes the translator's IR (the same IR the Lean emitter consumes) rather than parsing Lean text. The Lean model and the SMT
-   encoding are two renderings of one IR; the SMT sanity mode (Phase 4) checks the encoding against Lean `#eval` on the corpus.
+   encoding are two renderings of one IR; the SMT sanity mode checks the encoding against Lean `#eval` on the corpus.

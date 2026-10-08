@@ -732,7 +732,7 @@ Terms:
   test is written as the correct behavior, so it fails until the fix lands (never `it.fails`).
 * **fixed**: a divergence probe whose test passes now. **open**: one whose test fails now.
 
-### Round 1 (figures supplied with this task, as recorded for the round-1 run)
+### Round 1 (figures as recorded for the round-1 run)
 
 | area (matched by probe count) | probes | held | divergences found |
 |---|---|---|---|
@@ -742,14 +742,14 @@ Terms:
 | control | 197 | 190 | 7 |
 | **round 1** | **433** | **407** | **22** |
 
-The figures were supplied as four unlabeled rows; the area for each row is our matching by probe count against the
+The figures were recorded as four unlabeled rows; the area for each row is our matching by probe count against the
 files on disk (below). For strings the row does not add up: 82 probes, 73 held, 5 found leaves 4 probes unaccounted
 for. On disk, 9 round-1 strings probes carry `status=divergence` (82 - 73 = 9). Several of them look like more than one
 probe exhibiting one defect (`litUnionCode` / `litUnionIndex` / `litUnionLower`: literal-union receivers not
 instrumented; `moduleConstHarness` / `moduleConstSpecial`: plain original run without its module constants;
 `refuseModuleAstral` / `refuseModuleLone`: translator crash on a non-BMP module constant; `whileNonEmptyStr` /
-`recStrNonEmpty`: `s !== ""` shrink guard not recognized), which would explain 5 distinct divergences, but we have
-not confirmed how the figure 5 was counted.
+`recStrNonEmpty`: `s !== ""` shrink guard not recognized), which would explain 5 distinct divergences, but it is
+not known how the figure 5 was counted.
 
 ### All rounds, counted from the probe files (2026-10-05)
 

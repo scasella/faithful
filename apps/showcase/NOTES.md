@@ -1,12 +1,9 @@
-# Showcase working notes (Phase 8)
+# Showcase: implementation notes
 
-Kept as I go so a crash loses little. Newest at the bottom of each section.
+Newest at the bottom of each section.
 
 ## Findings from orientation (2026-10-05)
 
-- No real recording with candidates exists yet: every session under docs/measurements/**/sessions/** is a proof run
-  (select → translate → agree → prove → deliver). Dev sample = docs/measurements/2026-10-05-proofs-final-heldout/sessions/numeric/clamp
-  (13 events, proved, has clamp.lean).
 - Node-only spots that block the browser:
   - translate/src/program.ts: node:fs, node:path, node:module (lib d.ts reading); translate.ts: node:crypto createHash.
   - engine/src/gates/compile.ts: ts.createCompilerHost → needs ts.sys. TypeScript 5.9.3 exports `ts.setSys`, so a virtual
@@ -45,7 +42,7 @@ Kept as I go so a crash loses little. Newest at the bottom of each section.
   Web Worker.
 - Lean sidecar convention: public/recordings/<name>.lean next to <name>.json.
 
-## State at hand-off (2026-10-05)
+## Build and check (2026-10-05)
 
 - Commands: `pnpm run build` (tsc --noEmit + vite build) or `pnpm exec vite build`; `node scripts/check.mjs [--no-coi]`
   (serves dist/ with python3 -m http.server, drives installed Chrome headless); `pnpm exec vitest run apps/showcase`
@@ -57,8 +54,7 @@ Kept as I go so a crash loses little. Newest at the bottom of each section.
   (static, loaded per SMT query, cached). dist total 39 MB.
 - Measured (headless Chrome 154, this Mac): per Z3 query WASM start ~55-80 ms, total ~105-165 ms; clamp correct
   candidate: 4 queries, SMT stage ~0.5 s, whole live funnel ~0.6-0.9 s; wrong candidate rejected at differential in ~0.25-0.45 s.
-- Open: Firefox/Safari untested; undeclared deps (@preact/signals, playwright-core, z3-solver, typescript resolved from
-  apps/ui / repo root to avoid a lockfile change); Web Worker heap is not capped; first-visit SW reload.
+- Open: Firefox/Safari untested; Web Worker heap is not capped; first-visit SW reload.
 
 ## After review (2026-10-05)
 
@@ -69,4 +65,4 @@ Kept as I go so a crash loses little. Newest at the bottom of each section.
   cannot run, the recorded SMT summary is shown labelled "replayed (recorded on <date> with Z3 <version>)".
 - `run.passed` only when every stage passed (SMT "not available here" counts as not run, a no-verdict SMT does not pass).
 - base './' verified with `node scripts/check.mjs --subdir` (served from apps/showcase, opened at /dist/).
-- Root `pnpm build` green. apps/ui optimize.test.ts has 1 failing test that predates this work (files untouched since 05:34).
+- Root `pnpm build` green.

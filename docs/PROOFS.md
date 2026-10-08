@@ -2,7 +2,8 @@
 
 Date of every number below: 2026-10-05. Model `gpt-6-luna` through Codex CLI 0.159.2, Lean 4.34.0, Mathlib
 `5ed2965256430c3649e86755f9576b54eca72435`, macOS arm64. Raw results: `docs/measurements/2026-10-05-proofs-*/`
-(`results.jsonl` plus every session's `events.jsonl` / `session.json`, which hold every prompt and response verbatim).
+(`results.jsonl` and, where present, `config.json` and `run.log` are in the repository; the per-session logs,
+`events.jsonl` and `session.json`, are not published).
 Summaries were produced with `node scripts/proof-summary.mjs <dir> [--only ids]`.
 
 A proof here is always a proof about the **Lean model** of a function (docs/TRANSLATOR.md) and the agreed spec; see
@@ -86,7 +87,7 @@ Written down before any tuning run and before any held-out failure was read:
 * Population: every corpus function with `inSubset: true` in the baseline results
   (`docs/measurements/2026-10-05-proofs-low/results.jsonl`). The translator is deterministic, so this equals "not refused".
   When the rule was written the baseline run was still finishing its last three string functions; the translator accepts
-  all three, so the population is **39** functions (the brief estimated 37).
+  all three, so the population is **39** functions (the initial plan estimated 37).
 * Order: ids (`class/fn`) sorted lexicographically.
 * TUNE = 0-based index i with i mod 3 = 1; HELD-OUT = the rest. **13 TUNE, 26 HELD-OUT.**
   TUNE: array/dedupe, array/maxWindowSum, array/reverseArray, array/sum, numeric/aliquotSum, numeric/digitSum,
@@ -168,8 +169,8 @@ Run-to-run noise on 13 functions is large: the same configuration gave 2 and 3 (
   6-minute budget; in `tune-b-10x12`, 2 of the 8 proofs came at attempts 7 and 9 (`recursive/powerBySquaring` 7.2 min,
   `string/countChar` 9.6 min). Inside that same run, 6 proofs were found within 6 attempts and 6 minutes, so of its 8,
   2 are attributable to the larger budget. Cost: proof-loop minutes on TUNE went from about 46 to 77, Codex calls from
-  about 70 to 94. The UI's own default budget (3 attempts / 5 minutes, `apps/ui/src/screens/prove/proveModel.ts`) is a
-  user choice in the Prove screen and was not changed.
+  about 70 to 94. The UI default budget (`DEFAULT_BUDGET` in `apps/ui/src/screens/prove/proveModel.ts`) is also 10
+  attempts / 12 minutes and is shown in plain words before a proof starts; the user can change it on the Prove screen.
 
 Final configuration (the code defaults): proof attempts at effort `high`, guide on, `Faithful.Simp` imported by
 `Faithful.Tactics` and listed in the prompt, spec prompt unchanged, budget 10 attempts / 12 minutes in `measure.mjs`, the
@@ -241,8 +242,8 @@ counter) and `string/toCsvRow` (`Faithful.split`/`join`/`strIndexOf`), are of th
 ## Candidate proofs
 
 Date 2026-10-05; same model, toolchain and checker as above. Raw data: `docs/measurements/2026-10-05-candidates/`
-(dataset, rules, split, range screen) and `docs/measurements/2026-10-05-cproofs-*/` (`results.jsonl`, `config.json`,
-`run.log`, every proof session's events with every prompt and response). Summaries:
+(dataset, rules, split, range screen) and `docs/measurements/2026-10-05-cproofs-*/` (`results.jsonl` and, where present, `config.json` and
+`run.log`; the per-session logs are not published). Summaries:
 `node scripts/candidate-proof-summary.mjs <dir>`.
 
 ### The theorem and why it is hard
@@ -255,7 +256,7 @@ For an optimization candidate the statement is ours (`packages/cli/src/flow/cand
 
 Two obligations: RANGE (the candidate's precondition, i.e. its checked twin `f_cand_chk` never fails a range, bounds or
 divisor check, follows from the ORIGINAL's precondition: two different checked twins must be related) and EQUALITY
-(usually a loop invariant over `Model.f_cand_loopN`). Before this work the brief measured 0 proofs of about 10 candidates
+(usually a loop invariant over `Model.f_cand_loopN`). Before this work the initial plan measured 0 proofs of about 10 candidates
 in 8 sessions.
 
 ### Dataset (rules written before collection: `docs/measurements/2026-10-05-candidates/RULES.md`)
@@ -273,7 +274,7 @@ in 8 sessions.
   (`collect.jsonl`; a separate optimizer issue).
 * Split by FUNCTION (rule in RULES.md: ids sorted, i mod 3 == 1 is TUNE): **TUNE 17 candidates / 8 functions**
   (array/maxSubarraySum 6, array/spread 2, numeric/clamp 1, numeric/factorial 3, numeric/intPow 1,
-  recursive/reverseDigits 1, string/countChar 2, string/reverseString 1), **HELD-OUT 33 / 16** (`split.json`). The brief's
+  recursive/reverseDigits 1, string/countChar 2, string/reverseString 1), **HELD-OUT 33 / 16** (`split.json`). The initial plan's
   examples were read before the split: `array/spread` landed in TUNE, `numeric/fibRecursive` and `recursive/fibonacci` in
   HELD-OUT.
 * An important property of the population, known before tuning: for **11 of the 17 TUNE candidates and 16 of the 33
@@ -318,7 +319,7 @@ concurrency 3. `--lib v1` reproduces the library before this work (`Faithful.Tac
   `rangeOkOf_eq_true_iff`, `bind_eq_ok_iff`, `ck_bind_eq_ok_iff`, `drop_eq_getD_cons`, `foldl_drop_step`,
   `drop_toNat_of_length_le`, `char_toNat_cast_inj` (simp), `charCodeAt_of_lt`, `charCodeAt_eq_iff`. All proved; `#print
   axioms` lists at most `propext`, `Quot.sound`; `lake build` green. Effect on earlier proofs: all **35** accepted proofs
-  in `proofs-final-heldout`, `tune-b-10x12`, `tune-d-simp`, `tune-d-simp-r2` (which include the 20 the brief refers to)
+  in `proofs-final-heldout`, `tune-b-10x12`, `tune-d-simp`, `tune-d-simp-r2` (which include the 20 the initial plan refers to)
   still check against the new library. `faithfulLibraryHash` covers `Chk.lean`, so `faithful verify` notes the library
   change for deliveries made before it.
 * **(e) JavaScript length facts (`FAITHFUL_CANDIDATE_LENGTH_FACTS=1`): a PROPOSAL, not adopted.** See below.
@@ -378,8 +379,8 @@ excludes: only Lean values with no JavaScript counterpart (lists of more than 2^
 code units). What it does NOT do: it does not bound anything the program computes, does not relax any range, bounds or
 divisor check of either checked twin, and does not touch the checker.
 
-Why not adopted: it changes the Lean statement of the range obligation, which this brief says must not be adopted
-without that change being agreed; and on TUNE it did not yet produce a proof (spread's range part still failed with the
+Why not adopted: it changes the Lean statement of the range obligation, which must not be adopted
+without an explicit decision; and on TUNE it did not yet produce a proof (spread's range part still failed with the
 facts present, though the model stopped calling the theorem false and worked on it). It is implemented behind
 `FAITHFUL_CANDIDATE_LENGTH_FACTS=1` (default off, `DEFAULT_LENGTH_FACTS = false`) so it can be adopted by changing one
 constant after review. It would also be the honest fix for the original-proof statement if an original ever needed it.

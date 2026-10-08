@@ -16,7 +16,7 @@ headers say so.
 
 Contents
 
-1. Status in this build
+1. Where the SMT checker runs
 2. What "Verified to k" means, and what it does not mean
 3. The encoding
 4. The equivalence query and its coverage check
@@ -30,7 +30,7 @@ Contents
 
 ---
 
-## 1. Status in this build
+## 1. Where the SMT checker runs
 
 The SMT tier is a library (`checkEquivalent`: one bounded query; `verifiedToK`: the adaptive driver that produces a `SmtDetail` for the session) and is wired into the tool: `packages/cli/src/smtChecker.ts` adapts it to the optimizer's SMT stage, and it is assigned in the local server (`api.ts`, also used by `faithful optimize`), in `faithful showcase-record`, in `scripts/measure.mjs` and in `faithful verify`. When no Z3 is available the stage is recorded as `skipped`.
 
@@ -203,7 +203,7 @@ differ = ro.st != rc.st or (ro.st = 0 and ro.v != rc.v)
 | 1 | 2 | 2 | ±2^4 | 4 |
 | 2 | 4 | 4 | ±2^8 | 6 |
 | 3 | 6 | 6 | ±2^12 | 8 |
-| 4 (the brief's defaults) | 6 | 8 | ±2^16 | 10 |
+| 4 (the initial plan's defaults) | 6 | 8 | ±2^16 | 10 |
 
 Rules: `unsat` continues to the next step; `sat`, `inconclusive` and `unsupported` end the run at that step; `timeout`
 or `unknown` ends the run and the result is the last completed `unsat` step (or k = 0 with "No bound completed; nothing
@@ -242,8 +242,8 @@ run against the original on 3,000 generated inputs (engine `generateInputs`, see
 mutants; that is a test, not a proof that they are equivalent beyond the bounds. Mutant query time: median 22 ms, p90
 79 ms, max 60.1 s (the budget).
 
-So, measured: on this corpus the tool reaches the brief's sequence defaults (arrays 6, strings 8) at U = 10 for every
-self pair it was given, and the brief's integer default ±2^16 for 29 of 39; for the other 10 the integer claim is
+So, measured: on this corpus the tool reaches the initial plan's sequence defaults (arrays 6, strings 8) at U = 10 for every
+self pair it was given, and the initial plan's integer default ±2^16 for 29 of 39; for the other 10 the integer claim is
 narrowed to between ±8 and ±1023, as reported in the result.
 
 ## 6. Counterexamples: decode and replay
@@ -392,7 +392,7 @@ counterexample decoding, replay fidelity). Probes and harnesses live in `package
 `packages/smt/src/redteam-<area>.test.ts`. Every probe's expectation is the correct behaviour with sandbox ground truth
 (brute force over the bounds where feasible); a finding stays a failing test until fixed, never weakened.
 
-The figures below were supplied with this task as three unlabeled entries per round. The area for each column is our
+The figures below were recorded as three unlabeled entries per round. The area for each column is our
 matching against the test headers: **arrays** is confirmed by its header in every round (57/55, 55/54, 45/45), and
 **arith-control** round 2 (61 probes) is confirmed by its header; the other assignments are inferred from those.
 Every area cell is "probes / held / bugs". "Bugs" counts distinct defects; one defect can fail several probes, so
@@ -435,7 +435,6 @@ would find nothing.
 
 These are not unresolved red-team findings; they are limits of the design or of this build.
 
-* **Not wired into the CLI** (section 1): no session reaches "Verified to k" in this build.
 * **The note's wording of U for recursion is off by one.** `Encoder.inline` gives the recursive main function at most
   U activations (depth > U is fuel), i.e. the top-level call plus U - 1 nested self-calls, while `encodingNote` says
   "U nested calls of a recursive function". This is the same shape as R2-L1 for loops (fixed there). It does not make

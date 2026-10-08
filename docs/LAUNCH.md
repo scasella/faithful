@@ -21,7 +21,7 @@ Contents
 8. Benchmarks and how numbers are printed
 9. The SMT tier
 10. Red-team history
-11. Deviations from the brief
+11. Deviations from the initial plan
 12. Z3 in the browser
 13. Security
 14. Known limitations, and what each tier does not mean
@@ -38,7 +38,7 @@ for inputs where spec and code disagree), asks the model for a Lean proof that t
 then asks the model for faster rewrites. Each candidate rewrite goes through a funnel:
 
 compile (strict TypeScript, same signature) → purity (sample inputs, each called twice) → differential test against the
-original (up to 1,000 generated inputs) → SMT bounded equivalence (where wired, see section 9) → benchmark against the
+original (up to 1,000 generated inputs) → SMT bounded equivalence (when Z3 is available, see section 9) → benchmark against the
 original and the current best → Lean proof against the agreed spec, attempted only for a candidate that is
 significantly faster than the current best.
 
@@ -135,10 +135,8 @@ tables.
 ## 7. Optimization campaign
 
 `docs/measurements/2026-10-05-campaign/results.jsonl`: the whole workflow under the autopilot, one line per corpus
-function. It may still be running when the tables are generated; the tables then say "partial: N of M functions".
-Counts of candidate outcomes, "faster, not proved" candidates, best, median and worst speedups with their 95% CI and
-distribution, tiers of the best results, wall time, Codex calls, blocked-at-agreement and errors: see tables. Nothing in
-this section is a number until the tables say so.
+function. Counts of candidate outcomes, "faster, not proved" candidates, best, median and worst speedups with their 95% CI and
+distribution, tiers of the best results, wall time, Codex calls, blocked-at-agreement and errors: see tables.
 
 ## 8. Benchmarks and how numbers are printed
 
@@ -160,11 +158,10 @@ every claim (arrays and strings up to k, integers within a range, at most U iter
 recursive calls; inputs needing more than U are excluded and the coverage check says so). It says nothing about the
 spec and nothing outside the bounds. Definition and limits: [docs/SMT.md](SMT.md).
 
-Wiring, as the code stands today: the SMT checker (`packages/cli/src/smtChecker.ts`) is set on the session runtime by
-the UI server (`packages/cli/src/api.ts`), by `faithful showcase-record` and by `scripts/measure.mjs`. The headless
-`faithful optimize` command does not set it (its SMT stage is recorded as skipped), and `faithful verify` reports a
-recorded Verified-to-k claim as "NOT re-checked". docs/TIERS.md ("Status in this build") and docs/SMT.md section 1 still
-say the CLI never calls the SMT tier; that text predates the wiring and is stale for the UI server and measure.mjs.
+Wiring: the SMT checker (`packages/cli/src/smtChecker.ts`) is set by the UI server and `faithful optimize` (both
+through `createApi`), by `faithful showcase-record`, by `faithful verify` and by `scripts/measure.mjs`. When no Z3 is
+available (neither the WASM build nor a system binary) the stage is recorded as skipped, and `faithful verify` says a
+recorded Verified-to-k claim was NOT re-checked.
 
 ## 10. Red-team history
 
@@ -178,7 +175,7 @@ that differs on every input was reported "Verified to k" because the checked set
 section and the coverage check. Round 3 ran 408 probes and found 0 bugs. That covers the probes listed; it is not
 evidence that a further round would find nothing. Details: docs/SMT.md section 10.
 
-## 11. Deviations from the brief
+## 11. Deviations from the initial plan
 
 1. **Funnel order: benchmark before proof.** A candidate's Lean proof is attempted only when it is significantly faster
    than the current best, so proof time is not spent on candidates that could not become the result.
@@ -190,7 +187,7 @@ evidence that a further round would find nothing. Details: docs/SMT.md section 1
    2026-10-05 and now matches the backend; the UI shows the budget in plain words before a proof starts). The candidate
    proof flow uses its own budget (docs/measurements/2026-10-05-cproofs-*/config.json).
 5. **SMT bounded by U.** Loops and recursion are unrolled to U; inputs needing more are excluded and the claim says so
-   (section 9). Not wired into headless `faithful optimize` or `faithful verify`.
+   (section 9).
 6. **Autopilot as the user.** Every measurement uses the scripted user policy in `packages/cli/src/flow/autopilot.ts`,
    recorded in each result. A real user who rules differently gets different specs and different proof difficulty.
 7. **Z3 in the browser only with cross-origin isolation** (section 12).
@@ -230,19 +227,18 @@ What each label does **not** mean is in [docs/TIERS.md](TIERS.md); in short:
 Other limits:
 
 * The subset is narrow (section 3); real library code, as sampled, is outside it.
-* Fewer than half of the in-subset functions get a proof of the original at the shipped defaults (section 5), and a
-  failing proof costs about 12 minutes.
+* At the shipped defaults, 12 of the 26 held-out in-subset functions and 20 of the 39 in the campaign get an accepted
+  proof of the original (section 5); the rest do not, and a failing proof costs about 12 minutes.
 * Speedups hold for the declared distribution, this machine and this Node version only.
 * Proofs written against the earlier `Faithful.Tactics` can stop compiling under `Faithful.Simp` (1 of 20 re-checked
   did; docs/PROOFS.md "Limits"), so `faithful verify` on an older delivery can fail.
-* SMT tier wiring and documentation gaps as in section 9.
 
 ## 15. Reproducing
 
 ```
 pnpm install && pnpm build
 node packages/cli/dist/bin.js doctor
-node packages/cli/dist/bin.js setup                  # states the cost first
+node packages/cli/dist/bin.js setup --yes            # installs; without --yes it only states the cost
 
 # corpus coverage
 node --experimental-strip-types packages/engine/scripts/corpus-report.ts --differential
@@ -261,6 +257,11 @@ pnpm --filter @faithful/showcase build
 node apps/showcase/scripts/check.mjs
 node scripts/make-media.mjs apps/showcase/public/recordings/<recording>.json
 ```
+
+The raw per-session logs (`docs/measurements/**/sessions/`, 734 MB) are not in the repository. `scripts/proof-summary.mjs`
+reads them, and `scripts/launch-tables.mjs` reads them for the toolchain and the measured-on distribution of the
+campaign tables. Without them the script uses the reader's own toolchain and a generic distribution label, so a re-run
+of the tables differs in those two places.
 
 ## 16. Tables (generated)
 
@@ -460,10 +461,10 @@ Source: `docs/measurements/2026-10-05-campaign/results.jsonl`, campaign function
 ## Campaign caveats (read with the tables above)
 
 * **What ran.** `scripts/measure.mjs --corpus --concurrency 3 --minutes 8 --proof-attempts 10 --proof-minutes 12` on 2026-10-05, after the code and the Lean library were frozen (an earlier run of the same campaign was discarded because the Lean library changed while it was running; its partial files are not part of any number here). The user's decisions were made by the autopilot policy recorded in each result (throw as a precondition; up to 2 "the spec is wrong" revisions, then the first carve-out class; Agree when no disagreement remains; faster-but-not-proved candidates never accepted).
-* **The machine was shared.** Three campaign sessions ran at once, and for part of the time two real showcase recordings and, earlier, a tuning agent ran alongside them. Benchmarks were therefore measured on a loaded machine. The intervals are real bootstrap intervals over those measurements, so noise shows up as width, but a "faster" verdict here may not reproduce on an idle machine, and small speedups (1.05×–1.1×) in particular should be re-measured before being relied on.
+* **The machine was shared.** Three campaign sessions ran at once, and for part of the time two real showcase recordings and, earlier, a tuning run ran alongside them. Benchmarks were therefore measured on a loaded machine. The intervals are real bootstrap intervals over those measurements, so noise shows up as width, but a "faster" verdict here may not reproduce on an idle machine, and small speedups (1.05×–1.1×) in particular should be re-measured before being relied on.
 * **Candidates mostly stop short of Proved.** Of the candidates the model proposed, most that were significantly faster could not be proved: either the candidate is outside the verifiable subset (it uses `Math.sqrt`, non-integer division, data-dependent loop bounds, `push`, `Set`), or Lean did not accept a proof within the budget (the range obligation is the usual blocker, see PROOFS.md "Candidate proofs"). The tool reports these as "faster, not proved" and never promotes them. Candidate-proof tuning on the TUNE split (17 candidates) proved 1 or 2 per configuration, which is inside the run-to-run noise of about ±2; the HELD-OUT run was not performed because the TUNE result met the written stop rule. Lever E (length facts) is proposed in PROOFS.md and NOT adopted: it changes the Lean statement and needs an explicit decision.
 * **One error row.** `recursive/powerBySquaring`: the optimizer's baseline benchmark faulted on a generated input outside what the original can run quickly; the original was proved but no candidate could be benchmarked. This is a known optimizer limitation (benchmark inputs are drawn from the declared distribution without an input screen), recorded, not fixed.
 * **Speedups are on declared, auto-calibrated distributions** (each row names its distribution); they are not general performance claims. The speedups of proved incumbents are small (best 1.6×) because the model's large wins (e.g. 26× for an aliquot sum, 60,000× for iterative Fibonacci) used constructs the translator refuses or produced loops whose range obligation Lean did not close.
-* **Showcase opener.** The showcase now opens on a landing page whose default recording is `clamp` (the real Z3 catch). `aliquotSum` stays in the menu with a caution: it was recorded before the spec-fault fix (docs/LAUNCH-NOTES.md), shows Lean evaluation faults as disagreements and two carve-outs made because of them. It was previously the default recording (`aliquotSum-r3` in `docs/measurements/showcase-select2/`, shipped as `apps/showcase/public/recordings/aliquotSum.json`): two candidates about 27× faster that the tool declines to prove (outside the verifiable subset, so they stay at Tested), then a third that Z3 verifies to k=6 and Lean proves against the agreed spec, but only for n < 0: the two carve-outs exclude n = 0 and every positive n, so the proof covers negative n (where the original returns 0) and nothing else. Its 1.92× (95% CI 1.92–1.94) was measured on `auto: n: integer in [0, n]` at n = 1024, 2048, 4096, entirely outside what the proof covers. This is a deviation from the target story ("first candidate rejected by the proof or SMT tier for a real reason, second proved and measurably faster"): the first two candidates are not rejected for being wrong, they are not provable. The selection ran 15 real sessions (fibRecursive ×8 incl. `fibonacci`, aliquotSum ×3, spread ×4) and none showed a wrong candidate caught and then a proved faster one in the same session.
+* **Showcase opener.** The showcase now opens on a landing page whose default recording is `clamp` (the real Z3 catch). `aliquotSum` stays in the menu with a caution: it was recorded before the spec-fault fix, shows Lean evaluation faults as disagreements and two carve-outs made because of them. It was previously the default recording (`aliquotSum-r3` in `docs/measurements/showcase-select2/`, shipped as `apps/showcase/public/recordings/aliquotSum.json`): two candidates about 27× faster that the tool declines to prove (outside the verifiable subset, so they stay at Tested), then a third that Z3 verifies to k=6 and Lean proves against the agreed spec, but only for n < 0: the two carve-outs exclude n = 0 and every positive n, so the proof covers negative n (where the original returns 0) and nothing else. Its 1.92× (95% CI 1.92–1.94) was measured on `auto: n: integer in [0, n]` at n = 1024, 2048, 4096, entirely outside what the proof covers. The first two candidates are not rejected for being wrong, they are not provable. The selection ran 15 real sessions (fibRecursive ×8 incl. `fibonacci`, aliquotSum ×3, spread ×4) and none showed a wrong candidate caught and then a proved faster one in the same session.
 * **A real Z3 catch exists, in a different session.** In the campaign, `numeric/clamp` candidate 2 was rejected by Z3, which found the input `[-2,-1,-3]` where it differs from the original; the session ends with the original (candidate 1 was verified but not significantly faster). It is shipped as the `clamp` recording, the unmodified campaign event log. `fibRecursive` (`fibRecursive-r5`) is shipped as a third recording: the iterative candidate's equality with the spec was proved, the range part was not, so it stays "faster, verified to k, not proved".
 * **Raw session logs are not in git** (734 MB); results, splits, rules and notes are. `docs/measurements/**/sessions/` holds them locally.

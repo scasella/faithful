@@ -1,11 +1,12 @@
-// Screenshots of the Simple Pick step against a REAL server on a SMALL TEMP COPY of a repository (not a fixture), for
-// docs/media/gui/simple/pick-first-*, pick-cannot-open-* and pick-tested-offer-*. Not part of the build or the tests.
+// Screenshots of the Simple Pick step against a REAL server on a SMALL TEMP COPY of a repository (not a fixture).
+// Writes pick-first-*, pick-cannot-open-* and pick-tested-offer-* to the <outDir> you pass. Not part of the build or the
+// tests.
 //
 //   node packages/cli/dist/bin.js --repo <a temp repo, no .git> --port <p> --no-open        (separately; a THROWAWAY dir:
 //        opening a function writes <repo>/.faithful, so never point it at a real repository)
 //   node scripts/shoot-pick-live.mjs <outDir> http://127.0.0.1:<p>/ <function to open for the Tested offer, e.g. distance>
 //
-// The temp repo this was made with (see docs/LAUNCH-NOTES.md, "Pick list over the whole repository") has: provable
+// The temp repo this was made with has: provable
 // functions (clamp, digitSum, factorial), a float function that is Tested-only (distance: Math.sqrt), a function in a file
 // with an import it does not use (countWords; its sibling lineId uses createHash and can't run), an overloaded function
 // (pad), and one that never finishes (drain: "Checking took longer than 3 seconds; not run.").

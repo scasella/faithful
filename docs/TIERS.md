@@ -107,10 +107,7 @@ and counts as a counterexample only when the replayed outcomes really differ; ot
 **Does not mean.** Nothing about larger arrays or strings, wider integers, or inputs needing more iterations; nothing
 about the spec (it compares candidate with original only); not a proof.
 
-**Status in this build.** The SMT checker is wired: `packages/cli/src/smtChecker.ts` adapts `verifiedToK` to the optimizer, and it is assigned in the local server (`api.ts`, which `faithful optimize` also uses), in `faithful showcase-record`, in `scripts/measure.mjs` and in `faithful verify`. A candidate that passes the SMT stage is recorded at `verified-to-k` with the k that completed; a candidate outside the verifiable subset has the SMT stage recorded as `skipped` with the reason. If no Z3 is available (neither the WASM build nor a system binary), the stage is `skipped` and `faithful verify` says that a recorded Verified-to-k claim was NOT re-checked.
-
-The label, the provenance claim kind `candidate-vs-original-smt`, and the delivery logic for it exist and are
-described below so that recordings and future wiring are read correctly.
+**Where the SMT checker runs.** The SMT checker is wired: `packages/cli/src/smtChecker.ts` adapts `verifiedToK` to the optimizer, and it is assigned in the local server (`api.ts`, which `faithful optimize` also uses), in `faithful showcase-record`, in `scripts/measure.mjs` and in `faithful verify`. A candidate that passes the SMT stage is recorded at `verified-to-k` with the k that completed; a candidate outside the verifiable subset has the SMT stage recorded as `skipped` with the reason. If no Z3 is available (neither the WASM build nor a system binary), the stage is `skipped` and `faithful verify` says that a recorded Verified-to-k claim was NOT re-checked.
 
 ### Tested
 
@@ -259,8 +256,6 @@ requires its tier to be `verified-to-k`. The acceptance is marked as:
 * the patch header comment `// Optimized by Faithful (<label>)`, which carries the delivered tier's label;
 * in the UI: "You accepted this candidate below the proof tier. The delivery marks it as not proved."
 
-In this build no candidate reaches `verified-to-k` (see above), so this path is not reachable from the CLI.
-
 ## How the evidence line is built
 
 `buildEvidenceBlock` (`packages/engine/src/evidence/evidence.ts`) emits one sentence per piece of evidence that exists,
@@ -284,8 +279,8 @@ have lo ≤ hi, and the whole text must pass `lintEvidenceText`.
 
 Two other builders exist and differ from this one in their sources:
 
-* `faithful verify` builds a line from the Lean axioms it re-checked, with the differential count hard-coded to 300 (the
-  size of its own model check) rather than the number of inputs that check actually agreed on.
+* `faithful verify` builds a line from the Lean axioms it re-checked, using the number of inputs its own model check
+  (300 generated, seed 99) agreed on.
 * The UI builds its own line (`apps/ui/src/lib/evidence.ts`) from session state. Its "differential inputs" count is the
   candidate-versus-original differential count (`compared`), its Proved sentence uses the candidate's model check, and
   it appends a note when that model check found disagreements.
@@ -293,10 +288,8 @@ Two other builders exist and differ from this one in their sources:
 ## Delivered tier
 
 `deliver` sets `deliveredTier` to the strongest tier the incumbent reached: an accepted proof (by its axioms), else an
-`unsat` SMT result, else `tested`. With no incumbent it is the original's proof tier, or `not-proved`. The comment on
-`Provenance.deliveredTier` in `packages/session/src/provenance.ts` says "the weakest tier among claims the delivery
-rests on"; the code does not compute a weakest tier, and the separate claims in `provenance.json` each carry their own
-tier.
+`unsat` SMT result, else `tested`. With no incumbent it is the original's proof tier, or `not-proved`. The separate claims in
+`provenance.json` each carry their own tier.
 
 ## What would make each claim false
 
@@ -311,11 +304,10 @@ tier.
 | Proved | the agreed spec is not what you meant | challenge search before agreement; spec shown line by line in English and Lean | your reading of the spec |
 | Proved (candidate) | the candidate differs from the original | candidate = spec and original = spec together imply it on the model; differential test | if the original's theorem was not proved, only the differential test links candidate to original |
 | Proved (trusting the compiler) | Lean's compiler or runtime evaluates a `native_decide` proposition wrongly | nothing beyond Lean itself | the reason for the separate label |
-| Verified to k | the SMT encoding of the IR differs from JavaScript on some input within the bounds | `sat` answers are replayed in the sandbox; SMT sanity mode against Lean `#eval` | unreachable in this build (`rt.smt` never set) |
+| Verified to k | the SMT encoding of the IR differs from JavaScript on some input within the bounds | `sat` answers are replayed in the sandbox; SMT sanity mode against Lean `#eval` | bounded by k and U, stated in `encodingNote` |
 | Verified to k | the difference needs a larger input, wider integers or more iterations | none: stated in `encodingNote` | by design |
 | Tested | the candidate differs on an input that was not generated | up to 1,000 generated inputs; the mutation check reports whether these inputs notice broken copies | by design |
 | Tested | the candidate differs only where the original throws, with the throw-as-precondition choice | intended: those inputs are excluded by the `no-throw` precondition | by design |
 | `N differential inputs` (deliver) | read as the candidate-versus-original count | the piece's source is documented above | the UI and `deliver` use different counts under the same words |
-| evidence line from `faithful verify` | read as 300 agreeing inputs | its "model vs TypeScript" check line prints the real agreement count | the evidence line itself says 300 |
 | `<r>× faster` | the speed-up does not hold on your inputs, machine or Node version | non-overlapping intervals (each a 95% CI of the median) on the declared distribution (docs/BENCH.md) | the claim is about the declared distribution on the measuring machine only |
 | Not proved | (it is the absence of a claim) | | |

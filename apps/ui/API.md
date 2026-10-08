@@ -100,7 +100,7 @@ Measured on this repository (1,518 files, 2,088 functions; Node 25, a laptop; fo
 server, built `dist`). These are the numbers of the first version of the scan; after the second review round (the
 translator no longer repeats per-file work per function, chunked pausing, abort of an abandoned preflight) the whole scan
 takes 19 to 20 s on 1,519 files and 2,095 functions, with the same first screen at about 2 s and event-loop stalls of
-5 to 10 ms: see docs/LAUNCH-NOTES.md, "Review round 2".
+5 to 10 ms.
 
 | | before (main thread, one sandbox) | now (two workers) |
 |---|---|---|
@@ -280,8 +280,8 @@ appears only with provedSentence(N).
 **N** comes only from `SessionState.modelChecks` (`model.checked` events): for a candidate's "Proved", the check with
 `subject: "candidate"` and that `candidateId`; for the original's, the latest check with `subject: "original"`. When
 none exists the UI withholds the label ("Lean proof accepted") and says why. When the check also found disagreements
-between the Lean model and the TypeScript, that count is shown beside the sentence. (In this build the server records
-the original's check when it writes the delivery, and none for candidates; their labels stay withheld until it does.)
+between the Lean model and the TypeScript, that count is shown beside the sentence. (The server records the original's
+check when its proof is accepted, and a candidate's check, on 600 inputs, when the candidate's proof is accepted.)
 
 Candidate proof attempts carry no call ids in the detail: the UI finds their "What the model saw" by event order
 (`proof-attempt` calls recorded between that candidate's `candidate.proposed` and the next one).
