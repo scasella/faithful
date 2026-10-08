@@ -36,31 +36,48 @@ scores, grades or percentages.
 
 ## Install
 
-Requires Node 22.12 or later, pnpm, the Codex CLI (for model calls), and about 7 GB of disk for the Lean/Mathlib cache.
+Requires Node 22.12 or later, pnpm, the Codex CLI (for model calls), and about 12 GB of free disk for the Lean toolchain
+and the Mathlib cache (what `faithful doctor` checks).
 
 ```
 pnpm install
 pnpm build
 node packages/cli/dist/bin.js doctor     # checks Node, Codex, Lean, Mathlib cache, Z3, disk
-node packages/cli/dist/bin.js setup      # installs and caches the Lean toolchain; states the cost first
+node packages/cli/dist/bin.js setup --yes   # installs and caches the Lean toolchain (run without --yes to read the cost first)
 ```
 
 `faithful` below means `node packages/cli/dist/bin.js` (or `pnpm faithful <command>` from the repository root).
 `faithful setup` states its cost before it starts: the pinned Lean toolchain (about 0.4 GB) and the Mathlib build cache
-(about 2 GB to download, about 7 GB on disk), about 1 to 15 minutes depending on your connection. Lean is installed under
-`~/.elan` only with `--install-elan`.
+(about 2 GB to download, about 7 GB on disk), about 1 to 15 minutes depending on your connection. Without `--yes` it
+prints this and downloads nothing. If elan is not installed, `setup` stops unless you also pass `--install-elan`, which
+runs elan's official installer and installs Lean under `~/.elan`.
 
 ## Usage
 
 ```
 faithful                                  # open the browser UI for the repository in the current directory
-faithful optimize <file> --fn <name>      # run the workflow headlessly
+faithful --repo <path>                    # ... or for another repository
+faithful optimize <file> --fn <name> --repo <path>   # run the workflow headlessly; <file> is relative to --repo
 faithful optimize <file> --fn <name> --tested   # if the translator refuses the function, continue on the Tested tier only
 faithful verify .faithful/<fn>            # re-check a delivered result without trusting it
 faithful showcase-record <file> --fn <name>     # record a full session for the static showcase
 ```
 
-Environment: `FAITHFUL_MODEL` (default `gpt-6-luna`), `FAITHFUL_EFFORT`, `FAITHFUL_LEAN_DIR`.
+`pnpm faithful` runs in the Faithful checkout, so the current directory is Faithful itself: pass `--repo` to point it at
+your own code (without `--repo`, `optimize` also uses the current directory). The UI also takes `--port <n>` and
+`--no-open`; the browser opens by itself on macOS only, elsewhere open the URL it prints. `optimize` also takes
+`--minutes N` (optimizer time budget, default 10), `--proof-attempts N` (default 10), `--proof-minutes N` (default 12)
+and `--yes` (do not ask: treat a throw as a precondition, agree to the spec, never accept a faster-but-not-proved
+candidate).
+
+Environment: `FAITHFUL_MODEL` (default `gpt-6-luna`), `FAITHFUL_EFFORT` (default `low`; it also applies to proof attempts
+unless `FAITHFUL_PROOF_EFFORT` is set), `FAITHFUL_PROOF_EFFORT` (default `high`), `FAITHFUL_CODEX_BIN`,
+`FAITHFUL_CODEX_TIMEOUT_MS` (default 300000), `FAITHFUL_Z3_BIN`, `FAITHFUL_LEAN_DIR`.
+
+### Try it
+
+[examples/demo](examples/demo/README.md) holds five small functions. Start the UI on them with
+`node packages/cli/dist/bin.js --repo examples/demo`; the README there says what to expect.
 
 ## The workflow in six steps
 
@@ -93,7 +110,7 @@ differential inputs is rejected because Z3 found the input [-2,-1,-3], on which 
 returns -1. The local UI shows the same landing page as its start screen when you tick "Show this page when Faithful
 opens" (kept in a session cookie).
 
-showcase: build with `pnpm --filter @faithful/showcase build`
+Build it with `pnpm --filter @faithful/showcase build`; the output is `apps/showcase/dist`.
 
 **Z3 in the browser.** `z3-solver` 5.2.0 needs `SharedArrayBuffer`, so it works only with cross-origin isolation. The
 showcase gets it on static hosting from the vendored coi-serviceworker 0.1.7, which reloads the page once on the first
@@ -103,8 +120,9 @@ Safari are untested.
 ## Media
 
 The demo media is produced by `node scripts/make-media.mjs <recording>` from a real recorded session under
-`apps/showcase/public/recordings/` (the script refuses fixtures and the development sample). If the files below are
-missing, they have not been generated yet. The current files come from `apps/showcase/public/recordings/clamp.json`.
+`apps/showcase/public/recordings/` (the script refuses fixtures, and the development sample unless told otherwise). It
+needs Chrome (set `CHROME` if it is not the macOS app path) and ffmpeg, and records the built showcase. The current files
+come from `apps/showcase/public/recordings/clamp.json`.
 
 ![Faithful replaying a recorded session](docs/media/faithful-demo.gif)
 
@@ -138,5 +156,8 @@ lean/                Lake project: pinned Lean 4.34.0 + Mathlib, Faithful runtim
 
 ## License and attribution
 
-MIT ([LICENSE](LICENSE)). Code adapted from other projects, the library sample's sources and the vendored service
-worker are listed in [NOTICE.md](NOTICE.md).
+MIT ([LICENSE](LICENSE)). Code adapted from other projects, the library sample's sources, the vendored service worker
+and the third-party software shipped in the showcase are listed in [NOTICE.md](NOTICE.md).
+
+Faithful runs the Codex CLI, Lean 4 with Mathlib, and Z3 as separate tools on your machine. It does not redistribute
+them, except Z3's WASM build in the static showcase, and it is not affiliated with their authors.

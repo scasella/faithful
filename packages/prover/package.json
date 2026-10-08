@@ -1,5 +1,6 @@
 {
   "name": "@faithful/prover",
+  "description": "Lean project management, proof checking, axiom classification and the Codex driver for specs and proofs.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

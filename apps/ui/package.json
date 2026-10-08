@@ -1,5 +1,6 @@
 {
   "name": "@faithful/ui",
+  "description": "Browser UI for Faithful, served by the CLI.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

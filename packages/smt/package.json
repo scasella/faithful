@@ -1,5 +1,6 @@
 {
   "name": "@faithful/smt",
+  "description": "Encodes the translator IR as SMT-LIB and runs Z3 for bounded equivalence checks (Verified to k).",
   "version": "0.1.0",
   "private": true,
   "type": "module",

@@ -12,15 +12,22 @@ const USAGE = `faithful: make a TypeScript function faster while Lean 4 checks t
 
 Usage:
   faithful                          open the browser UI for the repo in the current directory
+                                    (--repo <path>: a different repo; --port <n>; --no-open; the browser opens by itself on macOS only)
   faithful optimize <file> --fn <name>   run the workflow headlessly
-                                    (--tested: if the translator refuses the function, continue on the Tested tier only;
+                                    (<file> is relative to --repo, default the current directory;
+                                     --minutes <n>: optimizer time budget, default 10; --proof-attempts <n>, default 10;
+                                     --proof-minutes <n>, default 12; --yes: do not ask; treat a throw as a precondition, agree to the spec,
+                                     never accept a faster-but-not-proved candidate;
+                                     --tested: if the translator refuses the function, continue on the Tested tier only;
                                      --specials: there, also generate NaN, Infinity, -Infinity and -0 as inputs)
   faithful verify .faithful/<fn>    re-check a delivered result without trusting it
   faithful doctor                   check Node, Codex, Lean, Mathlib cache, Z3, disk
-  faithful setup [--yes] [--install-elan]   install and cache the Lean toolchain (states cost first)
+  faithful setup [--yes] [--install-elan]   install and cache the Lean toolchain (without --yes it states the cost and stops)
   faithful showcase-record          record a full session for the static showcase
 
-Environment: FAITHFUL_MODEL (default gpt-6-luna), FAITHFUL_EFFORT (default low), FAITHFUL_LEAN_DIR.
+Environment: FAITHFUL_MODEL (default gpt-6-luna), FAITHFUL_EFFORT (default low; also applies to proof attempts unless
+FAITHFUL_PROOF_EFFORT is set), FAITHFUL_PROOF_EFFORT (default high), FAITHFUL_CODEX_BIN, FAITHFUL_CODEX_TIMEOUT_MS
+(default 300000), FAITHFUL_Z3_BIN, FAITHFUL_LEAN_DIR.
 `;
 
 function flag(args: string[], name: string): boolean {

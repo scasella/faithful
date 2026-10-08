@@ -1,5 +1,6 @@
 {
   "name": "@faithful/core",
+  "description": "Result labels and the Proved sentence, toolchain stamp, subprocess runner and .faithful store for Faithful.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

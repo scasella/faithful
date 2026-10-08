@@ -1,5 +1,6 @@
 {
   "name": "@faithful/showcase",
+  "description": "Static site that replays recorded Faithful sessions and re-runs the funnel in the browser.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

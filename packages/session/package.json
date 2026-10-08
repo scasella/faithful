@@ -1,5 +1,6 @@
 {
   "name": "@faithful/session",
+  "description": "Event-sourced session state shared by the Faithful CLI, UI and showcase.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

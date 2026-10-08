@@ -1,5 +1,6 @@
 {
   "name": "@faithful/translate",
+  "description": "Deterministic translator from a subset of TypeScript to a Lean 4 model, with no model call.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "faithful-monorepo",
+  "description": "Faithful: makes a TypeScript function faster and reports each result at the strongest label its evidence supports.",
   "private": true,
   "version": "0.1.0",
   "type": "module",

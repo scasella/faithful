@@ -1,5 +1,6 @@
 {
   "name": "@faithful/cli",
+  "description": "The faithful command line, its local server and the autopilot used for measurements.",
   "version": "0.1.0",
   "private": true,
   "type": "module",
