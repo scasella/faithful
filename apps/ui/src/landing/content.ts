@@ -152,4 +152,4 @@ export const TOOLCHAIN_STAMP = ['Lean 4.34.0 · Mathlib 5ed2965', 'z3-solver 5.2
 export const COMMANDS = ['faithful doctor', 'faithful optimize src/math.ts --fn clamp', 'faithful verify .faithful/clamp'];
 
 /** README.md, "Install". */
-export const REQUIREMENTS = 'Needs Node 22.12 or later, pnpm, the Codex CLI, and about 7 GB of disk for the Lean/Mathlib cache.';
+export const REQUIREMENTS = 'Needs Node 22.12 or later, pnpm, the Codex CLI (signed in), and about 12 GB of free disk for Lean and Mathlib.';

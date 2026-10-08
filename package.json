@@ -5,6 +5,15 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
+  "author": "Stephen Casella",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scasella/faithful.git"
+  },
+  "homepage": "https://github.com/scasella/faithful#readme",
+  "bugs": {
+    "url": "https://github.com/scasella/faithful/issues"
+  },
   "engines": {
     "node": ">=22.12.0"
   },

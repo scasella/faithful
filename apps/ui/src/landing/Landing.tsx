@@ -416,7 +416,7 @@ export function Landing({ variant, onEnter }: LandingProps) {
             <h1 id="hero-h" tabIndex={-1}>
               Make one function faster.
               <br />
-              Prove it still does the same thing.
+              Know exactly what was checked.
             </h1>
             <p class="ld-lede">
               Faithful hands a TypeScript function to a model for faster rewrites, then refuses to believe it. Every rewrite runs a gauntlet of
