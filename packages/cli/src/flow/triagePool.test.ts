@@ -107,6 +107,9 @@ describe('worker pool', () => {
   it('a quick request that keeps signing of life is not a stall; one that stays silent is killed and says it ran out of time (TriageTimeout), not that it failed', async () => {
     const p = createTriagePool({ size: 1, quickMs: 300, entry: new URL('./triageWorker.fixture.ts', import.meta.url) });
     try {
+      // warm the worker first: its cold start (a worker thread loading TypeScript source) counts against the 300 ms
+      // silence budget and, in a full parallel run on a busy machine, can exceed it; what is tested is the stall rule
+      expect((await p.quick(HALF)).fns).toHaveLength(1);
       // 700 ms of work, a sign every 100 ms: longer than the 300 ms silence budget, still alive
       const q = await p.quick(GCD + '// beats\n');
       expect(q.fns.map((f) => f.name)).toEqual(['gcd']);
