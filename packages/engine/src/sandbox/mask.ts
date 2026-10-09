@@ -249,11 +249,19 @@ export function hardenRealm(scope: object = globalThis): string[] {
   }
   const scrub = [
     'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'BroadcastChannel', 'MessageChannel', 'MessagePort',
-    'Request', 'Response', 'Headers', 'FormData', 'navigator', 'WebAssembly', 'SharedArrayBuffer', 'Atomics',
+    'Request', 'Response', 'Headers', 'FormData', 'MessageEvent', 'CloseEvent', 'ErrorEvent', 'navigator', 'WebAssembly',
+    'SharedArrayBuffer', 'Atomics',
   ];
   for (const n of scrub) {
     try {
       if (!(n in scope)) continue;
+      // Node exposes Request, Response, Headers, FormData, WebSocket, MessageEvent (and CloseEvent, ErrorEvent on newer
+      // versions) as lazy globals backed by its bundled undici, whose start-up compiles WebAssembly. Redefining one of
+      // them, or reading its descriptor (installMask does that for every global), loads undici; if WebAssembly has been
+      // scrubbed by then, the worker dies with "Cannot read properties of undefined (reading 'instantiate')" (Node 22).
+      // So these names are in the list above, and each is deleted before it is defined: a deleted property is never
+      // loaded. The end state is the same on every Node version.
+      deleteProp(scope, n);
       defineProp(scope, n, { value: undefined, writable: false, configurable: false, enumerable: false });
       changed.push(n);
     } catch {

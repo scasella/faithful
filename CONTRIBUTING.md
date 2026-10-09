@@ -26,6 +26,11 @@ are skipped, not passed. Run them without the variable, after `setup --yes`, bef
 the Lean library or the SMT encoding; CI's second job (`lean`) does the same. Real Codex runs are slow and are not part of
 the tests.
 
+CI runs the suite on Node 22, the oldest line `engines` allows, and the sandbox's start-up is sensitive to the Node
+version: Node 22 loads its bundled undici lazily, and undici compiles WebAssembly, which the sandbox worker removes from
+its global scope (`hardenRealm` in `packages/engine/src/sandbox/mask.ts`). A change to the worker's start-up or to the
+masked globals should be run under Node 22 as well as your own version (`nvm use 22`, then the engine tests).
+
 The screenshot and media scripts (`apps/ui/scripts/*.mjs`, `apps/showcase/scripts/check.mjs`, `scripts/make-media.mjs`)
 drive headless Chrome, which they look for at the macOS application path; set `CHROME=/path/to/chrome` elsewhere.
 `make-media.mjs` also needs ffmpeg.
