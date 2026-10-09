@@ -78,3 +78,6 @@ From docs/LAUNCH.md, section 14 and "Campaign caveats". What each label does not
 * The execution sandbox catches accidents and is not a security boundary: model-written code runs on your machine with
   your user's rights (docs/SECURITY.md).
 * Red-teaming of the translator stopped after round 4 by decision, not because it ran dry.
+* Continuous integration runs the fast tier of the test suite on Node 22 (without twelve heavy or timing-sensitive suites: red-team, corpus, Z3 and benchmark tests, which
+  do not finish within their budgets or are not reliable on a shared hosted runner); the whole suite, 3,807 tests, passes on a developer machine (2026-10-09,
+  Apple M4 Pro, Node v22.23.3, Lean 4.34.0). See CONTRIBUTING.md.

@@ -1,7 +1,7 @@
 /**
  * Test fixture, never part of the build: a triage worker that stalls (a synchronous loop) on a function named `stall` and
  * dies (process exit) on one named `crash`, and otherwise does what ./triageWorker.ts does. A `quick` request whose text
- * contains `// beats` works for 700 ms while posting signs of life; one containing `// silent` says nothing for 4 s. Used by triagePool.test.ts to
+ * contains `// beats` works for 1400 ms while posting signs of life every 200 ms; one containing `// silent` says nothing for 4 s. Used by triagePool.test.ts to
  * check that the pool survives a worker that stops answering or dies, keeps what was decided, and carries on.
  */
 import { parentPort } from 'node:worker_threads';
@@ -17,7 +17,7 @@ const open = (): Promise<Sandbox> => (sandbox ??= Sandbox.open());
 port.on('message', (m: ToWorker) => {
   void (async () => {
     if (m.op === 'quick') {
-      if (m.text.includes('// beats')) for (let i = 0; i < 7; i++) (await new Promise((r) => setTimeout(r, 100)), post({ type: 'beat', id: m.id }));
+      if (m.text.includes('// beats')) for (let i = 0; i < 7; i++) (await new Promise((r) => setTimeout(r, 200)), post({ type: 'beat', id: m.id }));
       if (m.text.includes('// silent')) await new Promise((r) => setTimeout(r, 4000));
       return post({ type: 'done', id: m.id, quick: quickInfo(m.text) });
     }

@@ -1,0 +1,24 @@
+name: heavy
+# The whole suite, including the heavy red-team and corpus suites that ci.yml leaves out (see HEAVY_SUITES in
+# vitest.config.ts). Run by hand: Actions > heavy > Run workflow. On a developer machine it is `pnpm test`.
+# On an Apple M4 Pro with 14 cores (Node v22.23.3, Lean 4.34.0, 2026-10-09) the whole suite takes 473 seconds and passes.
+# On a GitHub-hosted runner it has not been shown to pass: the first attempt, on 2026-10-09, timed out in Z3 queries that
+# have fixed 120 s budgets, so read a failure here as a statement about the runner's speed until it has been looked at.
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  heavy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: leanprover/lean-action@v1
+        with: { lake-package-directory: lean, build: false, test: false, use-github-cache: true }
+      - run: pnpm install --frozen-lockfile
+      - run: cd lean && lake exe cache get && lake build
+      - run: pnpm build
+      - run: pnpm test
